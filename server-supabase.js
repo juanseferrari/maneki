@@ -121,9 +121,9 @@ app.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
       .insert({
         original_name: req.file.originalname,
         stored_name: fileName,
-        size: req.file.size,
+        file_size: req.file.size,
         mime_type: req.file.mimetype,
-        file_path: uploadData.path,
+        storage_path: uploadData.path,
         public_url: urlData.publicUrl,
         user_id: req.user.id,
         processing_status: 'pending'
@@ -201,7 +201,7 @@ app.get('/api/files/:fileId/transactions', requireAuth, async (req, res) => {
       .select('*')
       .eq('file_id', req.params.fileId)
       .eq('user_id', req.user.id)
-      .order('date', { ascending: true });
+      .order('transaction_date', { ascending: true });
 
     if (error) {
       throw error;
@@ -233,7 +233,7 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
         )
       `)
       .eq('user_id', req.user.id)
-      .order('date', { ascending: false });
+      .order('transaction_date', { ascending: false });
 
     if (error) {
       throw error;

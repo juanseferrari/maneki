@@ -187,7 +187,7 @@ function displayFiles(files) {
         <div class="file-info">
           <div class="file-name">${file.original_name}</div>
           <div class="file-meta">
-            <span>${formatFileSize(file.size)}</span>
+            <span>${formatFileSize(file.file_size)}</span>
             <span>•</span>
             <span>${new Date(file.created_at).toLocaleDateString()}</span>
           </div>
@@ -317,10 +317,10 @@ async function loadAllTransactions() {
               <tbody>
                 ${result.transactions.map(t => `
                   <tr>
-                    <td>${new Date(t.date).toLocaleDateString()}</td>
+                    <td>${new Date(t.transaction_date).toLocaleDateString()}</td>
                     <td>${t.description || '-'}</td>
-                    <td class="debit">${t.debit ? '$' + t.debit.toFixed(2) : '-'}</td>
-                    <td class="credit">${t.credit ? '$' + t.credit.toFixed(2) : '-'}</td>
+                    <td class="${t.amount < 0 ? 'debit' : ''}">${t.amount < 0 ? '$' + Math.abs(t.amount).toFixed(2) : '-'}</td>
+                    <td class="${t.amount > 0 ? 'credit' : ''}">${t.amount > 0 ? '$' + t.amount.toFixed(2) : '-'}</td>
                     <td>${t.balance ? '$' + t.balance.toFixed(2) : '-'}</td>
                     <td>${t.files?.original_name || '-'}</td>
                   </tr>
