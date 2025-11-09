@@ -17,7 +17,11 @@ const PORT = process.env.PORT || 3000;
 // PostgreSQL connection pool for sessions
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  // Connection settings to handle IPv6/IPv4 issues
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
+  max: 10
 });
 
 // Configure multer for memory storage
