@@ -1,0 +1,106 @@
+const parserService = require('./parser.service');
+const vepOcrService = require('./vep-ocr.service');
+const supabaseService = require('./supabase.service');
+
+/**
+ * VEP Processing Service
+ * Orchestrates VEP file parsing, data extraction, and database storage
+ */
+class VepProcessorService {
+  /**
+   * Process an uploaded VEP file
+   * @param {Object} fileMetadata - File metadata from upload
+   * @param {Buffer} fileBuffer - File content buffer
+   * @returns {Promise<Object>} Processing result
+   */
+  async processVepFile(fileMetadata, fileBuffer) {
+    const fileId = fileMetadata.id;
+
+    try {
+      // Update file status to processing
+      await supabaseService.updateFileStatus(fileId, 'processing');
+
+      console.log(`[VEP-Processor] Starting to process VEP file: ${fileMetadata.original_name}`);
+
+      // Step 1: Parse the file to extract text
+      console.log('[VEP-Processor] Step 1: Parsing file...');
+      const textContent = await parserService.parseFile(
+        fileBuffer,
+        fileMetadata.mime_type,
+        fileMetadata.original_name
+      );
+
+      // Step 2: Verify it's a VEP and extract structured data
+      console.log('[VEP-Processor] Step 2: Extracting VEP data...');
+
+      // Check if this is actually a VEP document
+      if (!vepOcrService.isVepDocument(textContent)) {
+        throw new Error('This document does not appear to be a VEP (Volante Electrónico de Pago)');
+      }
+
+      const extractionResult = await vepOcrService.extractVepData(
+        textContent,
+        fileMetadata.original_name
+      );
+
+      console.log(`[VEP-Processor] VEP extracted successfully: #${extractionResult.vepData.nro_vep}`);
+      console.log(`[VEP-Processor] Confidence score: ${extractionResult.confidenceScore}%`);
+      console.log(`[VEP-Processor] Total amount: $${extractionResult.vepData.importe_total_pagar}`);
+
+      // Step 3: Save VEP to database
+      console.log('[VEP-Processor] Step 3: Saving VEP to database...');
+      await supabaseService.saveVep(
+        fileId,
+        extractionResult.vepData,
+        null // userId - will be null until auth is added
+      );
+
+      // Step 4: Update file metadata
+      console.log('[VEP-Processor] Step 4: Updating file metadata...');
+      await supabaseService.updateFileProcessing(fileId, {
+        processing_status: 'completed',
+        confidence_score: extractionResult.confidenceScore,
+        bank_name: extractionResult.vepData.organismo_recaudador,
+        statement_date: extractionResult.vepData.fecha_generacion,
+        processing_completed_at: new Date().toISOString()
+      });
+
+      // Update file document type
+      await supabaseService.updateFileDocumentType(fileId, 'vep');
+
+      console.log(`[VEP-Processor] Successfully processed VEP file: ${fileMetadata.original_name}`);
+
+      return {
+        success: true,
+        fileId,
+        vepNumber: extractionResult.vepData.nro_vep,
+        totalAmount: extractionResult.vepData.importe_total_pagar,
+        confidenceScore: extractionResult.confidenceScore,
+        expirationDate: extractionResult.vepData.dia_expiracion
+      };
+    } catch (error) {
+      console.error('[VEP-Processor] Processing failed:', error);
+
+      // Update file status to failed
+      await supabaseService.updateFileStatus(fileId, 'failed', error.message);
+
+      return {
+        success: false,
+        fileId,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Check if a file should be processed as a VEP
+   * This is called before processing to determine document type
+   * @param {string} textContent - Extracted text content
+   * @returns {boolean}
+   */
+  isVepDocument(textContent) {
+    return vepOcrService.isVepDocument(textContent);
+  }
+}
+
+module.exports = new VepProcessorService();

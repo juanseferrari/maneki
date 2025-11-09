@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maneki - Financial Management</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- Left Sidebar Navigation -->
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <span class="logo-icon">🐱</span>
+        <span class="logo-text">Maneki</span>
+      </div>
+    </div>
+
+    <div class="sidebar-menu">
+      <a href="#inicio" class="menu-item active" data-section="inicio">
+        <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        <span class="menu-text">Inicio</span>
+      </a>
+
+      <a href="#transacciones" class="menu-item" data-section="transacciones">
+        <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="1" x2="12" y2="23"></line>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        </svg>
+        <span class="menu-text">Transacciones</span>
+      </a>
+
+      <a href="#archivos" class="menu-item" data-section="archivos">
+        <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+          <polyline points="13 2 13 9 20 9"></polyline>
+        </svg>
+        <span class="menu-text">Archivos</span>
+      </a>
+
+      <a href="#calendario" class="menu-item" data-section="calendario">
+        <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        <span class="menu-text">Calendario</span>
+      </a>
+
+      <a href="#configuracion" class="menu-item" data-section="configuracion">
+        <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M12 1v6m0 6v6m5.656-14.656l-4.242 4.242m0 6.364l4.242 4.242M23 12h-6m-6 0H1m17.656 5.656l-4.242-4.242m0-6.364l4.242-4.242"></path>
+        </svg>
+        <span class="menu-text">Configuración</span>
+      </a>
+    </div>
+
+    <div class="sidebar-footer">
+      <% if (user) { %>
+        <a href="/logout" class="user-info" title="Cerrar sesión">
+          <div class="user-avatar"><%= user.name ? user.name.charAt(0).toUpperCase() : 'U' %></div>
+          <div class="user-details">
+            <div class="user-name"><%= user.name || 'Usuario' %></div>
+            <div class="user-email"><%= user.email %></div>
+          </div>
+        </a>
+      <% } else { %>
+        <a href="/login" class="user-info">
+          <div class="user-avatar">?</div>
+          <div class="user-details">
+            <div class="user-name">Iniciar Sesión</div>
+            <div class="user-email">No autenticado</div>
+          </div>
+        </a>
+      <% } %>
+    </div>
+  </nav>
+
+  <!-- Main Content Area -->
+  <div class="main-content">
+    <% if (locals.error) { %>
+      <div class="alert alert-error">
+        <%= error %>
+      </div>
+    <% } %>
+
+    <!-- Inicio Section -->
+    <section id="section-inicio" class="content-section active">
+      <header class="page-header">
+        <h1>Procesador de Extractos Bancarios</h1>
+        <p class="subtitle">Sube archivos PDF, CSV, o XLSX (Máx: <%= maxSizeMB %>MB)</p>
+      </header>
+
+      <div class="dashboard-stats">
+        <div class="stat-card">
+          <div class="stat-icon">📄</div>
+          <div class="stat-info">
+            <h3>Total Archivos</h3>
+            <p class="stat-value"><%= files.length %></p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✓</div>
+          <div class="stat-info">
+            <h3>Procesados</h3>
+            <p class="stat-value"><%= files.filter(f => f.processing_status === 'completed').length %></p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🔄</div>
+          <div class="stat-info">
+            <h3>En Proceso</h3>
+            <p class="stat-value"><%= files.filter(f => f.processing_status === 'processing' || f.processing_status === 'pending').length %></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="recent-activity">
+        <h2>Actividad Reciente</h2>
+        <% if (files.length > 0) { %>
+          <div class="activity-list">
+            <% files.slice(0, 5).forEach(file => { %>
+              <div class="activity-item">
+                <div class="activity-icon">
+                  <% if (file.original_name.endsWith('.pdf')) { %>📄
+                  <% } else if (file.original_name.endsWith('.csv')) { %>📊
+                  <% } else { %>📈<% } %>
+                </div>
+                <div class="activity-details">
+                  <p class="activity-title"><%= file.original_name %></p>
+                  <p class="activity-meta">
+                    <%= new Date(file.created_at).toLocaleString() %>
+                    <% if (file.processing_status === 'completed') { %>
+                      <span class="status-badge status-completed">✓ Completado</span>
+                    <% } else if (file.processing_status === 'processing') { %>
+                      <span class="status-badge status-processing">🔄 Procesando</span>
+                    <% } else if (file.processing_status === 'failed') { %>
+                      <span class="status-badge status-failed">✗ Fallido</span>
+                    <% } %>
+                  </p>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        <% } else { %>
+          <p class="no-activity">No hay actividad reciente</p>
+        <% } %>
+      </div>
+    </section>
+
+    <!-- Transacciones Section -->
+    <section id="section-transacciones" class="content-section">
+      <header class="page-header">
+        <h1>Transacciones</h1>
+        <p class="subtitle">Visualiza todas tus transacciones procesadas</p>
+      </header>
+
+      <div class="transactions-section">
+        <div id="allTransactionsLoading" class="loading" style="display: none;">
+          <p>Cargando transacciones...</p>
+        </div>
+        <div id="allTransactionsContent">
+          <p class="no-transactions">No hay transacciones. Sube un extracto bancario para comenzar.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Archivos Section -->
+    <section id="section-archivos" class="content-section">
+      <header class="page-header">
+        <h1>Archivos</h1>
+        <p class="subtitle">Gestiona tus archivos subidos</p>
+      </header>
+
+      <div class="upload-section">
+      <div id="dropZone" class="drop-zone">
+        <div class="drop-zone-content">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <p class="drop-zone-text">Drag and drop files here</p>
+          <p class="drop-zone-subtext">or</p>
+          <button type="button" id="browseBtn" class="btn btn-primary">Browse Files</button>
+          <p class="drop-zone-info">Allowed: <%= allowedTypes %></p>
+        </div>
+        <input type="file" id="fileInput" accept=".pdf,.csv,.xlsx,.xls" style="display: none;">
+      </div>
+
+      <div id="uploadProgress" class="upload-progress" style="display: none;">
+        <div class="progress-bar">
+          <div id="progressFill" class="progress-fill"></div>
+        </div>
+        <p id="progressText" class="progress-text">Uploading...</p>
+      </div>
+
+      <div id="uploadMessage" class="message" style="display: none;"></div>
+    </div>
+
+      <div class="files-section">
+        <h2>Archivos Subidos</h2>
+
+        <% if (files.length === 0) { %>
+          <p class="no-files">No hay archivos subidos aún</p>
+        <% } else { %>
+          <div class="files-list" id="filesList">
+          <% files.forEach(file => { %>
+            <div class="file-item" data-fileid="<%= file.id %>" data-filename="<%= file.stored_name %>">
+              <div class="file-info">
+                <div class="file-icon">
+                  <% if (file.original_name.endsWith('.pdf')) { %>
+                    📄
+                  <% } else if (file.original_name.endsWith('.csv')) { %>
+                    📊
+                  <% } else { %>
+                    📈
+                  <% } %>
+                </div>
+                <div class="file-details">
+                  <p class="file-name"><%= file.original_name %></p>
+                  <p class="file-meta">
+                    <%= (file.file_size / 1024).toFixed(2) %> KB
+                    <% if (file.created_at) { %>
+                      • <%= new Date(file.created_at).toLocaleString() %>
+                    <% } %>
+                    <% if (file.bank_name) { %>
+                      • <%= file.bank_name %>
+                    <% } %>
+                  </p>
+                  <div class="file-status">
+                    <% if (file.processing_status === 'pending') { %>
+                      <span class="status-badge status-pending">⏳ Pending</span>
+                    <% } else if (file.processing_status === 'processing') { %>
+                      <span class="status-badge status-processing">🔄 Processing</span>
+                    <% } else if (file.processing_status === 'completed') { %>
+                      <span class="status-badge status-completed">✓ Completed</span>
+                      <% if (file.confidence_score) { %>
+                        <span class="confidence-score">Confidence: <%= file.confidence_score.toFixed(0) %>%</span>
+                      <% } %>
+                    <% } else if (file.processing_status === 'failed') { %>
+                      <span class="status-badge status-failed">✗ Failed</span>
+                      <% if (file.processing_error) { %>
+                        <span class="error-message"><%= file.processing_error %></span>
+                      <% } %>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+              <div class="file-actions">
+                <% if (file.processing_status === 'completed') { %>
+                  <button class="btn btn-sm btn-primary view-transactions-btn" data-fileid="<%= file.id %>">View Transactions</button>
+                <% } %>
+                <a href="<%= file.public_url %>" target="_blank" class="btn btn-sm btn-secondary">View File</a>
+                <button class="btn btn-sm btn-danger delete-btn" data-filename="<%= file.stored_name %>">Delete</button>
+              </div>
+            </div>
+          <% }) %>
+          </div>
+        <% } %>
+      </div>
+    </section>
+
+    <!-- Calendario Section -->
+    <section id="section-calendario" class="content-section">
+      <header class="page-header">
+        <h1>Calendario</h1>
+        <p class="subtitle">Vista de calendario de transacciones y vencimientos</p>
+      </header>
+
+      <div class="calendar-placeholder">
+        <div class="placeholder-content">
+          <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <h3>Calendario próximamente</h3>
+          <p>Esta función estará disponible en una próxima actualización</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Configuración Section -->
+    <section id="section-configuracion" class="content-section">
+      <header class="page-header">
+        <h1>Configuración</h1>
+        <p class="subtitle">Ajusta las preferencias de tu cuenta</p>
+      </header>
+
+      <div class="settings-container">
+        <div class="settings-card">
+          <h3>Preferencias de Cuenta</h3>
+          <div class="setting-item">
+            <label>Nombre de Usuario</label>
+            <input type="text" class="form-input" value="Mi Cuenta" readonly>
+          </div>
+          <div class="setting-item">
+            <label>Email</label>
+            <input type="email" class="form-input" value="usuario@maneki.com" readonly>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h3>Configuración de Procesamiento</h3>
+          <div class="setting-item">
+            <label>Tamaño Máximo de Archivo</label>
+            <input type="text" class="form-input" value="<%= maxSizeMB %>MB" readonly>
+          </div>
+          <div class="setting-item">
+            <label>Tipos de Archivo Permitidos</label>
+            <input type="text" class="form-input" value="<%= allowedTypes %>" readonly>
+          </div>
+        </div>
+
+        <div class="settings-placeholder">
+          <p>Más configuraciones próximamente...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Transactions Modal -->
+    <div id="transactionsModal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Transactions</h2>
+          <button class="close-modal" id="closeModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div id="transactionsLoading" style="display: none;">
+            <p>Loading transactions...</p>
+          </div>
+          <div id="transactionsContent"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End Main Content -->
+
+  <script src="/js/upload.js"></script>
+</body>
+</html>
