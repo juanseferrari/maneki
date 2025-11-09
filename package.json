@@ -15,6 +15,10 @@
   ],
   "author": "",
   "license": "ISC",
+  "engines": {
+    "node": "18.x",
+    "npm": "9.x"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.7",
     "connect-pg-simple": "^9.0.1",
