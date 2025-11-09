@@ -9,7 +9,7 @@
 </head>
 <body>
   <!-- Auth Check Loader -->
-  <div id="auth-loading" style="display: flex; justify-content: center; align-items: center; height: 100vh; background: #0a2540;">
+  <div id="auth-loading" style="display: flex; justify-content: center; align-items: center; height: 100vh; background: #0a2540; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10000;">
     <div style="text-align: center; color: white;">
       <h2>Cargando...</h2>
       <p>Verificando autenticación</p>
@@ -17,9 +17,9 @@
   </div>
 
   <!-- Login Screen -->
-  <div id="login-screen" style="display: none;">
+  <div id="login-screen" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999;">
     <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-      <div style="background: white; padding: 3rem; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); max-width: 400px; width: 100%; text-align: center;">
+      <div style="background: white; padding: 3rem; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); max-width: 400px; width: 90%; margin: 0 auto; text-align: center;">
         <div style="margin-bottom: 2rem;">
           <span style="font-size: 3rem;">🐱</span>
           <h1 style="margin: 1rem 0; font-size: 2rem; color: #1a1a1a;">Maneki</h1>
