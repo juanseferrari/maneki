@@ -1,0 +1,333 @@
+require('dotenv').config();
+const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
+const processorService = require('./services/processor.service');
+const uploadConfig = require('./config/upload.config');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
+
+// Configure multer for memory storage
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: uploadConfig.getMaxFileSize()
+  },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+
+    if (!uploadConfig.allowedExtensions.includes(ext)) {
+      return cb(new Error(`Only ${uploadConfig.allowedExtensions.join(', ')} files are allowed`));
+    }
+
+    if (!uploadConfig.allowedMimeTypes.includes(file.mimetype)) {
+      return cb(new Error('Invalid file type'));
+    }
+
+    cb(null, true);
+  }
+});
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public'));
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+// Middleware to verify Supabase session
+async function requireAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ success: false, error: 'No authorization header' });
+  }
+
+  const token = authHeader.replace('Bearer ', '');
+
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+
+  if (error || !user) {
+    return res.status(401).json({ success: false, error: 'Invalid token' });
+  }
+
+  req.user = user;
+  next();
+}
+
+// ==========================================
+// Routes
+// ==========================================
+
+// Home page
+app.get('/', (req, res) => {
+  res.render('index-supabase', {
+    supabaseUrl: process.env.SUPABASE_URL,
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+    maxSizeMB: process.env.MAX_FILE_SIZE_MB || 10,
+    allowedTypes: uploadConfig.allowedExtensions.join(', ')
+  });
+});
+
+// Upload endpoint - Protected
+app.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file provided'
+      });
+    }
+
+    const fileName = uploadConfig.generateFileName(req.file.originalname);
+    const bucketName = process.env.SUPABASE_BUCKET_NAME || 'uploads';
+
+    // Step 1: Upload file to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(bucketName)
+      .upload(fileName, req.file.buffer, {
+        contentType: req.file.mimetype,
+        upsert: false
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(fileName);
+
+    // Step 2: Create file metadata record in database
+    const { data: fileRecord, error: dbError } = await supabase
+      .from('files')
+      .insert({
+        original_name: req.file.originalname,
+        stored_name: fileName,
+        size: req.file.size,
+        mime_type: req.file.mimetype,
+        file_path: uploadData.path,
+        public_url: urlData.publicUrl,
+        user_id: req.user.id,
+        processing_status: 'pending'
+      })
+      .select()
+      .single();
+
+    if (dbError) {
+      throw dbError;
+    }
+
+    // Step 3: Process file immediately (async)
+    console.log(`Starting to process file: ${fileName}`);
+    processorService.processFile(fileRecord, req.file.buffer)
+      .then(result => {
+        console.log(`File processed successfully: ${fileName}`, result);
+      })
+      .catch(error => {
+        console.error(`File processing failed: ${fileName}`, error);
+      });
+
+    res.json({
+      success: true,
+      message: 'File uploaded and processing started',
+      file: {
+        id: fileRecord.id,
+        name: fileName,
+        originalName: req.file.originalname,
+        size: req.file.size,
+        processingStatus: fileRecord.processing_status,
+        path: uploadData.path,
+        publicUrl: urlData.publicUrl
+      }
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to upload file'
+    });
+  }
+});
+
+// List files endpoint - Protected
+app.get('/api/files', requireAuth, async (req, res) => {
+  try {
+    const { data: files, error } = await supabase
+      .from('files')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      files
+    });
+  } catch (error) {
+    console.error('List files error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to retrieve files'
+    });
+  }
+});
+
+// Get transactions for a file - Protected
+app.get('/api/files/:fileId/transactions', requireAuth, async (req, res) => {
+  try {
+    const { data: transactions, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('file_id', req.params.fileId)
+      .eq('user_id', req.user.id)
+      .order('date', { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      transactions
+    });
+  } catch (error) {
+    console.error('Get transactions error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to retrieve transactions'
+    });
+  }
+});
+
+// Get all transactions - Protected
+app.get('/api/transactions', requireAuth, async (req, res) => {
+  try {
+    const { data: transactions, error } = await supabase
+      .from('transactions')
+      .select(`
+        *,
+        files:file_id (
+          original_name,
+          stored_name
+        )
+      `)
+      .eq('user_id', req.user.id)
+      .order('date', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      transactions
+    });
+  } catch (error) {
+    console.error('Get all transactions error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to retrieve transactions'
+    });
+  }
+});
+
+// Get VEP data for a file - Protected
+app.get('/api/files/:fileId/vep', requireAuth, async (req, res) => {
+  try {
+    const { data: vep, error } = await supabase
+      .from('veps')
+      .select('*')
+      .eq('file_id', req.params.fileId)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      vep
+    });
+  } catch (error) {
+    console.error('Get VEP error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to retrieve VEP data'
+    });
+  }
+});
+
+// Delete file - Protected
+app.delete('/api/files/:fileId', requireAuth, async (req, res) => {
+  try {
+    // First get the file to get the stored name
+    const { data: file, error: fileError } = await supabase
+      .from('files')
+      .select('stored_name')
+      .eq('id', req.params.fileId)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (fileError) {
+      throw fileError;
+    }
+
+    // Delete from storage
+    const { error: storageError } = await supabase.storage
+      .from(process.env.SUPABASE_BUCKET_NAME || 'uploads')
+      .remove([file.stored_name]);
+
+    if (storageError) {
+      console.error('Storage deletion error:', storageError);
+    }
+
+    // Delete from database (will cascade delete transactions and veps)
+    const { error: deleteError } = await supabase
+      .from('files')
+      .delete()
+      .eq('id', req.params.fileId)
+      .eq('user_id', req.user.id);
+
+    if (deleteError) {
+      throw deleteError;
+    }
+
+    res.json({
+      success: true,
+      message: 'File deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete file error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to delete file'
+    });
+  }
+});
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📦 Using Supabase Auth`);
+  console.log(`🔒 Environment: ${process.env.NODE_ENV || 'development'}`);
+});
