@@ -9,7 +9,14 @@ const uploadConfig = require('./config/upload.config');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Initialize Supabase client
+// Initialize Supabase client for backend operations (bypasses RLS)
+// Use service_role key for admin operations
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
+);
+
+// Initialize Supabase client for auth verification (uses anon key)
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
@@ -91,8 +98,8 @@ app.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
     const fileName = uploadConfig.generateFileName(req.file.originalname);
     const bucketName = process.env.SUPABASE_BUCKET_NAME || 'uploads';
 
-    // Step 1: Upload file to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    // Step 1: Upload file to Supabase Storage (use admin client)
+    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from(bucketName)
       .upload(fileName, req.file.buffer, {
         contentType: req.file.mimetype,
@@ -104,12 +111,12 @@ app.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
     }
 
     // Get public URL
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = supabaseAdmin.storage
       .from(bucketName)
       .getPublicUrl(fileName);
 
-    // Step 2: Create file metadata record in database
-    const { data: fileRecord, error: dbError } = await supabase
+    // Step 2: Create file metadata record in database (use admin client)
+    const { data: fileRecord, error: dbError } = await supabaseAdmin
       .from('files')
       .insert({
         original_name: req.file.originalname,
@@ -163,11 +170,11 @@ app.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
 // List files endpoint - Protected
 app.get('/api/files', requireAuth, async (req, res) => {
   try {
-    const { data: files, error } = await supabase
+    const { data: files, error } = await supabaseAdmin
       .from('files')
       .select('*')
       .eq('user_id', req.user.id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false});
 
     if (error) {
       throw error;
@@ -288,7 +295,7 @@ app.delete('/api/files/:fileId', requireAuth, async (req, res) => {
     }
 
     // Delete from storage
-    const { error: storageError } = await supabase.storage
+    const { error: storageError } = await supabaseAdmin.storage
       .from(process.env.SUPABASE_BUCKET_NAME || 'uploads')
       .remove([file.stored_name]);
 
