@@ -70,11 +70,6 @@ uploadForm.addEventListener('submit', async (e) => {
     return;
   }
 
-  if (!accessToken) {
-    showMessage('Not authenticated', 'error');
-    return;
-  }
-
   const formData = new FormData();
   formData.append('file', file);
 
@@ -83,11 +78,14 @@ uploadForm.addEventListener('submit', async (e) => {
     fileSelected.style.display = 'none';
     uploadMessage.textContent = '';
 
+    const headers = {};
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
     const response = await fetch('/upload', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      },
+      headers,
       body: formData
     });
 
@@ -114,15 +112,13 @@ uploadForm.addEventListener('submit', async (e) => {
 
 // Load dashboard data
 async function loadDashboardData() {
-  if (!accessToken) return;
-
   try {
-    const response = await fetch('/api/files', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      }
-    });
+    const headers = {};
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
 
+    const response = await fetch('/api/files', { headers });
     const result = await response.json();
 
     if (result.success) {
@@ -209,17 +205,15 @@ async function deleteFile(fileId) {
     return;
   }
 
-  if (!accessToken) {
-    showMessage('Not authenticated', 'error');
-    return;
-  }
-
   try {
+    const headers = {};
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
     const response = await fetch(`/api/files/${fileId}`, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      }
+      headers
     });
 
     const result = await response.json();
@@ -237,8 +231,6 @@ async function deleteFile(fileId) {
 }
 
 async function viewFileDetails(fileId, documentType) {
-  if (!accessToken) return;
-
   if (documentType === 'vep') {
     await viewVepDetails(fileId);
   } else {
@@ -248,11 +240,12 @@ async function viewFileDetails(fileId, documentType) {
 
 async function viewVepDetails(fileId) {
   try {
-    const response = await fetch(`/api/files/${fileId}/vep`, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      }
-    });
+    const headers = {};
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const response = await fetch(`/api/files/${fileId}/vep`, { headers });
 
     const result = await response.json();
 
@@ -266,11 +259,12 @@ async function viewVepDetails(fileId) {
 
 async function viewTransactions(fileId) {
   try {
-    const response = await fetch(`/api/files/${fileId}/transactions`, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      }
-    });
+    const headers = {};
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const response = await fetch(`/api/files/${fileId}/transactions`, { headers });
 
     const result = await response.json();
 
@@ -283,17 +277,16 @@ async function viewTransactions(fileId) {
 }
 
 async function loadAllTransactions() {
-  if (!accessToken) return;
-
   const container = document.getElementById('all-transactions-container');
   container.innerHTML = '<p>Cargando transacciones...</p>';
 
   try {
-    const response = await fetch('/api/transactions', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      }
-    });
+    const headers = {};
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const response = await fetch('/api/transactions', { headers });
 
     const result = await response.json();
 

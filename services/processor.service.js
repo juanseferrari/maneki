@@ -67,7 +67,7 @@ class ProcessorService {
       await supabaseService.saveTransactions(
         fileId,
         extractionResult.transactions,
-        null // userId - will be null until auth is added
+        fileMetadata.user_id // Pass user_id from file metadata
       );
 
       // Step 5: Update file metadata

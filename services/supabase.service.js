@@ -2,9 +2,10 @@ const { createClient } = require('@supabase/supabase-js');
 
 class SupabaseService {
   constructor() {
+    // Use service role key for backend operations to bypass RLS
     this.supabase = createClient(
       process.env.SUPABASE_URL,
-      process.env.SUPABASE_ANON_KEY
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
     );
     this.bucketName = process.env.SUPABASE_BUCKET_NAME || 'uploads';
   }

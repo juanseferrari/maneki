@@ -248,6 +248,7 @@
     </div>
   </div>
 
+  <script src="/js/upload-supabase.js"></script>
   <script>
     // Initialize Supabase
     const supabaseUrl = '<%= supabaseUrl %>';
@@ -258,8 +259,26 @@
     let currentUser = null;
     let accessToken = null;
 
+    // Check if we're in dev mode (user is passed from server)
+    const isDev = <%= typeof user !== 'undefined' ? 'true' : 'false' %>;
+    <% if (typeof user !== 'undefined') { %>
+    currentUser = {
+      id: '<%= user.id %>',
+      email: '<%= user.email %>',
+      user_metadata: <%- JSON.stringify(user.user_metadata || {}) %>
+    };
+    <% } %>
+
     // Auth state management
     async function checkAuth() {
+      // In dev mode, skip Supabase auth check
+      if (isDev) {
+        showApp();
+        loadUserData();
+        document.getElementById('auth-loading').style.display = 'none';
+        return;
+      }
+
       const { data: { session } } = await supabaseClient.auth.getSession();
 
       if (session) {
@@ -351,6 +370,5 @@
       }
     });
   </script>
-  <script src="/js/upload-supabase.js"></script>
 </body>
 </html>

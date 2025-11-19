@@ -48,6 +48,13 @@ class LocalOcrService {
   detectBank(text) {
     const textLower = text.toLowerCase();
 
+    // Detect credit card statements
+    if (textLower.includes('ciclo de facturación') ||
+        textLower.includes('resumen de cuenta') ||
+        (textLower.includes('balance total') && textLower.includes('gastos en'))) {
+      return 'credit_card';
+    }
+
     if (textLower.includes('brubank') || textLower.includes('bru bank')) {
       return 'brubank';
     }
@@ -276,6 +283,88 @@ class LocalOcrService {
   }
 
   /**
+   * Extract transactions from credit card statements
+   * @param {string} text - Document text
+   * @returns {Array} Extracted transactions
+   */
+  extractCreditCardTransactions(text) {
+    const transactions = [];
+    const lines = text.split('\n');
+
+    console.log(`[LocalOCR] Credit Card: Processing ${lines.length} lines`);
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+
+      // Skip empty lines and headers
+      if (!line || line.length < 10) continue;
+
+      // Look for date at the start - support both DD/MM and DD/MM/YYYY
+      const dateMatch = line.match(/^(\d{1,2}\/\d{1,2})(?:\/\d{2,4})?\s+/);
+      if (!dateMatch) continue;
+
+      const date = dateMatch[1];
+      const restOfLine = line.substring(dateMatch[0].length).trim();
+
+      // Skip header lines
+      if (restOfLine.toLowerCase().includes('fecha') ||
+          restOfLine.toLowerCase().includes('vencimiento') ||
+          restOfLine.toLowerCase().includes('cierre')) {
+        continue;
+      }
+
+      // Look for amounts at the end of the line
+      // Support formats: $1.234,56 or 1.234,56 or $1,234.56
+      const amountPatterns = [
+        /\$\s*([\d.]+,\d{2})\s*$/,           // $1.234,56
+        /([\d.]+,\d{2})\s*$/,                // 1.234,56
+        /\$\s*([\d,]+\.\d{2})\s*$/,          // $1,234.56
+        /([\d,]+\.\d{2})\s*$/                // 1,234.56
+      ];
+
+      let amount = null;
+      let description = null;
+
+      for (const pattern of amountPatterns) {
+        const amountMatch = restOfLine.match(pattern);
+        if (amountMatch) {
+          amount = amountMatch[1];
+          description = restOfLine.substring(0, restOfLine.lastIndexOf(amount)).trim();
+          break;
+        }
+      }
+
+      if (amount && description && description.length > 2) {
+        // For credit cards, determine the year from the statement
+        // Assume current year or previous year based on the month
+        const currentDate = new Date();
+        const [day, month] = date.split('/');
+        let year = currentDate.getFullYear();
+
+        // If the month is in the future compared to current month, it's from last year
+        if (parseInt(month) > currentDate.getMonth() + 1) {
+          year--;
+        }
+
+        const fullDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+
+        console.log(`[LocalOCR] Credit Card match: ${fullDate} | ${description} | ${amount}`);
+
+        transactions.push({
+          fecha: fullDate,
+          referencia: null,
+          descripcion: description,
+          dolares: 0,
+          pesos: -Math.abs(this.parseAmount(amount)) // Credit card charges are negative
+        });
+      }
+    }
+
+    console.log(`[LocalOCR] Credit Card: Found ${transactions.length} transactions`);
+    return transactions;
+  }
+
+  /**
    * Extract transactions using generic patterns
    * @param {string} text - Document text
    * @returns {Array} Extracted transactions
@@ -358,6 +447,9 @@ class LocalOcrService {
 
       // Extract transactions based on bank type
       switch (bankType) {
+        case 'credit_card':
+          movimientos = this.extractCreditCardTransactions(textContent);
+          break;
         case 'brubank':
           movimientos = this.extractBrubankTransactions(textContent);
           break;
