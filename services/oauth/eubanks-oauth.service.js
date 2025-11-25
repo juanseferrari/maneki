@@ -28,10 +28,20 @@ class EuBanksOAuthService extends BaseOAuthService {
       accounts: ['balances', 'details', 'transactions']
     };
 
-    // Load private key if path is provided
+    // Load private key from environment variable or file path
     this.privateKey = null;
-    if (this.privateKeyPath && fs.existsSync(this.privateKeyPath)) {
+
+    // First try to load from EUBANKS_PRIVATE_KEY environment variable
+    if (process.env.EUBANKS_PRIVATE_KEY) {
+      this.privateKey = process.env.EUBANKS_PRIVATE_KEY;
+      console.log('🔑 Loaded private key from EUBANKS_PRIVATE_KEY environment variable');
+    }
+    // Fallback to reading from file path (for local development)
+    else if (this.privateKeyPath && fs.existsSync(this.privateKeyPath)) {
       this.privateKey = fs.readFileSync(this.privateKeyPath, 'utf8');
+      console.log('🔑 Loaded private key from file:', this.privateKeyPath);
+    } else {
+      console.warn('⚠️  No private key configured. Set EUBANKS_PRIVATE_KEY or EUBANKS_PRIVATE_KEY_PATH');
     }
   }
 
