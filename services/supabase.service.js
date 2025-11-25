@@ -531,6 +531,111 @@ class SupabaseService {
       throw new Error(`Failed to update file document type: ${error.message}`);
     }
   }
+
+  /**
+   * Get file by ID
+   * @param {string} fileId - File ID
+   * @param {string} userId - User ID (optional)
+   * @returns {Promise<Object|null>}
+   */
+  async getFileById(fileId, userId = null) {
+    try {
+      let query = this.supabase
+        .from('files')
+        .select('*')
+        .eq('id', fileId);
+
+      if (userId) {
+        query = query.eq('user_id', userId);
+      }
+
+      const { data, error } = await query.single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null;
+        }
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Get file by ID error:', error);
+      throw new Error(`Failed to get file: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get transaction by ID
+   * @param {string} transactionId - Transaction ID
+   * @param {string} userId - User ID (optional)
+   * @returns {Promise<Object|null>}
+   */
+  async getTransactionById(transactionId, userId = null) {
+    try {
+      let query = this.supabase
+        .from('transactions')
+        .select(`
+          *,
+          files:file_id (
+            id,
+            original_name,
+            created_at,
+            storage_path
+          )
+        `)
+        .eq('id', transactionId);
+
+      if (userId) {
+        query = query.eq('user_id', userId);
+      }
+
+      const { data, error } = await query.single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null;
+        }
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Get transaction by ID error:', error);
+      throw new Error(`Failed to get transaction: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update transaction notes
+   * @param {string} transactionId - Transaction ID
+   * @param {string} notes - Notes text
+   * @param {string} userId - User ID (optional, for security)
+   * @returns {Promise<Object>}
+   */
+  async updateTransactionNotes(transactionId, notes, userId = null) {
+    try {
+      let query = this.supabase
+        .from('transactions')
+        .update({ notes })
+        .eq('id', transactionId);
+
+      if (userId) {
+        query = query.eq('user_id', userId);
+      }
+
+      const { data, error } = await query.select().single();
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Update transaction notes error:', error);
+      throw new Error(`Failed to update transaction notes: ${error.message}`);
+    }
+  }
 }
 
 module.exports = new SupabaseService();

@@ -206,11 +206,6 @@ async function refreshFileList() {
                   </div>
                 </div>
               </div>
-              <div class="file-actions">
-                ${actionButton}
-                <a href="${file.public_url}" target="_blank" class="btn btn-sm btn-secondary">View File</a>
-                <button class="btn btn-sm btn-danger delete-btn" data-filename="${file.stored_name}">Delete</button>
-              </div>
             </div>
           `;
         }).join('');

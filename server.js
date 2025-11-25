@@ -228,8 +228,36 @@ app.get('/api/files', ensureAuthenticated, async (req, res) => {
   }
 });
 
-// Get file details with transactions - Protected
+// Get file details - Protected
 app.get('/api/files/:fileId', ensureAuthenticated, async (req, res) => {
+  try {
+    const file = await supabaseService.getFileById(req.params.fileId, req.user.id);
+    if (!file) {
+      return res.status(404).json({
+        success: false,
+        error: 'File not found'
+      });
+    }
+
+    // Get transaction count for the file
+    const transactions = await supabaseService.getTransactionsByFile(req.params.fileId, req.user.id);
+    file.transaction_count = transactions.length;
+
+    res.json({
+      success: true,
+      file
+    });
+  } catch (error) {
+    console.error('Get file details error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to retrieve file'
+    });
+  }
+});
+
+// Get file transactions - Protected
+app.get('/api/files/:fileId/transactions', ensureAuthenticated, async (req, res) => {
   try {
     const transactions = await supabaseService.getTransactionsByFile(req.params.fileId, req.user.id);
     res.json({
@@ -241,6 +269,47 @@ app.get('/api/files/:fileId', ensureAuthenticated, async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to retrieve transactions'
+    });
+  }
+});
+
+// Get single transaction - Protected
+app.get('/api/transactions/:transactionId', ensureAuthenticated, async (req, res) => {
+  try {
+    const transaction = await supabaseService.getTransactionById(req.params.transactionId, req.user.id);
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        error: 'Transaction not found'
+      });
+    }
+    res.json({
+      success: true,
+      transaction
+    });
+  } catch (error) {
+    console.error('Get transaction error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to retrieve transaction'
+    });
+  }
+});
+
+// Update transaction notes - Protected
+app.put('/api/transactions/:transactionId/notes', ensureAuthenticated, async (req, res) => {
+  try {
+    const { notes } = req.body;
+    const result = await supabaseService.updateTransactionNotes(req.params.transactionId, notes, req.user.id);
+    res.json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    console.error('Update transaction notes error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to update notes'
     });
   }
 });

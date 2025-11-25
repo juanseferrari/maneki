@@ -92,160 +92,71 @@
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M12 1v6m0 6v6m5.656-14.656l-4.242 4.242m0 6.364l4.242 4.242M23 12h-6m-6 0H1m17.656 5.656l-4.242-4.242m0-6.364l4.242-4.242"></path>
           </svg>
-          <span class="menu-text">Configuración</span>
+          <span class="menu-text">Conexiones</span>
         </a>
       </div>
 
       <div class="sidebar-footer">
-        <a href="#" id="user-menu" class="user-info" title="Cerrar sesión">
+        <button id="user-menu-btn" class="user-info">
           <div class="user-avatar" id="user-avatar">U</div>
           <div class="user-details">
             <div class="user-name" id="user-name">Usuario</div>
             <div class="user-email" id="user-email">email@example.com</div>
           </div>
-        </a>
+          <svg class="user-menu-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="18 15 12 9 6 15"></polyline>
+          </svg>
+        </button>
+
+        <!-- User Menu Dropdown -->
+        <div id="user-menu-dropdown" class="user-menu-dropdown">
+          <div class="user-menu-header">
+            <div class="user-menu-avatar" id="user-menu-avatar">U</div>
+            <div class="user-menu-info">
+              <div class="user-menu-name" id="user-menu-name">Usuario</div>
+              <div class="user-menu-email" id="user-menu-email">email@example.com</div>
+            </div>
+          </div>
+          <div class="user-menu-divider"></div>
+          <button id="logout-btn" class="user-menu-item logout-item">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Cerrar Sesión</span>
+          </button>
+        </div>
       </div>
     </nav>
 
     <!-- Main Content -->
     <div class="main-content">
-      <!-- Inicio Section -->
-      <section id="section-inicio" class="content-section active">
-        <div class="section-header">
-          <h1>Dashboard</h1>
-          <p>Resumen de tu actividad financiera</p>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon">📁</div>
-            <div class="stat-value" id="total-files">0</div>
-            <div class="stat-label">Archivos Cargados</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon">💰</div>
-            <div class="stat-value" id="total-transactions">0</div>
-            <div class="stat-label">Transacciones</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon">📄</div>
-            <div class="stat-value" id="total-veps">0</div>
-            <div class="stat-label">VEPs Procesados</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon">📊</div>
-            <div class="stat-value">$0</div>
-            <div class="stat-label">Balance Total</div>
-          </div>
-        </div>
-
-        <div class="recent-activity">
-          <h2>Actividad Reciente</h2>
-          <div class="activity-list" id="recent-files">
-            <p>No hay actividad reciente</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Transacciones Section -->
-      <section id="section-transacciones" class="content-section">
-        <div class="section-header">
-          <h1>Transacciones</h1>
-          <p>Visualiza todas tus transacciones</p>
-        </div>
-
-        <div id="all-transactions-container">
-          <p>Cargando transacciones...</p>
-        </div>
-      </section>
-
-      <!-- Archivos Section -->
-      <section id="section-archivos" class="content-section">
-        <div class="section-header">
-          <h1>Gestión de Archivos</h1>
-          <p>Sube y administra tus documentos financieros</p>
-        </div>
-
-        <div class="upload-section">
-          <div class="upload-card">
-            <form id="upload-form" enctype="multipart/form-data">
-              <div class="upload-area">
-                <div class="upload-icon">📤</div>
-                <h3>Arrastra archivos aquí</h3>
-                <p>o haz clic para seleccionar</p>
-                <p class="file-types">Archivos permitidos: <%= allowedTypes %></p>
-                <p class="file-size">Tamaño máximo: <%= maxSizeMB %>MB</p>
-                <input type="file" id="file-input" name="file" accept="<%= allowedTypes %>" style="display: none;">
-                <button type="button" class="select-file-btn" id="select-file-btn">Seleccionar Archivo</button>
-              </div>
-
-              <div id="file-selected" class="file-preview" style="display: none;">
-                <div class="file-info">
-                  <span class="file-name" id="selected-file-name"></span>
-                  <span class="file-size" id="selected-file-size"></span>
-                </div>
-                <button type="submit" class="upload-btn" id="upload-btn">Subir Archivo</button>
-              </div>
-
-              <div id="upload-progress" style="display: none;">
-                <div class="progress-bar">
-                  <div class="progress-fill" id="progress-fill"></div>
-                </div>
-                <p class="progress-text" id="progress-text">Subiendo...</p>
-              </div>
-
-              <div id="upload-message"></div>
-            </form>
-          </div>
-        </div>
-
-        <div class="files-section">
-          <h2>Archivos Cargados</h2>
-          <div class="files-list" id="files-list">
-            <p>No hay archivos cargados aún</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Calendario Section -->
-      <section id="section-calendario" class="content-section">
-        <div class="section-header">
-          <h1>Calendario</h1>
-          <p>Próximamente: visualiza tus pagos y vencimientos</p>
-        </div>
-        <div class="coming-soon">
-          <span class="emoji">📅</span>
-          <h2>Calendario Financiero</h2>
-          <p>Esta funcionalidad estará disponible próximamente</p>
-        </div>
-      </section>
-
-      <!-- Configuración Section -->
-      <section id="section-configuracion" class="content-section">
-        <div class="section-header">
-          <h1>Configuración</h1>
-          <p>Administra tu cuenta y preferencias</p>
-        </div>
-
-        <div class="settings-container">
-          <div class="settings-card">
-            <h3>Cuenta</h3>
-            <div class="setting-item">
-              <label>Email</label>
-              <p id="settings-email">email@example.com</p>
-            </div>
-            <div class="setting-item">
-              <label>Nombre</label>
-              <p id="settings-name">Usuario</p>
-            </div>
-            <button id="logout-btn" class="btn-danger">Cerrar Sesión</button>
-          </div>
-        </div>
-      </section>
+      <%- include('menus/dashboard') %>
+      <%- include('menus/transactions') %>
+      <%- include('menus/files') %>
+      <%- include('menus/calendar') %>
+      <%- include('menus/settings') %>
     </div>
+
+    <!-- Right Sidebar Panel -->
+    <div id="right-sidebar" class="right-sidebar">
+      <div class="right-sidebar-header">
+        <h3 id="right-sidebar-title">Detalle</h3>
+        <button id="close-right-sidebar" class="close-sidebar-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="right-sidebar-content" id="right-sidebar-content">
+        <!-- Content will be loaded dynamically -->
+      </div>
+    </div>
+
+    <!-- Overlay for sidebar -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
   </div>
 
   <script src="/js/upload-supabase.js"></script>
@@ -322,14 +233,24 @@
       }
     });
 
-    // Logout
-    document.getElementById('logout-btn').addEventListener('click', async () => {
-      await supabaseClient.auth.signOut();
-      window.location.reload();
+    // User menu toggle
+    const userMenuBtn = document.getElementById('user-menu-btn');
+    const userMenuDropdown = document.getElementById('user-menu-dropdown');
+
+    userMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      userMenuDropdown.classList.toggle('active');
     });
 
-    document.getElementById('user-menu').addEventListener('click', async (e) => {
-      e.preventDefault();
+    // Close user menu when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!userMenuBtn.contains(e.target) && !userMenuDropdown.contains(e.target)) {
+        userMenuDropdown.classList.remove('active');
+      }
+    });
+
+    // Logout
+    document.getElementById('logout-btn').addEventListener('click', async () => {
       if (confirm('¿Deseas cerrar sesión?')) {
         await supabaseClient.auth.signOut();
         window.location.reload();
@@ -342,13 +263,30 @@
 
       const name = currentUser.user_metadata?.full_name || currentUser.email;
       const email = currentUser.email;
-      const avatar = name.charAt(0).toUpperCase();
+      const avatarUrl = currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture;
+      const avatarInitial = name.charAt(0).toUpperCase();
 
+      // Update sidebar user info
       document.getElementById('user-name').textContent = name;
       document.getElementById('user-email').textContent = email;
-      document.getElementById('user-avatar').textContent = avatar;
-      document.getElementById('settings-name').textContent = name;
-      document.getElementById('settings-email').textContent = email;
+
+      const userAvatarEl = document.getElementById('user-avatar');
+      if (avatarUrl) {
+        userAvatarEl.innerHTML = `<img src="${avatarUrl}" alt="${name}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+      } else {
+        userAvatarEl.textContent = avatarInitial;
+      }
+
+      // Update user menu dropdown
+      document.getElementById('user-menu-name').textContent = name;
+      document.getElementById('user-menu-email').textContent = email;
+
+      const userMenuAvatarEl = document.getElementById('user-menu-avatar');
+      if (avatarUrl) {
+        userMenuAvatarEl.innerHTML = `<img src="${avatarUrl}" alt="${name}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+      } else {
+        userMenuAvatarEl.textContent = avatarInitial;
+      }
 
       loadDashboardData();
     }

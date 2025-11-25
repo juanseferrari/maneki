@@ -2,25 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 const processorService = require('./services/processor.service');
 const uploadConfig = require('./config/upload.config');
-const mercadoPagoOAuth = require('./services/oauth/mercadopago-oauth.service');
-const connectionsService = require('./services/connections.service');
-
-// Temporary storage for OAuth states (use Redis in production)
-const oauthStates = new Map();
-
-// Clean up expired states every 10 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [state, data] of oauthStates.entries()) {
-    if (now - data.createdAt > 10 * 60 * 1000) { // 10 minutes
-      oauthStates.delete(state);
-    }
-  }
-}, 10 * 60 * 1000);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -137,9 +121,9 @@ app.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
       .insert({
         original_name: req.file.originalname,
         stored_name: fileName,
-        file_size: req.file.size,
+        size: req.file.size,
         mime_type: req.file.mimetype,
-        storage_path: uploadData.path,
+        file_path: uploadData.path,
         public_url: urlData.publicUrl,
         user_id: req.user.id,
         processing_status: 'pending'
@@ -217,7 +201,7 @@ app.get('/api/files/:fileId/transactions', requireAuth, async (req, res) => {
       .select('*')
       .eq('file_id', req.params.fileId)
       .eq('user_id', req.user.id)
-      .order('transaction_date', { ascending: true });
+      .order('date', { ascending: true });
 
     if (error) {
       throw error;
@@ -249,7 +233,7 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
         )
       `)
       .eq('user_id', req.user.id)
-      .order('transaction_date', { ascending: false });
+      .order('date', { ascending: false });
 
     if (error) {
       throw error;
@@ -311,7 +295,7 @@ app.delete('/api/files/:fileId', requireAuth, async (req, res) => {
     }
 
     // Delete from storage
-    const { error: storageError } = await supabaseAdmin.storage
+    const { error: storageError } = await supabase.storage
       .from(process.env.SUPABASE_BUCKET_NAME || 'uploads')
       .remove([file.stored_name]);
 
@@ -343,164 +327,7 @@ app.delete('/api/files/:fileId', requireAuth, async (req, res) => {
   }
 });
 
-// ==========================================
-// OAuth Routes
-// ==========================================
-
-// Get all connections for user
-app.get('/api/connections', requireAuth, async (req, res) => {
-  try {
-    const connections = await connectionsService.getUserConnections(req.user.id);
-
-    // Don't send sensitive tokens to frontend
-    const maskedConnections = connections.map(conn => ({
-      id: conn.id,
-      provider: conn.provider,
-      provider_user_id: conn.provider_user_id,
-      status: conn.status,
-      created_at: conn.created_at,
-      last_synced_at: conn.last_synced_at,
-      metadata: conn.metadata
-    }));
-
-    res.json({
-      success: true,
-      connections: maskedConnections
-    });
-  } catch (error) {
-    console.error('Get connections error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to retrieve connections'
-    });
-  }
-});
-
-// Initiate Mercado Pago OAuth flow
-app.get('/oauth/mercadopago/authorize', requireAuth, (req, res) => {
-  try {
-    // Generate state token for CSRF protection
-    const state = crypto.randomBytes(32).toString('hex');
-
-    // Store state temporarily (in production, use Redis)
-    oauthStates.set(state, {
-      userId: req.user.id,
-      provider: 'mercadopago',
-      createdAt: Date.now()
-    });
-
-    // Get the callback URL
-    const redirectUri = `${req.protocol}://${req.get('host')}/oauth/mercadopago/callback`;
-
-    // Get authorization URL from Mercado Pago
-    const authUrl = mercadoPagoOAuth.getAuthorizationUrl(state, redirectUri);
-
-    res.json({
-      success: true,
-      authUrl: authUrl
-    });
-  } catch (error) {
-    console.error('OAuth authorize error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to initiate OAuth flow'
-    });
-  }
-});
-
-// Mercado Pago OAuth callback
-app.get('/oauth/mercadopago/callback', async (req, res) => {
-  try {
-    const { code, state, error: oauthError } = req.query;
-
-    // Check for OAuth errors
-    if (oauthError) {
-      console.error('OAuth error:', oauthError);
-      return res.redirect(`/?error=oauth_failed&message=${encodeURIComponent(oauthError)}`);
-    }
-
-    // Validate state token
-    const stateData = oauthStates.get(state);
-    if (!stateData) {
-      console.error('Invalid or expired state token');
-      return res.redirect('/?error=invalid_state');
-    }
-
-    // Remove used state token
-    oauthStates.delete(state);
-
-    // Exchange code for tokens
-    const redirectUri = `${req.protocol}://${req.get('host')}/oauth/mercadopago/callback`;
-    const tokenData = await mercadoPagoOAuth.exchangeCodeForToken(code, redirectUri);
-
-    // Get user info from Mercado Pago
-    const userInfo = await mercadoPagoOAuth.getUserInfo(tokenData.access_token);
-
-    // Save connection to database
-    await connectionsService.upsertConnection(stateData.userId, 'mercadopago', {
-      access_token: tokenData.access_token,
-      refresh_token: tokenData.refresh_token,
-      token_type: tokenData.token_type,
-      expires_in: tokenData.expires_in,
-      scope: tokenData.scope,
-      user_id: userInfo.id,
-      metadata: {
-        email: userInfo.email,
-        nickname: userInfo.nickname,
-        country_id: userInfo.country_id,
-        public_key: tokenData.public_key,
-        live_mode: tokenData.live_mode
-      }
-    });
-
-    // Redirect back to settings with success message
-    res.redirect('/#configuracion?connection=success&provider=mercadopago');
-  } catch (error) {
-    console.error('OAuth callback error:', error);
-    res.redirect(`/?error=oauth_failed&message=${encodeURIComponent(error.message)}`);
-  }
-});
-
-// Disconnect a provider
-app.delete('/api/connections/:provider', requireAuth, async (req, res) => {
-  try {
-    const provider = req.params.provider;
-
-    // Get connection to revoke token
-    const connection = await connectionsService.getConnection(req.user.id, provider);
-
-    if (connection) {
-      // Revoke token with provider
-      if (provider === 'mercadopago') {
-        try {
-          await mercadoPagoOAuth.revokeToken(connection.access_token);
-        } catch (error) {
-          console.error('Error revoking token:', error);
-          // Continue with deletion even if revoke fails
-        }
-      }
-    }
-
-    // Delete from database
-    await connectionsService.deleteConnection(req.user.id, provider);
-
-    res.json({
-      success: true,
-      message: 'Connection deleted successfully'
-    });
-  } catch (error) {
-    console.error('Disconnect error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to disconnect provider'
-    });
-  }
-});
-
-// ==========================================
-// Health Check
-// ==========================================
-
+// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });

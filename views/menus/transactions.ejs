@@ -1,0 +1,34 @@
+<!-- Transacciones Section -->
+<section id="section-transacciones" class="content-section">
+  <div class="section-header">
+    <h1>Transacciones</h1>
+    <p>Visualiza todas tus transacciones</p>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filters-container">
+    <div class="filter-group">
+      <label for="filter-date-from">Desde:</label>
+      <input type="date" id="filter-date-from" class="filter-input">
+    </div>
+
+    <div class="filter-group">
+      <label for="filter-date-to">Hasta:</label>
+      <input type="date" id="filter-date-to" class="filter-input">
+    </div>
+
+    <div class="filter-group">
+      <label for="filter-description">Descripción:</label>
+      <input type="text" id="filter-description" class="filter-input" placeholder="Buscar por descripción...">
+    </div>
+
+    <div class="filter-actions">
+      <button id="apply-filters-btn" class="btn-primary">Aplicar Filtros</button>
+      <button id="clear-filters-btn" class="btn-secondary">Limpiar</button>
+    </div>
+  </div>
+
+  <div id="all-transactions-container">
+    <p>Cargando transacciones...</p>
+  </div>
+</section>

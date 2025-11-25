@@ -2,12 +2,18 @@ require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 const processorService = require('./services/processor.service');
 const uploadConfig = require('./config/upload.config');
+const mercadoPagoOAuth = require('./services/oauth/mercadopago-oauth.service');
+const connectionsService = require('./services/connections.service');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Temporary storage for OAuth states (use Redis in production)
+const oauthStates = new Map();
 
 // Initialize Supabase clients
 const supabaseAdmin = createClient(
@@ -211,6 +217,50 @@ app.get('/api/files', devAuth, async (req, res) => {
   }
 });
 
+// Get file details
+app.get('/api/files/:fileId', devAuth, async (req, res) => {
+  try {
+    const { data: file, error: fileError } = await supabaseAdmin
+      .from('files')
+      .select('*')
+      .eq('id', req.params.fileId)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (fileError) {
+      if (fileError.code === 'PGRST116') {
+        return res.status(404).json({
+          success: false,
+          error: 'File not found'
+        });
+      }
+      throw fileError;
+    }
+
+    // Get transaction count for the file
+    const { data: transactions, error: transError } = await supabaseAdmin
+      .from('transactions')
+      .select('id')
+      .eq('file_id', req.params.fileId)
+      .eq('user_id', req.user.id);
+
+    if (!transError && transactions) {
+      file.transaction_count = transactions.length;
+    }
+
+    res.json({
+      success: true,
+      file
+    });
+  } catch (error) {
+    console.error('Get file details error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to retrieve file'
+    });
+  }
+});
+
 // Get transactions for a file
 app.get('/api/files/:fileId/transactions', devAuth, async (req, res) => {
   try {
@@ -266,6 +316,76 @@ app.get('/api/transactions', devAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to retrieve transactions'
+    });
+  }
+});
+
+// Get single transaction
+app.get('/api/transactions/:transactionId', devAuth, async (req, res) => {
+  try {
+    const { data: transaction, error } = await supabaseAdmin
+      .from('transactions')
+      .select(`
+        *,
+        files:file_id (
+          id,
+          original_name,
+          created_at,
+          storage_path
+        )
+      `)
+      .eq('id', req.params.transactionId)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({
+          success: false,
+          error: 'Transaction not found'
+        });
+      }
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      transaction
+    });
+  } catch (error) {
+    console.error('Get transaction error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to retrieve transaction'
+    });
+  }
+});
+
+// Update transaction notes
+app.put('/api/transactions/:transactionId/notes', devAuth, async (req, res) => {
+  try {
+    const { notes } = req.body;
+    const { data: transaction, error } = await supabaseAdmin
+      .from('transactions')
+      .update({ notes })
+      .eq('id', req.params.transactionId)
+      .eq('user_id', req.user.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      result: transaction
+    });
+  } catch (error) {
+    console.error('Update transaction notes error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to update notes'
     });
   }
 });
@@ -341,6 +461,161 @@ app.delete('/api/files/:fileId', devAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to delete file'
+    });
+  }
+});
+
+// ==========================================
+// OAuth Routes
+// ==========================================
+
+// Get all connections for user
+app.get('/api/connections', devAuth, async (req, res) => {
+  try {
+    const connections = await connectionsService.getUserConnections(req.user.id);
+
+    // Mask sensitive data
+    const maskedConnections = connections.map(conn => ({
+      id: conn.id,
+      provider: conn.provider,
+      provider_user_id: conn.provider_user_id,
+      status: conn.status,
+      created_at: conn.created_at,
+      last_synced_at: conn.last_synced_at,
+      metadata: conn.metadata
+    }));
+
+    res.json({
+      success: true,
+      connections: maskedConnections
+    });
+  } catch (error) {
+    console.error('Get connections error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get connections'
+    });
+  }
+});
+
+// Initiate OAuth flow for Mercado Pago
+app.get('/oauth/mercadopago/authorize', devAuth, (req, res) => {
+  try {
+    // Generate CSRF state token
+    const state = crypto.randomBytes(32).toString('hex');
+
+    // Store state with user ID
+    oauthStates.set(state, {
+      userId: req.user.id,
+      provider: 'mercadopago',
+      createdAt: Date.now()
+    });
+
+    // Clean up old states (older than 10 minutes)
+    const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
+    for (const [key, value] of oauthStates.entries()) {
+      if (value.createdAt < tenMinutesAgo) {
+        oauthStates.delete(key);
+      }
+    }
+
+    // Get redirect URI
+    const redirectUri = `${req.protocol}://${req.get('host')}/oauth/mercadopago/callback`;
+
+    // Get authorization URL
+    const authUrl = mercadoPagoOAuth.getAuthorizationUrl(state, redirectUri);
+
+    res.json({
+      success: true,
+      authUrl: authUrl
+    });
+  } catch (error) {
+    console.error('OAuth authorize error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to initiate OAuth flow'
+    });
+  }
+});
+
+// OAuth callback for Mercado Pago
+app.get('/oauth/mercadopago/callback', async (req, res) => {
+  try {
+    const { code, state, error: oauthError } = req.query;
+
+    // Check for OAuth errors
+    if (oauthError) {
+      return res.redirect(`/?error=oauth_failed&message=${encodeURIComponent(oauthError)}`);
+    }
+
+    // Validate state
+    const stateData = oauthStates.get(state);
+    if (!stateData) {
+      return res.redirect('/?error=invalid_state');
+    }
+
+    // Delete used state
+    oauthStates.delete(state);
+
+    // Exchange code for tokens
+    const redirectUri = `${req.protocol}://${req.get('host')}/oauth/mercadopago/callback`;
+    const tokenData = await mercadoPagoOAuth.exchangeCodeForToken(code, redirectUri);
+
+    // Get user info from Mercado Pago
+    const userInfo = await mercadoPagoOAuth.getUserInfo(tokenData.access_token);
+
+    // Save connection
+    await connectionsService.upsertConnection(stateData.userId, 'mercadopago', {
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token,
+      token_type: tokenData.token_type,
+      expires_in: tokenData.expires_in,
+      scope: tokenData.scope,
+      user_id: userInfo.id,
+      metadata: {
+        email: userInfo.email,
+        nickname: userInfo.nickname,
+        country_id: userInfo.country_id,
+        public_key: tokenData.public_key,
+        live_mode: tokenData.live_mode
+      }
+    });
+
+    // Redirect to success page
+    res.redirect('/#configuracion?connection=success&provider=mercadopago');
+  } catch (error) {
+    console.error('OAuth callback error:', error);
+    res.redirect(`/?error=connection_failed&message=${encodeURIComponent(error.message)}`);
+  }
+});
+
+// Disconnect a provider
+app.delete('/api/connections/:provider', devAuth, async (req, res) => {
+  try {
+    const { provider } = req.params;
+
+    // Get connection to revoke token
+    const connection = await connectionsService.getConnection(req.user.id, provider);
+
+    if (connection) {
+      // Try to revoke token based on provider
+      if (provider === 'mercadopago') {
+        await mercadoPagoOAuth.revokeToken(connection.access_token);
+      }
+    }
+
+    // Delete connection from database
+    await connectionsService.deleteConnection(req.user.id, provider);
+
+    res.json({
+      success: true,
+      message: 'Connection deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete connection error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to delete connection'
     });
   }
 });
