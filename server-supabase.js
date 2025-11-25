@@ -389,8 +389,8 @@ app.get('/oauth/mercadopago/authorize', requireAuth, (req, res) => {
       createdAt: Date.now()
     });
 
-    // Get the callback URL
-    const redirectUri = `${req.protocol}://${req.get('host')}/oauth/mercadopago/callback`;
+    // Get the callback URL from environment variable
+    const redirectUri = `${process.env.BASE_URL}/oauth/mercadopago/callback`;
 
     // Get authorization URL from Mercado Pago
     const authUrl = mercadoPagoOAuth.getAuthorizationUrl(state, redirectUri);
@@ -430,7 +430,7 @@ app.get('/oauth/mercadopago/callback', async (req, res) => {
     oauthStates.delete(state);
 
     // Exchange code for tokens
-    const redirectUri = `${req.protocol}://${req.get('host')}/oauth/mercadopago/callback`;
+    const redirectUri = `${process.env.BASE_URL}/oauth/mercadopago/callback`;
     const tokenData = await mercadoPagoOAuth.exchangeCodeForToken(code, redirectUri);
 
     // Get user info from Mercado Pago
