@@ -7,6 +7,7 @@ const { createClient } = require('@supabase/supabase-js');
 const processorService = require('./services/processor.service');
 const uploadConfig = require('./config/upload.config');
 const mercadoPagoOAuth = require('./services/oauth/mercadopago-oauth.service');
+const eubanksOAuth = require('./services/oauth/eubanks-oauth.service');
 const connectionsService = require('./services/connections.service');
 
 // Temporary storage for OAuth states (use Redis in production)
@@ -461,6 +462,187 @@ app.get('/oauth/mercadopago/callback', async (req, res) => {
   }
 });
 
+// ==========================================
+// Enable Banking (EuBanks) OAuth Routes
+// ==========================================
+
+// Get available countries from Enable Banking
+app.get('/api/eubanks/countries', requireAuth, async (req, res) => {
+  try {
+    // Enable Banking supports these European countries
+    const countries = [
+      { code: 'FI', name: 'Finland' },
+      { code: 'SE', name: 'Sweden' },
+      { code: 'NO', name: 'Norway' },
+      { code: 'DK', name: 'Denmark' },
+      { code: 'DE', name: 'Germany' },
+      { code: 'GB', name: 'United Kingdom' },
+      { code: 'FR', name: 'France' },
+      { code: 'ES', name: 'Spain' },
+      { code: 'IT', name: 'Italy' },
+      { code: 'NL', name: 'Netherlands' },
+      { code: 'BE', name: 'Belgium' },
+      { code: 'AT', name: 'Austria' },
+      { code: 'PL', name: 'Poland' },
+      { code: 'PT', name: 'Portugal' },
+      { code: 'IE', name: 'Ireland' },
+      { code: 'CZ', name: 'Czech Republic' },
+      { code: 'CH', name: 'Switzerland' },
+      { code: 'GR', name: 'Greece' },
+      { code: 'HU', name: 'Hungary' },
+      { code: 'RO', name: 'Romania' },
+      { code: 'BG', name: 'Bulgaria' },
+      { code: 'HR', name: 'Croatia' },
+      { code: 'SI', name: 'Slovenia' },
+      { code: 'SK', name: 'Slovakia' },
+      { code: 'LT', name: 'Lithuania' },
+      { code: 'LV', name: 'Latvia' },
+      { code: 'EE', name: 'Estonia' }
+    ];
+
+    res.json({
+      success: true,
+      countries
+    });
+  } catch (error) {
+    console.error('Get countries error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to retrieve countries'
+    });
+  }
+});
+
+// Get available banks for a country
+app.get('/api/eubanks/banks/:country', requireAuth, async (req, res) => {
+  try {
+    const { country } = req.params;
+
+    // Fetch banks from Enable Banking API
+    const banks = await eubanksOAuth.getAvailableBanks(country);
+
+    res.json({
+      success: true,
+      banks
+    });
+  } catch (error) {
+    console.error('Get banks error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to retrieve banks'
+    });
+  }
+});
+
+// Initiate OAuth flow for Enable Banking
+app.post('/oauth/eubanks/authorize', requireAuth, async (req, res) => {
+  try {
+    const { bankName, country } = req.body;
+
+    if (!bankName || !country) {
+      return res.status(400).json({
+        success: false,
+        error: 'Bank name and country are required'
+      });
+    }
+
+    // Generate CSRF state token
+    const state = crypto.randomBytes(32).toString('hex');
+
+    // Store state with user ID and bank info
+    oauthStates.set(state, {
+      userId: req.user.id,
+      provider: 'eubanks',
+      bankName,
+      country,
+      createdAt: Date.now()
+    });
+
+    // Clean up old states
+    const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
+    for (const [key, value] of oauthStates.entries()) {
+      if (value.createdAt < tenMinutesAgo) {
+        oauthStates.delete(key);
+      }
+    }
+
+    // Get redirect URI from environment variable
+    const redirectUri = `${process.env.BASE_URL}/oauth/eubanks/callback`;
+
+    // Initiate authorization with Enable Banking
+    const authResult = await eubanksOAuth.initiateAuthorization({
+      aspspName: bankName,
+      aspspCountry: country,
+      redirectUri: redirectUri,
+      state: state
+    });
+
+    // Store session ID for later use
+    oauthStates.set(state, {
+      ...oauthStates.get(state),
+      sessionId: authResult.sessionId
+    });
+
+    res.json({
+      success: true,
+      authUrl: authResult.authUrl
+    });
+  } catch (error) {
+    console.error('EuBanks OAuth authorize error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to initiate OAuth flow'
+    });
+  }
+});
+
+// OAuth callback for Enable Banking
+app.get('/oauth/eubanks/callback', async (req, res) => {
+  try {
+    const { code, state, error: oauthError } = req.query;
+
+    // Check for OAuth errors
+    if (oauthError) {
+      return res.redirect(`/?error=oauth_failed&message=${encodeURIComponent(oauthError)}`);
+    }
+
+    // Validate state
+    const stateData = oauthStates.get(state);
+    if (!stateData) {
+      return res.redirect('/?error=invalid_state');
+    }
+
+    // Delete used state
+    oauthStates.delete(state);
+
+    // Exchange code for session data
+    const redirectUri = `${process.env.BASE_URL}/oauth/eubanks/callback`;
+    const sessionData = await eubanksOAuth.exchangeCodeForToken(code, redirectUri);
+
+    // Get user info from Enable Banking
+    const userInfo = await eubanksOAuth.getUserInfo(sessionData.session_id || stateData.sessionId);
+
+    // Save connection
+    await connectionsService.upsertConnection(stateData.userId, 'eubanks', {
+      access_token: sessionData.session_id || stateData.sessionId,
+      session_id: sessionData.session_id || stateData.sessionId,
+      user_id: userInfo.uid || stateData.sessionId,
+      metadata: {
+        bank_name: stateData.bankName,
+        country: stateData.country,
+        accounts: userInfo.accounts || [],
+        aspsp: stateData.bankName
+      }
+    });
+
+    // Redirect to success page
+    res.redirect('/#configuracion?connection=success&provider=eubanks');
+  } catch (error) {
+    console.error('EuBanks OAuth callback error:', error);
+    res.redirect(`/?error=connection_failed&message=${encodeURIComponent(error.message)}`);
+  }
+});
+
 // Disconnect a provider
 app.delete('/api/connections/:provider', requireAuth, async (req, res) => {
   try {
@@ -474,6 +656,13 @@ app.delete('/api/connections/:provider', requireAuth, async (req, res) => {
       if (provider === 'mercadopago') {
         try {
           await mercadoPagoOAuth.revokeToken(connection.access_token);
+        } catch (error) {
+          console.error('Error revoking token:', error);
+          // Continue with deletion even if revoke fails
+        }
+      } else if (provider === 'eubanks') {
+        try {
+          await eubanksOAuth.revokeToken(connection.session_id || connection.access_token);
         } catch (error) {
           console.error('Error revoking token:', error);
           // Continue with deletion even if revoke fails

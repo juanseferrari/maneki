@@ -8,11 +8,8 @@
   <div class="connections-container">
     <div class="connection-card" id="mercadopago-card">
       <div class="connection-header">
-        <div class="connection-icon">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-            <line x1="1" y1="10" x2="23" y2="10"></line>
-          </svg>
+        <div class="connection-icon mercadopago-icon">
+          <img src="/images/mercadopago.png" alt="Mercado Pago" />
         </div>
         <div class="connection-info">
           <h3>Mercado Pago</h3>
@@ -23,7 +20,7 @@
       <button class="btn-connection" id="mercadopago-btn" onclick="connectMercadoPago()">Conectar Mercado Pago</button>
     </div>
 
-    <div class="connection-card">
+    <div class="connection-card" id="eubanks-card">
       <div class="connection-header">
         <div class="connection-icon">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -32,12 +29,12 @@
           </svg>
         </div>
         <div class="connection-info">
-          <h3>Bancos</h3>
-          <p class="connection-status disconnected">No conectado</p>
+          <h3>Bancos Europeos</h3>
+          <p class="connection-status disconnected" id="eubanks-status">No conectado</p>
         </div>
       </div>
-      <p class="connection-description">Conecta tus cuentas bancarias para sincronizar movimientos</p>
-      <button class="btn-connection">Conectar Banco</button>
+      <p class="connection-description">Conecta tus cuentas bancarias europeas para sincronizar movimientos</p>
+      <button class="btn-connection" id="eubanks-btn" onclick="connectEuBank()">Conectar Banco</button>
     </div>
 
     <div class="connection-card disabled">

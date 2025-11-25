@@ -159,6 +159,74 @@
     <div id="sidebar-overlay" class="sidebar-overlay"></div>
   </div>
 
+  <!-- Custom Modal -->
+  <div id="custom-modal-overlay" class="custom-modal-overlay">
+    <div class="custom-modal">
+      <div class="custom-modal-header">
+        <div id="modal-icon" class="custom-modal-icon warning">
+          ⚠️
+        </div>
+        <h3 id="modal-title" class="custom-modal-title">Confirmar acción</h3>
+      </div>
+      <p id="modal-message" class="custom-modal-message">
+        ¿Estás seguro de que quieres realizar esta acción?
+      </p>
+      <div class="custom-modal-actions">
+        <button id="modal-cancel" class="custom-modal-btn btn-cancel">Cancelar</button>
+        <button id="modal-confirm" class="custom-modal-btn btn-confirm">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bank Selector Modal -->
+  <div id="bank-selector-overlay" class="custom-modal-overlay bank-selector-modal">
+    <div class="custom-modal">
+      <!-- Step 1: Select Country -->
+      <div id="country-step" class="bank-selector-step active">
+        <div class="custom-modal-header">
+          <div class="custom-modal-icon info">
+            🌍
+          </div>
+          <h3 class="custom-modal-title">Selecciona tu país</h3>
+        </div>
+        <input type="text" id="country-search" class="selector-search" placeholder="Buscar país...">
+        <div id="country-selector" class="country-selector">
+          <!-- Countries will be loaded here -->
+        </div>
+        <div class="bank-selector-actions">
+          <button id="cancel-country" class="custom-modal-btn btn-cancel">Cancelar</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Select Bank -->
+      <div id="bank-step" class="bank-selector-step">
+        <div class="custom-modal-header">
+          <div class="custom-modal-icon info">
+            🏦
+          </div>
+          <h3 class="custom-modal-title">Selecciona tu banco</h3>
+          <p id="selected-country-label" class="selected-country-label"></p>
+        </div>
+        <input type="text" id="bank-search" class="selector-search" placeholder="Buscar banco...">
+        <div id="bank-selector" class="bank-selector">
+          <!-- Banks will be loaded here -->
+        </div>
+        <div class="bank-selector-actions">
+          <button id="back-to-country" class="custom-modal-btn btn-cancel">Atrás</button>
+          <button id="connect-bank" class="custom-modal-btn btn-confirm" disabled>Conectar</button>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div id="loading-step" class="bank-selector-step">
+        <div class="selector-loading">
+          <div class="selector-loading-spinner"></div>
+          <p>Cargando...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="/js/upload-supabase.js"></script>
   <script>
     // Initialize Supabase
@@ -167,11 +235,12 @@
     const { createClient } = supabase;
     const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 
-    let currentUser = null;
-    let accessToken = null;
+    // Use global variables from upload-supabase.js
+    // currentUser and accessToken are declared in upload-supabase.js
 
     // Check if we're in dev mode (user is passed from server)
-    const isDev = <%= typeof user !== 'undefined' ? 'true' : 'false' %>;
+    <% const isDevMode = typeof user !== 'undefined'; %>
+    isDev = <%= isDevMode %>;
     <% if (typeof user !== 'undefined') { %>
     currentUser = {
       id: '<%= user.id %>',
@@ -182,19 +251,17 @@
 
     // Auth state management
     async function checkAuth() {
-      // In dev mode, skip Supabase auth check
-      if (isDev) {
-        showApp();
-        loadUserData();
-        document.getElementById('auth-loading').style.display = 'none';
-        return;
-      }
-
+      // In dev mode, we still want to check for session to get updated user data
       const { data: { session } } = await supabaseClient.auth.getSession();
 
       if (session) {
+        // Update currentUser with fresh session data
         currentUser = session.user;
         accessToken = session.access_token;
+        showApp();
+        loadUserData();
+      } else if (isDev) {
+        // In dev mode, show app even without session
         showApp();
         loadUserData();
       } else {
@@ -251,7 +318,16 @@
 
     // Logout
     document.getElementById('logout-btn').addEventListener('click', async () => {
-      if (confirm('¿Deseas cerrar sesión?')) {
+      const confirmed = await showCustomModal({
+        title: 'Cerrar sesión',
+        message: '¿Estás seguro de que quieres cerrar sesión?',
+        type: 'info',
+        confirmText: 'Cerrar sesión',
+        cancelText: 'Cancelar',
+        danger: false
+      });
+
+      if (confirmed) {
         await supabaseClient.auth.signOut();
         window.location.reload();
       }

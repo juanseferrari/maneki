@@ -1,3 +1,95 @@
+// Global variables for auth (will be set from index-supabase.ejs)
+let accessToken = null;
+let currentUser = null;
+let isDev = false;
+
+// ========================================
+// CUSTOM MODAL SYSTEM
+// ========================================
+
+let modalResolve = null;
+
+function showCustomModal(options) {
+  return new Promise((resolve) => {
+    modalResolve = resolve;
+
+    const overlay = document.getElementById('custom-modal-overlay');
+    const icon = document.getElementById('modal-icon');
+    const title = document.getElementById('modal-title');
+    const message = document.getElementById('modal-message');
+    const cancelBtn = document.getElementById('modal-cancel');
+    const confirmBtn = document.getElementById('modal-confirm');
+
+    // Set content
+    title.textContent = options.title || 'Confirmar acción';
+    message.textContent = options.message || '¿Estás seguro?';
+
+    // Set icon
+    const iconType = options.type || 'warning';
+    const iconEmojis = {
+      warning: '⚠️',
+      error: '❌',
+      success: '✓',
+      info: 'ℹ️'
+    };
+
+    icon.textContent = iconEmojis[iconType];
+    icon.className = `custom-modal-icon ${iconType}`;
+
+    // Set button texts
+    cancelBtn.textContent = options.cancelText || 'Cancelar';
+    confirmBtn.textContent = options.confirmText || 'Aceptar';
+
+    // Set button style (danger or normal)
+    confirmBtn.className = `custom-modal-btn btn-confirm ${options.danger ? 'danger' : ''}`;
+
+    // Show modal
+    overlay.classList.add('active');
+
+    // Handle clicks
+    const handleCancel = () => {
+      closeCustomModal();
+      resolve(false);
+    };
+
+    const handleConfirm = () => {
+      closeCustomModal();
+      resolve(true);
+    };
+
+    const handleOverlayClick = (e) => {
+      if (e.target === overlay) {
+        handleCancel();
+      }
+    };
+
+    // Remove old listeners
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+    // Add new listeners
+    document.getElementById('modal-cancel').addEventListener('click', handleCancel);
+    document.getElementById('modal-confirm').addEventListener('click', handleConfirm);
+    overlay.addEventListener('click', handleOverlayClick);
+
+    // Close on ESC key
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        handleCancel();
+        document.removeEventListener('keydown', handleEscape);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+  });
+}
+
+function closeCustomModal() {
+  const overlay = document.getElementById('custom-modal-overlay');
+  overlay.classList.remove('active');
+}
+
 // Navigation
 const menuItems = document.querySelectorAll('.menu-item');
 const sections = document.querySelectorAll('.content-section');
@@ -741,31 +833,113 @@ async function loadConnections() {
 
 // Update connections UI
 function updateConnectionsUI(connections) {
-  connections.forEach(conn => {
-    if (conn.provider === 'mercadopago') {
-      const statusEl = document.getElementById('mercadopago-status');
-      const btnEl = document.getElementById('mercadopago-btn');
-      const cardEl = document.getElementById('mercadopago-card');
+  // Update Mercado Pago connection
+  const mercadoPagoConnection = connections.find(conn => conn.provider === 'mercadopago');
 
-      if (statusEl) {
-        statusEl.textContent = conn.status === 'active' ? 'Conectado' : 'Inactivo';
-        statusEl.className = `connection-status ${conn.status === 'active' ? 'connected' : 'disconnected'}`;
-      }
+  const mpStatusEl = document.getElementById('mercadopago-status');
+  const mpBtnEl = document.getElementById('mercadopago-btn');
+  const mpCardEl = document.getElementById('mercadopago-card');
 
-      if (btnEl && conn.status === 'active') {
-        btnEl.textContent = 'Desconectar';
-        btnEl.onclick = () => disconnectProvider('mercadopago');
-        btnEl.classList.add('disconnect');
-      }
+  if (mercadoPagoConnection && mercadoPagoConnection.status === 'active') {
+    // Connected state
+    if (mpStatusEl) {
+      mpStatusEl.textContent = 'Conectado ✓';
+      mpStatusEl.className = 'connection-status connected';
+    }
 
-      if (cardEl && conn.metadata) {
-        const infoEl = cardEl.querySelector('.connection-description');
-        if (infoEl && conn.metadata.email) {
-          infoEl.textContent = `Conectado como: ${conn.metadata.email}`;
+    if (mpBtnEl) {
+      mpBtnEl.textContent = 'Desconectar';
+      mpBtnEl.onclick = () => disconnectProvider('mercadopago');
+      mpBtnEl.classList.remove('btn-connection');
+      mpBtnEl.classList.add('btn-disconnect');
+    }
+
+    if (mpCardEl) {
+      mpCardEl.classList.add('connected');
+      const infoEl = mpCardEl.querySelector('.connection-description');
+      if (infoEl && mercadoPagoConnection.metadata) {
+        if (mercadoPagoConnection.metadata.email) {
+          infoEl.textContent = `Conectado como: ${mercadoPagoConnection.metadata.email}`;
+        } else if (mercadoPagoConnection.metadata.nickname) {
+          infoEl.textContent = `Conectado como: ${mercadoPagoConnection.metadata.nickname}`;
         }
       }
     }
-  });
+  } else {
+    // Disconnected state
+    if (mpStatusEl) {
+      mpStatusEl.textContent = 'No conectado';
+      mpStatusEl.className = 'connection-status disconnected';
+    }
+
+    if (mpBtnEl) {
+      mpBtnEl.textContent = 'Conectar Mercado Pago';
+      mpBtnEl.onclick = () => connectMercadoPago();
+      mpBtnEl.classList.remove('btn-disconnect');
+      mpBtnEl.classList.add('btn-connection');
+    }
+
+    if (mpCardEl) {
+      mpCardEl.classList.remove('connected');
+      const infoEl = mpCardEl.querySelector('.connection-description');
+      if (infoEl) {
+        infoEl.textContent = 'Conecta tu cuenta de Mercado Pago para importar transacciones automáticamente';
+      }
+    }
+  }
+
+  // Update EuBanks connection
+  const eubanksConnection = connections.find(conn => conn.provider === 'eubanks');
+
+  const ebStatusEl = document.getElementById('eubanks-status');
+  const ebBtnEl = document.getElementById('eubanks-btn');
+  const ebCardEl = document.getElementById('eubanks-card');
+
+  if (eubanksConnection && eubanksConnection.status === 'active') {
+    // Connected state
+    if (ebStatusEl) {
+      ebStatusEl.textContent = 'Conectado ✓';
+      ebStatusEl.className = 'connection-status connected';
+    }
+
+    if (ebBtnEl) {
+      ebBtnEl.textContent = 'Desconectar';
+      ebBtnEl.onclick = () => disconnectProvider('eubanks');
+      ebBtnEl.classList.remove('btn-connection');
+      ebBtnEl.classList.add('btn-disconnect');
+    }
+
+    if (ebCardEl) {
+      ebCardEl.classList.add('connected');
+      const infoEl = ebCardEl.querySelector('.connection-description');
+      if (infoEl && eubanksConnection.metadata) {
+        const bankName = eubanksConnection.metadata.bank_name || 'Banco';
+        const country = eubanksConnection.metadata.country || '';
+        infoEl.textContent = `Conectado: ${bankName} ${country ? '(' + country + ')' : ''}`;
+      }
+    }
+  } else {
+    // Disconnected state
+    if (ebStatusEl) {
+      ebStatusEl.textContent = 'No conectado';
+      ebStatusEl.className = 'connection-status disconnected';
+    }
+
+    if (ebBtnEl) {
+      ebBtnEl.textContent = 'Conectar Banco';
+      ebBtnEl.onclick = () => connectEuBank();
+      ebBtnEl.classList.remove('btn-disconnect');
+      ebBtnEl.classList.add('btn-connection');
+    }
+
+    if (ebCardEl) {
+      ebCardEl.classList.remove('connected');
+      const infoEl = ebCardEl.querySelector('.connection-description');
+      if (infoEl) {
+        infoEl.textContent = 'Conecta tus cuentas bancarias europeas para sincronizar movimientos';
+      }
+    }
+  }
 }
 
 // Connect Mercado Pago
@@ -793,7 +967,23 @@ async function connectMercadoPago() {
 
 // Disconnect provider
 async function disconnectProvider(provider) {
-  if (!confirm(`¿Estás seguro de que quieres desconectar ${provider}?`)) {
+  let providerName = provider;
+  if (provider === 'mercadopago') {
+    providerName = 'Mercado Pago';
+  } else if (provider === 'eubanks') {
+    providerName = 'tu banco europeo';
+  }
+
+  const confirmed = await showCustomModal({
+    title: 'Desconectar ' + providerName,
+    message: `¿Estás seguro de que quieres desconectar tu cuenta de ${providerName}? Dejarás de sincronizar transacciones automáticamente.`,
+    type: 'warning',
+    confirmText: 'Desconectar',
+    cancelText: 'Cancelar',
+    danger: true
+  });
+
+  if (!confirmed) {
     return;
   }
 
@@ -811,28 +1001,382 @@ async function disconnectProvider(provider) {
     const result = await response.json();
 
     if (result.success) {
-      alert('Desconectado exitosamente');
-      location.reload();
+      showMessage('Desconectado exitosamente', 'success');
+      setTimeout(() => location.reload(), 1500);
     } else {
-      alert('Error al desconectar');
+      showMessage('Error al desconectar', 'error');
     }
   } catch (error) {
     console.error('Error disconnecting provider:', error);
-    alert('Error al desconectar');
+    showMessage('Error al desconectar', 'error');
   }
 }
 
+// ========================================
+// BANK SELECTOR FUNCTIONALITY (Enable Banking)
+// ========================================
+
+let selectedCountry = null;
+let selectedBank = null;
+let availableCountries = [];
+let availableBanks = [];
+
+// Country codes to flags mapping
+const countryFlags = {
+  'FI': '🇫🇮', 'SE': '🇸🇪', 'NO': '🇳🇴', 'DK': '🇩🇰', 'DE': '🇩🇪',
+  'FR': '🇫🇷', 'ES': '🇪🇸', 'IT': '🇮🇹', 'NL': '🇳🇱', 'BE': '🇧🇪',
+  'AT': '🇦🇹', 'PT': '🇵🇹', 'IE': '🇮🇪', 'PL': '🇵🇱', 'CZ': '🇨🇿',
+  'GB': '🇬🇧', 'CH': '🇨🇭', 'LU': '🇱🇺', 'GR': '🇬🇷', 'EE': '🇪🇪',
+  'LV': '🇱🇻', 'LT': '🇱🇹', 'SK': '🇸🇰', 'SI': '🇸🇮', 'HU': '🇭🇺',
+  'RO': '🇷🇴', 'BG': '🇧🇬', 'HR': '🇭🇷', 'MT': '🇲🇹', 'CY': '🇨🇾'
+};
+
+const countryNames = {
+  'FI': 'Finlandia', 'SE': 'Suecia', 'NO': 'Noruega', 'DK': 'Dinamarca', 'DE': 'Alemania',
+  'FR': 'Francia', 'ES': 'España', 'IT': 'Italia', 'NL': 'Países Bajos', 'BE': 'Bélgica',
+  'AT': 'Austria', 'PT': 'Portugal', 'IE': 'Irlanda', 'PL': 'Polonia', 'CZ': 'República Checa',
+  'GB': 'Reino Unido', 'CH': 'Suiza', 'LU': 'Luxemburgo', 'GR': 'Grecia', 'EE': 'Estonia',
+  'LV': 'Letonia', 'LT': 'Lituania', 'SK': 'Eslovaquia', 'SI': 'Eslovenia', 'HU': 'Hungría',
+  'RO': 'Rumanía', 'BG': 'Bulgaria', 'HR': 'Croacia', 'MT': 'Malta', 'CY': 'Chipre'
+};
+
+async function connectEuBank() {
+  selectedCountry = null;
+  selectedBank = null;
+
+  // Show bank selector modal
+  const overlay = document.getElementById('bank-selector-overlay');
+  overlay.classList.add('active');
+
+  // Show country step
+  showBankSelectorStep('country');
+
+  // Load available countries
+  await loadCountries();
+}
+
+function showBankSelectorStep(step) {
+  document.getElementById('country-step').classList.remove('active');
+  document.getElementById('bank-step').classList.remove('active');
+  document.getElementById('loading-step').classList.remove('active');
+
+  if (step === 'country') {
+    document.getElementById('country-step').classList.add('active');
+  } else if (step === 'bank') {
+    document.getElementById('bank-step').classList.add('active');
+  } else if (step === 'loading') {
+    document.getElementById('loading-step').classList.add('active');
+  }
+}
+
+function closeBankSelector() {
+  const overlay = document.getElementById('bank-selector-overlay');
+  overlay.classList.remove('active');
+  selectedCountry = null;
+  selectedBank = null;
+}
+
+async function loadCountries() {
+  // Show loading
+  showBankSelectorStep('loading');
+
+  try {
+    // Get list of available countries
+    const headers = {};
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const response = await fetch('/api/eubanks/countries', { headers });
+    const result = await response.json();
+
+    if (result.success) {
+      availableCountries = result.countries;
+      renderCountries(availableCountries);
+      showBankSelectorStep('country');
+    } else {
+      showMessage('Error al cargar países', 'error');
+      closeBankSelector();
+    }
+  } catch (error) {
+    console.error('Error loading countries:', error);
+    showMessage('Error al cargar países', 'error');
+    closeBankSelector();
+  }
+}
+
+function renderCountries(countries) {
+  const container = document.getElementById('country-selector');
+  container.innerHTML = '';
+
+  countries.forEach(country => {
+    // Handle both object format { code: 'FI', name: 'Finland' } and string format 'FI'
+    const countryCode = typeof country === 'string' ? country : country.code;
+    const countryName = typeof country === 'string' ? (countryNames[country] || country) : country.name;
+
+    const option = document.createElement('div');
+    option.className = 'country-option';
+    option.innerHTML = `
+      <div class="country-flag">${countryFlags[countryCode] || '🏳️'}</div>
+      <p class="country-name">${countryName}</p>
+    `;
+
+    option.addEventListener('click', () => {
+      selectedCountry = countryCode;
+      loadBanks(countryCode);
+    });
+
+    container.appendChild(option);
+  });
+}
+
+async function loadBanks(countryCode) {
+  showBankSelectorStep('loading');
+
+  try {
+    const headers = {};
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const response = await fetch(`/api/eubanks/banks/${countryCode}`, { headers });
+    const result = await response.json();
+
+    console.log('Banks API response:', result);
+
+    if (result.success) {
+      availableBanks = result.banks;
+
+      // Validate that banks is an array
+      if (!Array.isArray(availableBanks)) {
+        console.error('Banks is not an array:', availableBanks);
+        showMessage('Error: formato de datos inválido', 'error');
+        closeBankSelector();
+        return;
+      }
+
+      if (availableBanks.length === 0) {
+        showMessage('No hay bancos disponibles para este país', 'info');
+        closeBankSelector();
+        return;
+      }
+
+      renderBanks(availableBanks);
+      showBankSelectorStep('bank');
+    } else {
+      showMessage(result.error || 'Error al cargar bancos', 'error');
+      closeBankSelector();
+    }
+  } catch (error) {
+    console.error('Error loading banks:', error);
+    showMessage('Error al cargar bancos', 'error');
+    closeBankSelector();
+  }
+}
+
+function renderBanks(banks) {
+  const container = document.getElementById('bank-selector');
+  container.innerHTML = '';
+
+  // Update the country label
+  const countryLabel = document.getElementById('selected-country-label');
+  if (countryLabel && selectedCountry) {
+    const countryName = typeof availableCountries[0] === 'object'
+      ? availableCountries.find(c => c.code === selectedCountry)?.name || selectedCountry
+      : countryNames[selectedCountry] || selectedCountry;
+    const flag = countryFlags[selectedCountry] || '🏳️';
+    countryLabel.textContent = `${flag} ${countryName}`;
+  }
+
+  banks.forEach(bank => {
+    const option = document.createElement('div');
+    option.className = 'bank-option';
+    option.dataset.bankName = bank.name;
+
+    // Use logo from API if available, otherwise use emoji
+    const logoHtml = bank.logo
+      ? `<img src="${bank.logo}" alt="${bank.name}" class="bank-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" /><div class="bank-logo" style="display:none;">🏦</div>`
+      : `<div class="bank-logo">🏦</div>`;
+
+    option.innerHTML = `
+      ${logoHtml}
+      <p class="bank-name">${bank.name}</p>
+    `;
+
+    option.addEventListener('click', () => {
+      // Remove previous selection
+      container.querySelectorAll('.bank-option').forEach(opt => opt.classList.remove('selected'));
+      option.classList.add('selected');
+
+      selectedBank = bank;
+      document.getElementById('connect-bank').disabled = false;
+    });
+
+    container.appendChild(option);
+  });
+}
+
+async function initiateBankConnection() {
+  if (!selectedBank || !selectedCountry) {
+    showMessage('Por favor selecciona un banco', 'error');
+    return;
+  }
+
+  console.log('🏦 [FRONTEND] Initiating bank connection');
+  console.log('🏦 [FRONTEND] Selected bank:', selectedBank);
+  console.log('🏦 [FRONTEND] Selected country:', selectedCountry);
+
+  showBankSelectorStep('loading');
+
+  try {
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const payload = {
+      bankName: selectedBank.name,
+      country: selectedCountry
+    };
+
+    console.log('🏦 [FRONTEND] Sending request to /oauth/eubanks/authorize');
+    console.log('🏦 [FRONTEND] Payload:', payload);
+
+    const response = await fetch('/oauth/eubanks/authorize', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload)
+    });
+
+    console.log('🏦 [FRONTEND] Response status:', response.status);
+
+    const result = await response.json();
+    console.log('🏦 [FRONTEND] Response data:', result);
+
+    if (result.success && result.authUrl) {
+      console.log('🏦 [FRONTEND] ✅ Success! Redirecting to:', result.authUrl);
+      // Redirect to Enable Banking auth page
+      window.location.href = result.authUrl;
+    } else {
+      console.log('🏦 [FRONTEND] ❌ Error:', result.error);
+      showMessage(result.error || 'Error al iniciar conexión con el banco', 'error');
+      closeBankSelector();
+    }
+  } catch (error) {
+    console.error('🏦 [FRONTEND] ❌ Exception:', error);
+    showMessage('Error al conectar con el banco', 'error');
+    closeBankSelector();
+  }
+}
+
+// Search functionality for countries and banks
+document.addEventListener('DOMContentLoaded', () => {
+  // Country search
+  const countrySearch = document.getElementById('country-search');
+  if (countrySearch) {
+    countrySearch.addEventListener('input', (e) => {
+      const searchTerm = e.target.value.toLowerCase();
+      const filtered = availableCountries.filter(country => {
+        const countryCode = typeof country === 'string' ? country : country.code;
+        const countryName = typeof country === 'string' ? (countryNames[country] || country) : country.name;
+        return countryName.toLowerCase().includes(searchTerm) || countryCode.toLowerCase().includes(searchTerm);
+      });
+      renderCountries(filtered);
+    });
+  }
+
+  // Bank search
+  const bankSearch = document.getElementById('bank-search');
+  if (bankSearch) {
+    bankSearch.addEventListener('input', (e) => {
+      const searchTerm = e.target.value.toLowerCase();
+      const filtered = availableBanks.filter(bank =>
+        bank.name.toLowerCase().includes(searchTerm)
+      );
+      renderBanks(filtered);
+    });
+  }
+
+  // Button handlers
+  const cancelCountry = document.getElementById('cancel-country');
+  if (cancelCountry) {
+    cancelCountry.addEventListener('click', closeBankSelector);
+  }
+
+  const backToCountry = document.getElementById('back-to-country');
+  if (backToCountry) {
+    backToCountry.addEventListener('click', () => {
+      selectedBank = null;
+      renderCountries(availableCountries);
+      showBankSelectorStep('country');
+    });
+  }
+
+  const connectBank = document.getElementById('connect-bank');
+  if (connectBank) {
+    connectBank.addEventListener('click', initiateBankConnection);
+  }
+
+  // Close on overlay click
+  const bankSelectorOverlay = document.getElementById('bank-selector-overlay');
+  if (bankSelectorOverlay) {
+    bankSelectorOverlay.addEventListener('click', (e) => {
+      if (e.target === bankSelectorOverlay) {
+        closeBankSelector();
+      }
+    });
+  }
+});
+
 // Check for OAuth callback success
 document.addEventListener('DOMContentLoaded', () => {
-  const urlParams = new URLSearchParams(window.location.search);
+  // Parse URL - can be either #section?params or ?params#section
+  const hash = window.location.hash;
+
+  // Extract query params from hash if present
+  let urlParams;
+  if (hash.includes('?')) {
+    const queryString = hash.split('?')[1];
+    urlParams = new URLSearchParams(queryString);
+  } else {
+    urlParams = new URLSearchParams(window.location.search);
+  }
+
   const connection = urlParams.get('connection');
   const provider = urlParams.get('provider');
 
   if (connection === 'success' && provider) {
-    alert(`Conexión con ${provider} establecida exitosamente`);
-    // Clean URL
-    window.history.replaceState({}, document.title, window.location.pathname);
-    loadConnections();
+    // Show configuracion section
+    showSection('configuracion');
+
+    // Activate menu item
+    menuItems.forEach(item => {
+      if (item.dataset.section === 'configuracion') {
+        item.classList.add('active');
+      } else {
+        item.classList.remove('active');
+      }
+    });
+
+    // Show success message
+    setTimeout(() => {
+      let providerName = provider;
+      if (provider === 'mercadopago') {
+        providerName = 'Mercado Pago';
+      } else if (provider === 'eubanks') {
+        providerName = 'tu banco europeo';
+      }
+      showMessage(`Conexión con ${providerName} establecida exitosamente`, 'success');
+
+      // Load connections to update UI
+      loadConnections();
+    }, 500);
+
+    // Clean URL - remove query params but keep hash
+    const cleanUrl = window.location.pathname + '#configuracion';
+    window.history.replaceState({}, document.title, cleanUrl);
   }
 
   // Load connections when viewing the connections section
@@ -844,7 +1388,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Load connections on initial page load if on connections section
-  if (window.location.hash === '#configuracion') {
+  if (hash.includes('configuracion')) {
     setTimeout(loadConnections, 100);
   }
 });
