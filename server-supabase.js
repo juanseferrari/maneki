@@ -9,6 +9,7 @@ const uploadConfig = require('./config/upload.config');
 const mercadoPagoOAuth = require('./services/oauth/mercadopago-oauth.service');
 const eubanksOAuth = require('./services/oauth/eubanks-oauth.service');
 const connectionsService = require('./services/connections.service');
+const emailInboundService = require('./services/email-inbound.service');
 
 // Temporary storage for OAuth states (use Redis in production)
 const oauthStates = new Map();
@@ -682,6 +683,214 @@ app.delete('/api/connections/:provider', requireAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to disconnect provider'
+    });
+  }
+});
+
+// ==========================================
+// Email Inbound Webhook (Public - secured by secret)
+// ==========================================
+
+// Public webhook endpoint for Google Apps Script
+app.post('/api/email/inbound', async (req, res) => {
+  try {
+    const { secret, token, fromEmail, subject, attachments } = req.body;
+
+    console.log(`📧 [Email Inbound] Received webhook from: ${fromEmail}`);
+
+    // Verify webhook secret
+    if (!emailInboundService.verifyWebhookSecret(secret)) {
+      console.error('📧 [Email Inbound] Invalid webhook secret');
+      return res.status(401).json({ success: false, error: 'Invalid secret' });
+    }
+
+    // Get user ID from token
+    const userId = await emailInboundService.getUserIdFromToken(token);
+    if (!userId) {
+      console.error(`📧 [Email Inbound] Invalid token: ${token}`);
+      await emailInboundService.logEmailEvent({
+        userId: null,
+        fromEmail,
+        subject,
+        attachmentCount: attachments?.length || 0,
+        status: 'failed',
+        errorMessage: 'Invalid upload token'
+      });
+      return res.status(400).json({ success: false, error: 'Invalid upload token' });
+    }
+
+    console.log(`📧 [Email Inbound] User found: ${userId}`);
+
+    // Validate attachments
+    if (!attachments || !Array.isArray(attachments) || attachments.length === 0) {
+      await emailInboundService.logEmailEvent({
+        userId,
+        fromEmail,
+        subject,
+        attachmentCount: 0,
+        status: 'failed',
+        errorMessage: 'No attachments found'
+      });
+      return res.status(400).json({ success: false, error: 'No attachments provided' });
+    }
+
+    const processedFiles = [];
+    const errors = [];
+
+    // Process each attachment
+    for (const attachment of attachments) {
+      try {
+        const { filename, content, mimeType } = attachment;
+
+        // Validate file type
+        if (!emailInboundService.isFileSupported(filename)) {
+          errors.push({ filename, error: 'Unsupported file type' });
+          continue;
+        }
+
+        // Decode base64 content
+        const fileBuffer = Buffer.from(content, 'base64');
+        const fileMimeType = mimeType || emailInboundService.getMimeType(filename);
+
+        // Generate unique filename
+        const storedName = uploadConfig.generateFileName(filename);
+        const bucketName = process.env.SUPABASE_BUCKET_NAME || 'uploads';
+
+        console.log(`📧 [Email Inbound] Processing attachment: ${filename}`);
+
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+          .from(bucketName)
+          .upload(storedName, fileBuffer, {
+            contentType: fileMimeType,
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error(`📧 [Email Inbound] Upload error for ${filename}:`, uploadError);
+          errors.push({ filename, error: uploadError.message });
+          continue;
+        }
+
+        // Get public URL
+        const { data: urlData } = supabaseAdmin.storage
+          .from(bucketName)
+          .getPublicUrl(storedName);
+
+        // Create file record in database
+        const { data: fileRecord, error: dbError } = await supabaseAdmin
+          .from('files')
+          .insert({
+            original_name: filename,
+            stored_name: storedName,
+            file_size: fileBuffer.length,
+            mime_type: fileMimeType,
+            storage_path: uploadData.path,
+            public_url: urlData.publicUrl,
+            user_id: userId,
+            processing_status: 'pending',
+            upload_source: 'email',
+            upload_metadata: {
+              from_email: fromEmail,
+              subject: subject
+            }
+          })
+          .select()
+          .single();
+
+        if (dbError) {
+          console.error(`📧 [Email Inbound] DB error for ${filename}:`, dbError);
+          errors.push({ filename, error: dbError.message });
+          continue;
+        }
+
+        console.log(`📧 [Email Inbound] File record created: ${fileRecord.id}`);
+
+        // Process file with OCR Manager (async)
+        processorService.processFile(fileRecord, fileBuffer)
+          .then(result => {
+            console.log(`📧 [Email Inbound] File processed: ${filename}`, result);
+          })
+          .catch(error => {
+            console.error(`📧 [Email Inbound] Processing failed: ${filename}`, error);
+          });
+
+        processedFiles.push({
+          filename,
+          fileId: fileRecord.id,
+          status: 'processing'
+        });
+      } catch (attachmentError) {
+        console.error(`📧 [Email Inbound] Error processing attachment:`, attachmentError);
+        errors.push({ filename: attachment.filename, error: attachmentError.message });
+      }
+    }
+
+    // Log the email event
+    await emailInboundService.logEmailEvent({
+      userId,
+      fromEmail,
+      subject,
+      attachmentCount: attachments.length,
+      processedFiles,
+      status: processedFiles.length > 0 ? 'success' : 'failed',
+      errorMessage: errors.length > 0 ? JSON.stringify(errors) : null
+    });
+
+    console.log(`📧 [Email Inbound] Completed. Processed: ${processedFiles.length}, Errors: ${errors.length}`);
+
+    res.json({
+      success: true,
+      processed: processedFiles.length,
+      errors: errors.length,
+      files: processedFiles,
+      errorDetails: errors
+    });
+  } catch (error) {
+    console.error('📧 [Email Inbound] Webhook error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to process email'
+    });
+  }
+});
+
+// Get user's email upload token
+app.get('/api/email/token', requireAuth, async (req, res) => {
+  try {
+    const token = await emailInboundService.getOrCreateEmailToken(req.user.id);
+    const uploadEmail = `admin+${token}@sheetscentral.com`;
+
+    res.json({
+      success: true,
+      token,
+      uploadEmail
+    });
+  } catch (error) {
+    console.error('Get email token error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get email token'
+    });
+  }
+});
+
+// Regenerate user's email upload token
+app.post('/api/email/token/regenerate', requireAuth, async (req, res) => {
+  try {
+    const token = await emailInboundService.regenerateEmailToken(req.user.id);
+    const uploadEmail = `admin+${token}@sheetscentral.com`;
+
+    res.json({
+      success: true,
+      token,
+      uploadEmail
+    });
+  } catch (error) {
+    console.error('Regenerate email token error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to regenerate email token'
     });
   }
 });

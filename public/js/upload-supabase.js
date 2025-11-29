@@ -3,6 +3,33 @@ let accessToken = null;
 let currentUser = null;
 let isDev = false;
 
+// Helper function to get fresh access token
+async function getAccessToken() {
+  if (accessToken) return accessToken;
+
+  if (typeof supabaseClient !== 'undefined') {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+      accessToken = session.access_token;
+      return accessToken;
+    }
+  }
+  return null;
+}
+
+// Helper function to get auth headers
+async function getAuthHeaders(includeContentType = false) {
+  const token = await getAccessToken();
+  const headers = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  if (includeContentType) {
+    headers['Content-Type'] = 'application/json';
+  }
+  return headers;
+}
+
 // ========================================
 // CUSTOM MODAL SYSTEM
 // ========================================
@@ -394,11 +421,7 @@ async function loadAllTransactions() {
   container.innerHTML = '<p>Cargando transacciones...</p>';
 
   try {
-    const headers = {};
-    if (accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`;
-    }
-
+    const headers = await getAuthHeaders();
     const response = await fetch('/api/transactions', { headers });
 
     const result = await response.json();
@@ -806,6 +829,123 @@ function viewFileTransactions(fileId) {
   closeRightSidebar();
   showSection('transacciones');
   // TODO: Add filter for specific file
+}
+
+// ========================================
+// EMAIL UPLOAD FUNCTIONALITY
+// ========================================
+
+// Load email upload token
+async function loadEmailUploadToken() {
+  try {
+    const loadingEl = document.getElementById('email-upload-loading');
+    const contentEl = document.getElementById('email-upload-content');
+    const emailInput = document.getElementById('upload-email-address');
+
+    if (!loadingEl || !contentEl || !emailInput) return;
+
+    const headers = {};
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const response = await fetch('/api/email/token', { headers });
+    const result = await response.json();
+
+    if (result.success) {
+      emailInput.value = result.uploadEmail;
+      loadingEl.style.display = 'none';
+      contentEl.style.display = 'block';
+    } else {
+      loadingEl.innerHTML = '<span style="color: var(--error-color);">Error al cargar</span>';
+    }
+  } catch (error) {
+    console.error('Error loading email token:', error);
+    const loadingEl = document.getElementById('email-upload-loading');
+    if (loadingEl) {
+      loadingEl.innerHTML = '<span style="color: var(--error-color);">Error al cargar</span>';
+    }
+  }
+}
+
+// Copy upload email to clipboard
+async function copyUploadEmail() {
+  const emailInput = document.getElementById('upload-email-address');
+  const copyBtn = document.querySelector('.btn-copy');
+
+  if (!emailInput) return;
+
+  try {
+    await navigator.clipboard.writeText(emailInput.value);
+
+    // Visual feedback
+    if (copyBtn) {
+      copyBtn.classList.add('copied');
+      copyBtn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      `;
+
+      setTimeout(() => {
+        copyBtn.classList.remove('copied');
+        copyBtn.innerHTML = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+        `;
+      }, 2000);
+    }
+
+    showMessage('Email copiado al portapapeles', 'success');
+  } catch (error) {
+    console.error('Error copying to clipboard:', error);
+    showMessage('Error al copiar', 'error');
+  }
+}
+
+// Regenerate upload email
+async function regenerateUploadEmail() {
+  const confirmed = await showCustomModal({
+    title: 'Regenerar Email de Carga',
+    message: '¿Estás seguro? Tu email de carga actual dejará de funcionar y recibirás uno nuevo.',
+    type: 'warning',
+    confirmText: 'Regenerar',
+    cancelText: 'Cancelar',
+    danger: false
+  });
+
+  if (!confirmed) return;
+
+  try {
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const response = await fetch('/api/email/token/regenerate', {
+      method: 'POST',
+      headers
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      const emailInput = document.getElementById('upload-email-address');
+      if (emailInput) {
+        emailInput.value = result.uploadEmail;
+      }
+      showMessage('Email de carga regenerado exitosamente', 'success');
+    } else {
+      showMessage(result.error || 'Error al regenerar email', 'error');
+    }
+  } catch (error) {
+    console.error('Error regenerating email:', error);
+    showMessage('Error al regenerar email', 'error');
+  }
 }
 
 // ========================================
@@ -1379,16 +1519,22 @@ document.addEventListener('DOMContentLoaded', () => {
     window.history.replaceState({}, document.title, cleanUrl);
   }
 
-  // Load connections when viewing the connections section
+  // Load connections and email token when viewing the settings section
   const configuracionMenuItem = document.querySelector('[data-section="configuracion"]');
   if (configuracionMenuItem) {
     configuracionMenuItem.addEventListener('click', () => {
-      setTimeout(loadConnections, 100);
+      setTimeout(() => {
+        loadConnections();
+        loadEmailUploadToken();
+      }, 100);
     });
   }
 
-  // Load connections on initial page load if on connections section
+  // Load connections and email token on initial page load if on settings section
   if (hash.includes('configuracion')) {
-    setTimeout(loadConnections, 100);
+    setTimeout(() => {
+      loadConnections();
+      loadEmailUploadToken();
+    }, 100);
   }
 });
