@@ -214,7 +214,7 @@ app.get('/api/files', requireAuth, async (req, res) => {
 // Get transactions for a file - Protected
 app.get('/api/files/:fileId/transactions', requireAuth, async (req, res) => {
   try {
-    const { data: transactions, error } = await supabase
+    const { data: transactions, error } = await supabaseAdmin
       .from('transactions')
       .select('*')
       .eq('file_id', req.params.fileId)
@@ -241,7 +241,7 @@ app.get('/api/files/:fileId/transactions', requireAuth, async (req, res) => {
 // Get all transactions - Protected
 app.get('/api/transactions', requireAuth, async (req, res) => {
   try {
-    const { data: transactions, error } = await supabase
+    const { data: transactions, error } = await supabaseAdmin
       .from('transactions')
       .select(`
         *,
@@ -273,7 +273,7 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
 // Get VEP data for a file - Protected
 app.get('/api/files/:fileId/vep', requireAuth, async (req, res) => {
   try {
-    const { data: vep, error } = await supabase
+    const { data: vep, error } = await supabaseAdmin
       .from('veps')
       .select('*')
       .eq('file_id', req.params.fileId)
