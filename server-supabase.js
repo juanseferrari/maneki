@@ -270,6 +270,47 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
   }
 });
 
+// Get single transaction - Protected
+app.get('/api/transactions/:transactionId', requireAuth, async (req, res) => {
+  try {
+    const { data: transaction, error } = await supabaseAdmin
+      .from('transactions')
+      .select(`
+        *,
+        files:file_id (
+          id,
+          original_name,
+          created_at,
+          storage_path
+        )
+      `)
+      .eq('id', req.params.transactionId)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({
+          success: false,
+          error: 'Transaction not found'
+        });
+      }
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      transaction
+    });
+  } catch (error) {
+    console.error('Get transaction error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to retrieve transaction'
+    });
+  }
+});
+
 // Get VEP data for a file - Protected
 app.get('/api/files/:fileId/vep', requireAuth, async (req, res) => {
   try {
