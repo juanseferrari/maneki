@@ -57,6 +57,10 @@ class ExtractorService {
       const firstRow = data[0];
       const keys = Object.keys(firstRow).map(k => k.toUpperCase());
 
+      // Debug: Log the columns detected
+      console.log('[Extractor] Detected columns:', Object.keys(firstRow));
+      console.log('[Extractor] First row sample:', JSON.stringify(firstRow).substring(0, 500));
+
       // Detect Hipotecario format: FECHA, DESCRIPCION, DEBITO EN $, CREDITO EN $
       if (keys.some(k => k.includes('DEBITO EN')) && keys.some(k => k.includes('CREDITO EN'))) {
         console.log('[Extractor] Detected Hipotecario CSV format');
@@ -64,7 +68,10 @@ class ExtractorService {
       }
 
       // Detect Santander format: IMPORTE PESOS, SALDO PESOS, COD. OPERATIVO
-      if (keys.some(k => k.includes('IMPORTE PESOS')) && keys.some(k => k.includes('SALDO PESOS'))) {
+      // Also check for variations: "Importe Pesos", "IMPORTE", "Saldo Pesos", "SALDO"
+      const hasSantanderColumns = keys.some(k => k.includes('IMPORTE') && k.includes('PESOS')) &&
+                                   keys.some(k => k.includes('SALDO') && k.includes('PESOS'));
+      if (hasSantanderColumns) {
         console.log('[Extractor] Detected Santander CSV format');
         return this.extractSantanderCSV(data);
       }
