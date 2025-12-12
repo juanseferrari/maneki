@@ -148,8 +148,37 @@ class ParserService {
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
 
-        // Convert to JSON with first row as headers
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        // First, get raw data to find the real header row
+        const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        // Find the header row - look for rows that contain typical bank statement headers
+        const headerKeywords = ['fecha', 'importe', 'saldo', 'concepto', 'descripcion', 'debito', 'credito', 'monto'];
+        let headerRowIndex = 0;
+
+        for (let i = 0; i < Math.min(rawData.length, 10); i++) { // Check first 10 rows
+          const row = rawData[i];
+          if (!row || row.length === 0) continue;
+
+          // Convert row values to lowercase strings for matching
+          const rowLower = row.map(cell => (cell || '').toString().toLowerCase());
+          const matchCount = headerKeywords.filter(keyword =>
+            rowLower.some(cell => cell.includes(keyword))
+          ).length;
+
+          // If we find at least 2 header keywords, this is likely the header row
+          if (matchCount >= 2) {
+            headerRowIndex = i;
+            console.log(`[Parser] Found header row at index ${i}: ${JSON.stringify(row)}`);
+            break;
+          }
+        }
+
+        // Re-parse with the correct header row
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+          range: headerRowIndex // Start from the detected header row
+        });
+
+        console.log(`[Parser] XLS parsed with ${jsonData.length} rows, starting from row ${headerRowIndex}`);
         return jsonData;
       }
 
