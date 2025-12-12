@@ -35,7 +35,8 @@ function formatDate(dateStr, options = {}) {
 }
 
 // Helper function to get fresh access token
-async function getAccessToken() {
+// Waits for session to be available (handles race condition on page load)
+async function getAccessToken(retries = 3) {
   if (accessToken) return accessToken;
 
   if (typeof supabaseClient !== 'undefined') {
@@ -43,6 +44,13 @@ async function getAccessToken() {
     if (session) {
       accessToken = session.access_token;
       return accessToken;
+    }
+
+    // If no session yet and we have retries left, wait and try again
+    // This handles the race condition where page loads before Supabase restores session
+    if (retries > 0) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return getAccessToken(retries - 1);
     }
   }
   return null;
