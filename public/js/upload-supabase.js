@@ -566,7 +566,7 @@ async function loadAllTransactions(page = 1, limit = currentLimit) {
   try {
     // Wait for auth to be ready before making the request
     // This handles the case where the page loads directly on #transacciones
-    const authReady = await waitForAuth(3000);
+    const authReady = await waitForAuth(500);
     console.log('[Transactions] Auth ready:', authReady, 'Token:', accessToken ? 'present' : 'missing');
 
     const headers = await getAuthHeaders();
