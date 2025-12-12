@@ -155,7 +155,7 @@ class ParserService {
         const headerKeywords = ['fecha', 'importe', 'saldo', 'concepto', 'descripcion', 'debito', 'credito', 'monto'];
         let headerRowIndex = 0;
 
-        for (let i = 0; i < Math.min(rawData.length, 10); i++) { // Check first 10 rows
+        for (let i = 0; i < Math.min(rawData.length, 20); i++) { // Check first 20 rows (some banks have many header rows)
           const row = rawData[i];
           if (!row || row.length === 0) continue;
 
