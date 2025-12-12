@@ -238,10 +238,22 @@ app.get('/api/files/:fileId/transactions', requireAuth, async (req, res) => {
   }
 });
 
-// Get all transactions - Protected
+// Get all transactions with pagination and filters - Protected
 app.get('/api/transactions', requireAuth, async (req, res) => {
   try {
-    const { data: transactions, error } = await supabaseAdmin
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = (page - 1) * limit;
+    const { dateFrom, dateTo, description } = req.query;
+
+    // Build base query for count
+    let countQuery = supabaseAdmin
+      .from('transactions')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', req.user.id);
+
+    // Build base query for data
+    let dataQuery = supabaseAdmin
       .from('transactions')
       .select(`
         *,
@@ -250,8 +262,35 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
           stored_name
         )
       `)
-      .eq('user_id', req.user.id)
-      .order('transaction_date', { ascending: false });
+      .eq('user_id', req.user.id);
+
+    // Apply date filters
+    if (dateFrom) {
+      countQuery = countQuery.gte('transaction_date', dateFrom);
+      dataQuery = dataQuery.gte('transaction_date', dateFrom);
+    }
+    if (dateTo) {
+      countQuery = countQuery.lte('transaction_date', dateTo);
+      dataQuery = dataQuery.lte('transaction_date', dateTo);
+    }
+
+    // Apply description filter (search in description field)
+    if (description) {
+      countQuery = countQuery.ilike('description', `%${description}%`);
+      dataQuery = dataQuery.ilike('description', `%${description}%`);
+    }
+
+    // Get total count with filters
+    const { count, error: countError } = await countQuery;
+
+    if (countError) {
+      throw countError;
+    }
+
+    // Get paginated transactions with filters
+    const { data: transactions, error } = await dataQuery
+      .order('transaction_date', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       throw error;
@@ -259,7 +298,13 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
 
     res.json({
       success: true,
-      transactions
+      transactions,
+      pagination: {
+        page,
+        limit,
+        total: count,
+        totalPages: Math.ceil(count / limit)
+      }
     });
   } catch (error) {
     console.error('Get all transactions error:', error);
