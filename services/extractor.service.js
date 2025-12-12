@@ -62,6 +62,12 @@ class ExtractorService {
         console.log('[Extractor] Detected Hipotecario CSV format');
         return this.extractHipotecarioCSV(data);
       }
+
+      // Detect Santander format: IMPORTE PESOS, SALDO PESOS, COD. OPERATIVO
+      if (keys.some(k => k.includes('IMPORTE PESOS')) && keys.some(k => k.includes('SALDO PESOS'))) {
+        console.log('[Extractor] Detected Santander CSV format');
+        return this.extractSantanderCSV(data);
+      }
     }
 
     const transactions = [];
@@ -189,6 +195,84 @@ class ExtractorService {
     return {
       transactions,
       bankName: 'Banco Hipotecario',
+      statementDate: transactions.length > 0 ? transactions[0].transaction_date : null
+    };
+  }
+
+  /**
+   * Extract transactions from Santander CSV format
+   * Columns: Fecha, Suc. Origen, Desc. Sucursal, Cod. Operativo, Referencia, Concepto, Importe Pesos, Saldo Pesos
+   * @param {Array<Object>} data
+   * @returns {Object}
+   */
+  extractSantanderCSV(data) {
+    const transactions = [];
+
+    console.log(`[Extractor] Santander CSV: Processing ${data.length} rows`);
+
+    for (const row of data) {
+      // Skip empty rows
+      if (Object.values(row).every(val => !val || val.toString().trim() === '')) {
+        continue;
+      }
+
+      // Find columns (case-insensitive match)
+      const keys = Object.keys(row);
+      const dateField = keys.find(k => k.toUpperCase() === 'FECHA');
+      const branchField = keys.find(k => k.toUpperCase().includes('SUC'));
+      const branchDescField = keys.find(k => k.toUpperCase().includes('DESC. SUCURSAL'));
+      const operativeCodeField = keys.find(k => k.toUpperCase().includes('COD. OPERATIVO') || k.toUpperCase().includes('COD OPERATIVO'));
+      const refField = keys.find(k => k.toUpperCase() === 'REFERENCIA');
+      const conceptField = keys.find(k => k.toUpperCase() === 'CONCEPTO');
+      const amountField = keys.find(k => k.toUpperCase().includes('IMPORTE PESOS') || k.toUpperCase() === 'IMPORTE');
+      const balanceField = keys.find(k => k.toUpperCase().includes('SALDO PESOS') || k.toUpperCase() === 'SALDO');
+
+      // Skip if no date or if it's a summary/total row
+      if (!dateField || !row[dateField]) continue;
+
+      // Skip rows with "Total:" or disclaimer text
+      const dateValue = row[dateField].toString().trim();
+      if (dateValue === '' || dateValue.toLowerCase().includes('total') || dateValue.toLowerCase().includes('presente documento')) {
+        continue;
+      }
+
+      const date = this.parseDate(row[dateField]);
+      if (!date) continue;
+
+      // Build description from Concepto (main description)
+      const concept = conceptField ? row[conceptField] : '';
+      const branchDesc = branchDescField ? row[branchDescField] : '';
+      const description = concept || branchDesc || 'Sin descripción';
+
+      const reference = refField ? row[refField] : null;
+      const operativeCode = operativeCodeField ? row[operativeCodeField] : null;
+
+      // Parse amount (Argentine format, can be negative like -343,65)
+      const amount = amountField ? this.parseArgentineAmount(row[amountField]) : 0;
+      const balance = balanceField ? this.parseArgentineAmount(row[balanceField]) : null;
+
+      // Skip if no amount
+      if (amount === 0) continue;
+
+      console.log(`[Extractor] Santander CSV: ${date} | ${description.substring(0, 40)}... | ${amount}`);
+
+      transactions.push({
+        transaction_date: date,
+        description: description,
+        merchant: this.extractMerchant(description),
+        amount: amount,
+        transaction_type: amount < 0 ? 'debit' : 'credit',
+        reference_number: reference ? reference.toString() : (operativeCode ? operativeCode.toString() : null),
+        balance: balance,
+        raw_data: row,
+        confidence_score: 90.0 // High confidence for direct CSV parsing
+      });
+    }
+
+    console.log(`[Extractor] Santander CSV: Found ${transactions.length} transactions`);
+    return {
+      transactions,
+      bankName: 'Banco Santander',
       statementDate: transactions.length > 0 ? transactions[0].transaction_date : null
     };
   }
