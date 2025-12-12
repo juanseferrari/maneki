@@ -255,7 +255,10 @@ class ExtractorService {
       const operativeCode = operativeCodeField ? row[operativeCodeField] : null;
 
       // Parse amount (Argentine format, can be negative like -343,65)
-      const amount = amountField ? this.parseArgentineAmount(row[amountField]) : 0;
+      const rawAmount = amountField ? row[amountField] : 0;
+      console.log(`[Extractor] Santander raw amount: "${rawAmount}" (type: ${typeof rawAmount})`);
+      const amount = this.parseArgentineAmount(rawAmount);
+      console.log(`[Extractor] Santander parsed amount: ${amount}`);
       const balance = balanceField ? this.parseArgentineAmount(row[balanceField]) : null;
 
       // Skip if no amount
