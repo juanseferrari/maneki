@@ -6,6 +6,7 @@
   <title>Maneki - Financial Management</title>
   <link rel="stylesheet" href="/css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <!-- Auth Check Loader -->
@@ -87,6 +88,16 @@
           <span class="menu-text">Calendario</span>
         </a>
 
+        <a href="#dashboards" class="menu-item" data-section="dashboards">
+          <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="9" rx="1"></rect>
+            <rect x="14" y="3" width="7" height="5" rx="1"></rect>
+            <rect x="14" y="12" width="7" height="9" rx="1"></rect>
+            <rect x="3" y="16" width="7" height="5" rx="1"></rect>
+          </svg>
+          <span class="menu-text">Dashboards</span>
+        </a>
+
         <a href="#configuracion" class="menu-item" data-section="configuracion">
           <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"></circle>
@@ -136,6 +147,7 @@
       <%- include('menus/transactions') %>
       <%- include('menus/files') %>
       <%- include('menus/calendar') %>
+      <%- include('menus/dashboards') %>
       <%- include('menus/settings') %>
     </div>
 
@@ -228,6 +240,7 @@
   </div>
 
   <script src="/js/upload-supabase.js"></script>
+  <script src="/js/dashboards.js"></script>
   <script>
     // Initialize Supabase
     const supabaseUrl = '<%= supabaseUrl %>';

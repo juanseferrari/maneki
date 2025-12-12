@@ -210,7 +210,7 @@ class SupabaseService {
    * @param {string} userId - User ID (optional)
    * @returns {Promise<Array>}
    */
-  async saveTransactions(fileId, transactions, userId = null) {
+  async saveTransactions(fileId, transactions, userId = null, bankName = null) {
     try {
       const transactionsData = transactions.map(t => ({
         file_id: fileId,
@@ -224,6 +224,9 @@ class SupabaseService {
         reference_number: t.reference_number,
         card_number: t.card_number || null,
         category: t.category || null,
+        cuit: t.cuit || null,
+        razon_social: t.razon_social || null,
+        bank_name: bankName || t.bank_name || null,
         raw_data: t.raw_data,
         confidence_score: t.confidence_score
       }));
@@ -634,6 +637,37 @@ class SupabaseService {
     } catch (error) {
       console.error('Update transaction notes error:', error);
       throw new Error(`Failed to update transaction notes: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update transaction category
+   * @param {string} transactionId - Transaction ID
+   * @param {string} category - Category ID
+   * @param {string} userId - User ID (optional, for security)
+   * @returns {Promise<Object>}
+   */
+  async updateTransactionCategory(transactionId, category, userId = null) {
+    try {
+      let query = this.supabase
+        .from('transactions')
+        .update({ category })
+        .eq('id', transactionId);
+
+      if (userId) {
+        query = query.eq('user_id', userId);
+      }
+
+      const { data, error } = await query.select().single();
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Update transaction category error:', error);
+      throw new Error(`Failed to update transaction category: ${error.message}`);
     }
   }
 }

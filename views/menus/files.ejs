@@ -6,7 +6,7 @@
   </div>
 
   <form id="upload-form" enctype="multipart/form-data">
-    <div class="upload-area">
+    <div class="upload-area" id="upload-area">
       <div class="upload-icon">📤</div>
       <h3>Arrastra archivos aquí</h3>
       <p>o haz clic para seleccionar</p>
@@ -14,14 +14,6 @@
       <p class="file-size">Tamaño máximo: <%= maxSizeMB %>MB</p>
       <input type="file" id="file-input" name="file" accept="<%= allowedTypes %>" style="display: none;">
       <button type="button" class="select-file-btn" id="select-file-btn">Seleccionar Archivo</button>
-    </div>
-
-    <div id="file-selected" class="file-preview" style="display: none;">
-      <div class="file-info">
-        <span class="file-name" id="selected-file-name"></span>
-        <span class="file-size" id="selected-file-size"></span>
-      </div>
-      <button type="submit" class="upload-btn" id="upload-btn">Subir Archivo</button>
     </div>
 
     <div id="upload-progress" style="display: none;">

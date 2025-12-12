@@ -52,6 +52,18 @@ class ExtractorService {
    * @returns {Object}
    */
   extractFromStructuredData(data) {
+    // Check if this is Hipotecario CSV format
+    if (data.length > 0) {
+      const firstRow = data[0];
+      const keys = Object.keys(firstRow).map(k => k.toUpperCase());
+
+      // Detect Hipotecario format: FECHA, DESCRIPCION, DEBITO EN $, CREDITO EN $
+      if (keys.some(k => k.includes('DEBITO EN')) && keys.some(k => k.includes('CREDITO EN'))) {
+        console.log('[Extractor] Detected Hipotecario CSV format');
+        return this.extractHipotecarioCSV(data);
+      }
+    }
+
     const transactions = [];
     let bankName = null;
     let statementDate = null;
@@ -99,6 +111,116 @@ class ExtractorService {
     }
 
     return { transactions, bankName, statementDate };
+  }
+
+  /**
+   * Extract transactions from Hipotecario CSV format
+   * Columns: FECHA, DESCRIPCION, SUCURSAL, REFERENCIA, DEBITO EN $, CREDITO EN $, SALDO EN $
+   * @param {Array<Object>} data
+   * @returns {Object}
+   */
+  extractHipotecarioCSV(data) {
+    const transactions = [];
+
+    console.log(`[Extractor] Hipotecario CSV: Processing ${data.length} rows`);
+
+    for (const row of data) {
+      // Skip empty rows
+      if (Object.values(row).every(val => !val || val.toString().trim() === '')) {
+        continue;
+      }
+
+      // Find columns (case-insensitive match)
+      const keys = Object.keys(row);
+      const dateField = keys.find(k => k.toUpperCase() === 'FECHA');
+      const descField = keys.find(k => k.toUpperCase() === 'DESCRIPCION');
+      const refField = keys.find(k => k.toUpperCase() === 'REFERENCIA');
+      const debitField = keys.find(k => k.toUpperCase().includes('DEBITO'));
+      const creditField = keys.find(k => k.toUpperCase().includes('CREDITO'));
+      const balanceField = keys.find(k => k.toUpperCase().includes('SALDO'));
+
+      // Skip if no date or if it's a summary/total row
+      if (!dateField || !row[dateField]) continue;
+
+      // Skip rows with "Total:" or disclaimer text
+      const dateValue = row[dateField].toString().trim();
+      if (dateValue === '' || dateValue.toLowerCase().includes('total') || dateValue.toLowerCase().includes('presente documento')) {
+        continue;
+      }
+
+      const date = this.parseDate(row[dateField]);
+      if (!date) continue;
+
+      const description = descField ? row[descField] : '';
+      const reference = refField ? row[refField] : null;
+
+      // Parse debit and credit amounts (Argentine format: 1.234,56)
+      const debit = debitField ? this.parseArgentineAmount(row[debitField]) : 0;
+      const credit = creditField ? this.parseArgentineAmount(row[creditField]) : 0;
+      const balance = balanceField ? this.parseArgentineAmount(row[balanceField]) : null;
+
+      // Calculate final amount: credit is positive, debit is negative
+      let amount = 0;
+      if (credit > 0) {
+        amount = credit;
+      } else if (debit > 0) {
+        amount = -debit;
+      }
+
+      // Skip if no amount
+      if (amount === 0) continue;
+
+      console.log(`[Extractor] Hipotecario CSV: ${date} | ${description.substring(0, 40)}... | ${amount}`);
+
+      transactions.push({
+        transaction_date: date,
+        description: description || 'Unknown',
+        merchant: this.extractMerchant(description),
+        amount: amount,
+        transaction_type: amount < 0 ? 'debit' : 'credit',
+        reference_number: reference ? reference.toString() : null,
+        balance: balance,
+        raw_data: row,
+        confidence_score: 90.0 // High confidence for direct CSV parsing
+      });
+    }
+
+    console.log(`[Extractor] Hipotecario CSV: Found ${transactions.length} transactions`);
+    return {
+      transactions,
+      bankName: 'Banco Hipotecario',
+      statementDate: transactions.length > 0 ? transactions[0].transaction_date : null
+    };
+  }
+
+  /**
+   * Parse Argentine number format (1.234,56 -> 1234.56)
+   * @param {string|number} value
+   * @returns {number}
+   */
+  parseArgentineAmount(value) {
+    if (typeof value === 'number') return value;
+    if (!value || value.toString().trim() === '') return 0;
+
+    let cleaned = value.toString().trim();
+
+    // Remove currency symbols and spaces
+    cleaned = cleaned.replace(/[$\s]/g, '');
+
+    // Check for negative (parentheses or minus)
+    const isNegative = cleaned.startsWith('-') || (cleaned.startsWith('(') && cleaned.endsWith(')'));
+    cleaned = cleaned.replace(/[-()]/g, '');
+
+    // Argentine format: dots for thousands (1.234), comma for decimal (,56)
+    // Remove all dots (thousands separator)
+    cleaned = cleaned.replace(/\./g, '');
+    // Replace comma with dot (decimal separator)
+    cleaned = cleaned.replace(',', '.');
+
+    const amount = parseFloat(cleaned);
+    if (isNaN(amount)) return 0;
+
+    return isNegative ? -amount : amount;
   }
 
 

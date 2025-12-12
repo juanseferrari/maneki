@@ -6,12 +6,22 @@
 class LocalOcrService {
   constructor() {
     this.bankPatterns = {
+      hipotecario: {
+        name: 'Banco Hipotecario',
+        patterns: {
+          // Match the header to confirm it's Hipotecario
+          header: /Hipotecario|hipotecario/i,
+          // Match account number format
+          accountNumber: /CTE\s*\$\s*\*+(\d+)/i,
+          // Match date range
+          dateRange: /Movimientos?\s+del\s+(\d{2}\/\d{2}\/\d{4})\s+al\s+(\d{2}\/\d{2}\/\d{4})/i,
+          statementDate: /Movimientos?\s+del\s+\d{2}\/\d{2}\/\d{4}\s+al\s+(\d{2}\/\d{2}\/\d{4})/i
+        }
+      },
       brubank: {
         name: 'Brubank',
         patterns: {
-          // Match transactions like: "16/11/2024 12345 MERCHANT NAME -1,234.56"
           transaction: /(\d{2}\/\d{2}\/\d{4})\s+(\d+)\s+(.+?)\s+([-]?\$?\s*[\d,]+\.?\d*)/g,
-          // Alternative pattern for transactions with reverso
           reverso: /(\d{2}\/\d{2}\/\d{4})\s+(\d+)\s+Reverso\s*-?\s*(.+?)\s+([-]?\$?\s*[\d,]+\.?\d*)/gi,
           statementDate: /(?:Estado de Cuenta|Estado del)\s+(?:del?\s+)?(\d{2}\/\d{2}\/\d{4})/i,
           balance: /Saldo\s+(?:Final|Actual)?\s*:?\s*\$?\s*([\d,]+\.?\d*)/i
@@ -20,7 +30,6 @@ class LocalOcrService {
       santander: {
         name: 'Santander',
         patterns: {
-          // Match transactions with date, description, and amount
           transaction: /(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+([-]?\$?\s*[\d,]+\.?\d*)\s*$/gm,
           statementDate: /(?:Resumen|Estado)\s+(?:del?\s+)?(\d{2}\/\d{2}\/\d{4})/i,
           balance: /Saldo\s+(?:Final|Actual)?\s*:?\s*\$?\s*([\d,]+\.?\d*)/i
@@ -29,15 +38,15 @@ class LocalOcrService {
       generic: {
         name: 'Generic',
         patterns: {
-          // Generic date pattern
           date: /(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/g,
-          // Generic amount pattern (with currency symbols)
           amount: /([-]?\$?\s*[\d,]+\.?\d{2})/g,
-          // Common transaction keywords
           keywords: /(?:compra|pago|transferencia|débito|crédito|extracción|depósito)/gi
         }
       }
     };
+
+    // CUIT patterns for extraction from descriptions
+    this.cuitPattern = /(?:\|\s*)?(\d{11}|\d{2}-?\d{8}-?\d)\s+([A-Za-z\s.,]+(?:S\.?R\.?L\.?|S\.?A\.?|SAS|S\.?C\.?A\.?)?)/i;
   }
 
   /**
@@ -55,6 +64,11 @@ class LocalOcrService {
       return 'credit_card';
     }
 
+    // Detect Banco Hipotecario
+    if (textLower.includes('hipotecario') || /CTE\s*\$\s*\*+\d+/i.test(text)) {
+      return 'hipotecario';
+    }
+
     if (textLower.includes('brubank') || textLower.includes('bru bank')) {
       return 'brubank';
     }
@@ -63,7 +77,6 @@ class LocalOcrService {
       return 'santander';
     }
 
-    // Add more bank detection patterns here
     if (textLower.includes('galicia')) {
       return 'galicia';
     }
@@ -106,8 +119,7 @@ class LocalOcrService {
   }
 
   /**
-   * Parse amount from string
-   * Handles both formats: 1,234.56 (US) and 1.234,56 (AR/EU)
+   * Parse amount from string - handles Argentine format (dots as thousands, comma as decimal)
    * @param {string} amountStr - Amount string
    * @returns {number} Parsed amount
    */
@@ -115,28 +127,79 @@ class LocalOcrService {
     if (!amountStr) return 0;
 
     // Remove currency symbols and spaces
-    let cleaned = amountStr.replace(/[$\s]/g, '');
+    let cleaned = amountStr.toString().replace(/[$\s]/g, '');
 
-    // Detect format based on last separator
-    // If last separator is comma, it's AR/EU format (1.234,56)
-    // If last separator is dot, it's US format (1,234.56)
+    // Check if negative (starts with - or has parentheses)
+    const isNegative = cleaned.startsWith('-') || (cleaned.startsWith('(') && cleaned.endsWith(')'));
+    cleaned = cleaned.replace(/[-()]/g, '');
+
+    // Detect Argentine format: 1.234,56 (dots for thousands, comma for decimal)
+    // vs US format: 1,234.56 (commas for thousands, dot for decimal)
     const lastComma = cleaned.lastIndexOf(',');
     const lastDot = cleaned.lastIndexOf('.');
 
-    if (lastComma > lastDot) {
+    if (lastComma > lastDot && lastComma >= cleaned.length - 3) {
       // Argentine/European format: 1.234,56
-      // Remove dots (thousands separator) and replace comma with dot
       cleaned = cleaned.replace(/\./g, '').replace(',', '.');
-    } else {
+    } else if (lastDot > lastComma && lastDot >= cleaned.length - 3) {
       // US format: 1,234.56
-      // Remove commas (thousands separator)
       cleaned = cleaned.replace(/,/g, '');
+    } else if (lastComma > -1 && lastDot === -1) {
+      // Only comma, assume it's decimal: 1234,56
+      cleaned = cleaned.replace(',', '.');
+    } else if (lastDot > -1 && lastComma === -1) {
+      // Only dot, check position
+      if (lastDot >= cleaned.length - 3) {
+        // It's a decimal: 1234.56
+        // Keep as is
+      } else {
+        // It's thousands: 1.234
+        cleaned = cleaned.replace(/\./g, '');
+      }
     }
 
-    // Parse as float
     const amount = parseFloat(cleaned);
+    if (isNaN(amount)) return 0;
 
-    return isNaN(amount) ? 0 : amount;
+    return isNegative ? -Math.abs(amount) : amount;
+  }
+
+  /**
+   * Extract CUIT and Razon Social from description
+   * @param {string} description - Transaction description
+   * @returns {Object} Extracted CUIT info
+   */
+  extractCuitInfo(description) {
+    if (!description) return null;
+
+    // Pattern 1: "N/C - RECIBISTE TRANSF. DEBIN MT | 30718553306 CAPOCANNONIERE S R L"
+    // Pattern 2: "N/D - DEBITO TRANSF TERCEROS OB BH | 30500011072 BANCO HIPOTECARIO S A"
+    // Pattern 3: "N/D - TRANSF ENV INMEDIATA COELSA | 20164256716 Felipe Orlando Segura"
+
+    // Match CUIT (11 digits) followed by name
+    const patterns = [
+      /\|\s*(\d{11})\s+(.+?)(?:\s*$)/i,              // Format: | 30718553306 COMPANY NAME
+      /\|\s*(\d{2}-\d{8}-\d)\s+(.+?)(?:\s*$)/i,      // Format: | 30-71855330-6 COMPANY NAME
+      /(?:CUIT|C\.U\.I\.T\.?)\s*:?\s*(\d{2}-?\d{8}-?\d)\s*(.+?)(?:\s*$)/i  // Format: CUIT: 30-71855330-6 NAME
+    ];
+
+    for (const pattern of patterns) {
+      const match = description.match(pattern);
+      if (match) {
+        let cuit = match[1].replace(/-/g, '');
+        // Format CUIT as XX-XXXXXXXX-X
+        if (cuit.length === 11) {
+          cuit = `${cuit.slice(0, 2)}-${cuit.slice(2, 10)}-${cuit.slice(10)}`;
+        }
+
+        return {
+          cuit: cuit,
+          razonSocial: match[2].trim()
+        };
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -149,29 +212,217 @@ class LocalOcrService {
 
     // Remove common prefixes
     let merchant = description
+      .replace(/^N\/[CD]\s*-\s*/gi, '')  // Remove N/C or N/D prefix
       .replace(/^(compra|pago|transferencia|débito|crédito)\s+/gi, '')
       .replace(/cuota \d+ de \d+/gi, '')
       .replace(/reverso\s*-?\s*/gi, '')
       .trim();
 
-    // Take first part before dash or hyphen
-    const parts = merchant.split(/\s+-\s+/);
+    // Take first part before pipe
+    const parts = merchant.split(/\s*\|\s*/);
     merchant = parts[0] || merchant;
+
+    // Take first part before dash
+    const dashParts = merchant.split(/\s+-\s+/);
+    merchant = dashParts[0] || merchant;
 
     // Limit length
     return merchant.substring(0, 100).trim();
   }
 
   /**
-   * Extract transactions using Brubank patterns
+   * Parse transaction type from description prefix
+   * @param {string} description - Transaction description
+   * @returns {string} Transaction type (credit/debit)
+   */
+  parseTransactionType(description) {
+    if (!description) return 'unknown';
+
+    const descUpper = description.toUpperCase();
+
+    // N/C = Nota de Crédito (credit)
+    if (descUpper.startsWith('N/C')) return 'credit';
+
+    // N/D = Nota de Débito (debit)
+    if (descUpper.startsWith('N/D')) return 'debit';
+
+    // Check for credit keywords
+    if (descUpper.includes('ACRED') ||
+        descUpper.includes('RECIB') ||
+        descUpper.includes('DEPOSITO') ||
+        descUpper.includes('CRÉDITO') ||
+        descUpper.includes('CREDITO')) {
+      return 'credit';
+    }
+
+    // Check for debit keywords
+    if (descUpper.includes('DEBITO') ||
+        descUpper.includes('ENVIASTE') ||
+        descUpper.includes('PAGO') ||
+        descUpper.includes('TRANSF ENV') ||
+        descUpper.includes('EXTRACCION')) {
+      return 'debit';
+    }
+
+    return 'unknown';
+  }
+
+  /**
+   * Extract transactions from Banco Hipotecario statement
+   * Format: DD/MM/YYYY | DESCRIPTION | IMPORTE_MONEDA | SALDO EN $
+   * The PDF concatenates fields without spaces, so we need to parse from the end
    * @param {string} text - Document text
    * @returns {Array} Extracted transactions
+   */
+  extractHipotecarioTransactions(text) {
+    const transactions = [];
+    const lines = text.split('\n');
+
+    console.log(`[LocalOCR] Hipotecario: Processing ${lines.length} lines`);
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+
+      // Skip empty lines
+      if (!line || line.length < 10) continue;
+
+      // Skip header/footer lines
+      if (line.includes('El presente documento no constituye') ||
+          line.includes('Movimientos del') ||
+          line.includes('Hipotecario') ||
+          line.toLowerCase().includes('saldo en $') ||
+          line.includes('FECHADESCRIPCIÓN') ||
+          line.includes('IMPORTE_MON') ||
+          line === 'Total:' ||
+          line === 'TOTAL' ||
+          line === 'EDA') {
+        continue;
+      }
+
+      // Check if line starts with date DD/MM/YYYY
+      const dateMatch = line.match(/^(\d{2}\/\d{2}\/\d{4})/);
+      if (!dateMatch) continue;
+
+      const date = dateMatch[1];
+      let restOfLine = line.substring(10); // After DD/MM/YYYY (10 chars)
+
+      // Strategy: Parse from the END of the line
+      // The format is: DESCRIPTION + AMOUNT (with .XX decimals) + BALANCE (with .XX decimals)
+      // Balance is always at the end, then amount before it
+
+      // Find the last two decimal numbers (amount and balance)
+      // Pattern: look for numbers ending in .XX from the end
+
+      let description = '';
+      let amount = 0;
+      let matched = false;
+
+      // Method 1: Find amount by looking for negative sign pattern at the end
+      // Negative amounts: DESCRIPTION-AMOUNT.DDBALANCE.DD
+      // Example: "MERPAGO*FERRESHOP - CAPITAL FE-47437.505960411.59"
+      const negativePattern = restOfLine.match(/^(.+?)(-\d+\.\d{2})(\d+\.\d{2})\.?$/);
+      if (negativePattern) {
+        description = negativePattern[1].trim();
+        amount = parseFloat(negativePattern[2]);
+        matched = true;
+        console.log(`[LocalOCR] Pattern NEG: "${description.substring(0, 30)}..." amt=${amount}`);
+      }
+
+      // Method 2: Positive amounts - find two consecutive decimal numbers at the end
+      // Example: "N/C - ACRED A COMERCIOS FIRST DATA1220574.006087960.00"
+      if (!matched) {
+        const positivePattern = restOfLine.match(/^(.+?)(\d+\.\d{2})(\d+\.\d{2})\.?$/);
+        if (positivePattern) {
+          description = positivePattern[1].trim();
+          amount = parseFloat(positivePattern[2]);
+          matched = true;
+          console.log(`[LocalOCR] Pattern POS: "${description.substring(0, 30)}..." amt=${amount}`);
+        }
+      }
+
+      // Method 3: Handle case where balance might not have decimals
+      // Example: "N/C - ACRED A COMERCIOS FIRST DATA1220574.006087960."
+      if (!matched) {
+        const noDecBalPattern = restOfLine.match(/^(.+?)(-?\d+\.\d{2})(\d+)\.?$/);
+        if (noDecBalPattern) {
+          description = noDecBalPattern[1].trim();
+          amount = parseFloat(noDecBalPattern[2]);
+          matched = true;
+          console.log(`[LocalOCR] Pattern NODEC: "${description.substring(0, 30)}..." amt=${amount}`);
+        }
+      }
+
+      // Method 4: Alternative - find the LAST occurrence of a negative sign followed by digits
+      // This handles cases like: "N/D - DB TRF TERCEROS OB BH I 20321434003 FRANCISCO BAQUERIZA-25000.002440992.67"
+      if (!matched) {
+        // Find last negative sign that's followed by digits (this is the amount)
+        const lastNegIdx = restOfLine.lastIndexOf('-');
+        if (lastNegIdx > 10) { // Make sure there's enough for a description
+          const afterNeg = restOfLine.substring(lastNegIdx);
+          const amtMatch = afterNeg.match(/^(-\d+\.\d{2})(\d+\.?\d*)\.?$/);
+          if (amtMatch) {
+            description = restOfLine.substring(0, lastNegIdx).trim();
+            amount = parseFloat(amtMatch[1]);
+            matched = true;
+            console.log(`[LocalOCR] Pattern LASTNEG: "${description.substring(0, 30)}..." amt=${amount}`);
+          }
+        }
+      }
+
+      // Method 5: For positive amounts with CUIT/numbers in description
+      // Look for pattern where we have AMOUNT.DD followed by BALANCE.DD at the very end
+      // Parse backwards from the end
+      if (!matched) {
+        // Remove trailing period if exists
+        let cleanLine = restOfLine.replace(/\.$/, '');
+
+        // Find balance (last number with 2 decimals)
+        const balanceMatch = cleanLine.match(/(\d+\.\d{2})$/);
+        if (balanceMatch) {
+          const beforeBalance = cleanLine.substring(0, cleanLine.length - balanceMatch[1].length);
+
+          // Find amount (number with 2 decimals before balance)
+          const amountMatch = beforeBalance.match(/(-?\d+\.\d{2})$/);
+          if (amountMatch) {
+            description = beforeBalance.substring(0, beforeBalance.length - amountMatch[1].length).trim();
+            amount = parseFloat(amountMatch[1]);
+            if (description.length > 3) {
+              matched = true;
+              console.log(`[LocalOCR] Pattern BACKWARD: "${description.substring(0, 30)}..." amt=${amount}`);
+            }
+          }
+        }
+      }
+
+      if (matched && description && description.length > 2) {
+        // Extract CUIT info if available
+        const cuitInfo = this.extractCuitInfo(description);
+
+        transactions.push({
+          fecha: this.parseDate(date),
+          descripcion: description,
+          monto: amount,
+          saldo: null, // Leave balance empty as requested
+          cuit: cuitInfo?.cuit || null,
+          razonSocial: cuitInfo?.razonSocial || null,
+          tipoMovimiento: amount < 0 ? 'debito' : 'credito'
+        });
+
+        console.log(`[LocalOCR] Hipotecario: ${date} | ${description.substring(0, 40)}... | ${amount}`);
+      }
+    }
+
+    console.log(`[LocalOCR] Hipotecario: Found ${transactions.length} transactions`);
+    return transactions;
+  }
+
+  /**
+   * Extract transactions using Brubank patterns
    */
   extractBrubankTransactions(text) {
     const transactions = [];
     const patterns = this.bankPatterns.brubank.patterns;
 
-    // First, try to extract reverso transactions
     let match;
     while ((match = patterns.reverso.exec(text)) !== null) {
       const [, date, reference, description, amount] = match;
@@ -181,18 +432,15 @@ class LocalOcrService {
         referencia: reference?.trim() || null,
         descripcion: `Reverso - ${description.trim()}`,
         dolares: 0,
-        pesos: -Math.abs(this.parseAmount(amount)) // Reverso is always negative
+        pesos: -Math.abs(this.parseAmount(amount))
       });
     }
 
-    // Reset regex
     patterns.transaction.lastIndex = 0;
 
-    // Then extract regular transactions
     while ((match = patterns.transaction.exec(text)) !== null) {
       const [fullMatch, date, reference, description, amount] = match;
 
-      // Skip if this looks like a reverso (already processed)
       if (description.toLowerCase().includes('reverso')) {
         continue;
       }
@@ -213,8 +461,6 @@ class LocalOcrService {
 
   /**
    * Extract transactions using Santander patterns
-   * @param {string} text - Document text
-   * @returns {Array} Extracted transactions
    */
   extractSantanderTransactions(text) {
     const transactions = [];
@@ -225,17 +471,14 @@ class LocalOcrService {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
 
-      // Skip empty lines and headers
       if (!line || line.length < 10) continue;
 
-      // Look for date at the start - support both DD/MM/YYYY and DD/MM/YY
       const dateMatch = line.match(/^(\d{2}\/\d{2}\/\d{2,4})/);
       if (!dateMatch) continue;
 
       const date = dateMatch[1];
       const restOfLine = line.substring(date.length).trim();
 
-      // Skip header lines
       if (restOfLine.toLowerCase().includes('fecha') ||
           restOfLine.toLowerCase().includes('período') ||
           restOfLine.toLowerCase().includes('desde') ||
@@ -243,14 +486,10 @@ class LocalOcrService {
         continue;
       }
 
-      // Look for amounts with various formats:
-      // - With decimals: 1.234,56 or 1,234.56
-      // - With $ sign
-      // - Negative with - sign
       const amountPatterns = [
-        /([-]?\$?\s*[\d.]+,\d{2})\s*$/,  // Format: 1.234,56
-        /([-]?\$?\s*[\d,]+\.\d{2})\s*$/,  // Format: 1,234.56
-        /([-]?\$?\s*[\d.]+)\s*$/          // Format: 1234.56 or 1.234
+        /([-]?\$?\s*[\d.]+,\d{2})\s*$/,
+        /([-]?\$?\s*[\d,]+\.\d{2})\s*$/,
+        /([-]?\$?\s*[\d.]+)\s*$/
       ];
 
       let amount = null;
@@ -284,8 +523,6 @@ class LocalOcrService {
 
   /**
    * Extract transactions from credit card statements
-   * @param {string} text - Document text
-   * @returns {Array} Extracted transactions
    */
   extractCreditCardTransactions(text) {
     const transactions = [];
@@ -296,30 +533,25 @@ class LocalOcrService {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
 
-      // Skip empty lines and headers
       if (!line || line.length < 10) continue;
 
-      // Look for date at the start - support both DD/MM and DD/MM/YYYY
       const dateMatch = line.match(/^(\d{1,2}\/\d{1,2})(?:\/\d{2,4})?\s+/);
       if (!dateMatch) continue;
 
       const date = dateMatch[1];
       const restOfLine = line.substring(dateMatch[0].length).trim();
 
-      // Skip header lines
       if (restOfLine.toLowerCase().includes('fecha') ||
           restOfLine.toLowerCase().includes('vencimiento') ||
           restOfLine.toLowerCase().includes('cierre')) {
         continue;
       }
 
-      // Look for amounts at the end of the line
-      // Support formats: $1.234,56 or 1.234,56 or $1,234.56
       const amountPatterns = [
-        /\$\s*([\d.]+,\d{2})\s*$/,           // $1.234,56
-        /([\d.]+,\d{2})\s*$/,                // 1.234,56
-        /\$\s*([\d,]+\.\d{2})\s*$/,          // $1,234.56
-        /([\d,]+\.\d{2})\s*$/                // 1,234.56
+        /\$\s*([\d.]+,\d{2})\s*$/,
+        /([\d.]+,\d{2})\s*$/,
+        /\$\s*([\d,]+\.\d{2})\s*$/,
+        /([\d,]+\.\d{2})\s*$/
       ];
 
       let amount = null;
@@ -335,13 +567,10 @@ class LocalOcrService {
       }
 
       if (amount && description && description.length > 2) {
-        // For credit cards, determine the year from the statement
-        // Assume current year or previous year based on the month
         const currentDate = new Date();
         const [day, month] = date.split('/');
         let year = currentDate.getFullYear();
 
-        // If the month is in the future compared to current month, it's from last year
         if (parseInt(month) > currentDate.getMonth() + 1) {
           year--;
         }
@@ -355,7 +584,7 @@ class LocalOcrService {
           referencia: null,
           descripcion: description,
           dolares: 0,
-          pesos: -Math.abs(this.parseAmount(amount)) // Credit card charges are negative
+          pesos: -Math.abs(this.parseAmount(amount))
         });
       }
     }
@@ -366,8 +595,6 @@ class LocalOcrService {
 
   /**
    * Extract transactions using generic patterns
-   * @param {string} text - Document text
-   * @returns {Array} Extracted transactions
    */
   extractGenericTransactions(text) {
     const transactions = [];
@@ -376,27 +603,22 @@ class LocalOcrService {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
 
-      // Skip short lines
       if (line.length < 15) continue;
 
-      // Look for lines with dates
       const dateMatch = line.match(/(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/);
       if (!dateMatch) continue;
 
-      // Look for amounts in the line
       const amountMatches = line.match(/([-]?\$?\s*[\d,]+\.\d{2})/g);
       if (!amountMatches || amountMatches.length === 0) continue;
 
       const date = dateMatch[1];
-      const amount = amountMatches[amountMatches.length - 1]; // Take last amount
+      const amount = amountMatches[amountMatches.length - 1];
 
-      // Extract description (text between date and amount)
       let description = line
         .replace(date, '')
         .replace(amount, '')
         .trim();
 
-      // Skip if description is too short
       if (description.length < 3) continue;
 
       transactions.push({
@@ -413,11 +635,15 @@ class LocalOcrService {
 
   /**
    * Extract statement date from text
-   * @param {string} text - Document text
-   * @param {string} bankType - Bank identifier
-   * @returns {string|null} Statement date
    */
   extractStatementDate(text, bankType) {
+    if (bankType === 'hipotecario') {
+      const match = text.match(/Movimientos?\s+del\s+\d{2}\/\d{2}\/\d{4}\s+al\s+(\d{2}\/\d{2}\/\d{4})/i);
+      if (match) {
+        return this.parseDate(match[1]);
+      }
+    }
+
     const patterns = this.bankPatterns[bankType]?.patterns;
     if (!patterns || !patterns.statementDate) return null;
 
@@ -431,22 +657,20 @@ class LocalOcrService {
 
   /**
    * Main extraction method
-   * @param {string} textContent - Raw text from document
-   * @param {string} fileName - Original file name
-   * @returns {Object} Extraction result
    */
   async extractTransactions(textContent, fileName) {
     try {
       console.log('[LocalOCR] Starting local extraction...');
 
-      // Detect bank
       const bankType = this.detectBank(textContent);
       console.log(`[LocalOCR] Detected bank: ${bankType}`);
 
       let movimientos = [];
 
-      // Extract transactions based on bank type
       switch (bankType) {
+        case 'hipotecario':
+          movimientos = this.extractHipotecarioTransactions(textContent);
+          break;
         case 'credit_card':
           movimientos = this.extractCreditCardTransactions(textContent);
           break;
@@ -462,12 +686,12 @@ class LocalOcrService {
 
       console.log(`[LocalOCR] Extracted ${movimientos.length} transactions`);
 
-      // Extract statement date
       const statementDate = this.extractStatementDate(textContent, bankType);
 
       // Transform to internal format
       const transactions = movimientos.map(mov => {
-        const amount = mov.pesos !== 0 ? mov.pesos : mov.dolares;
+        // Handle Hipotecario format which has monto instead of pesos
+        const amount = mov.monto !== undefined ? mov.monto : (mov.pesos !== 0 ? mov.pesos : mov.dolares);
 
         return {
           transaction_date: mov.fecha,
@@ -476,8 +700,11 @@ class LocalOcrService {
           amount: amount,
           transaction_type: amount < 0 ? 'debit' : 'credit',
           reference_number: mov.referencia,
+          balance: mov.saldo || null,
+          cuit: mov.cuit || null,
+          razon_social: mov.razonSocial || null,
           raw_data: mov,
-          confidence_score: 75.0 // Local extraction confidence
+          confidence_score: 85.0 // Higher confidence for bank-specific extraction
         };
       });
 
@@ -485,7 +712,7 @@ class LocalOcrService {
         transactions,
         bankName: this.bankPatterns[bankType]?.name || 'Unknown',
         statementDate: statementDate,
-        confidenceScore: 75.0,
+        confidenceScore: transactions.length > 0 ? 85.0 : 50.0,
         totalTransactions: transactions.length
       };
     } catch (error) {
@@ -496,10 +723,9 @@ class LocalOcrService {
 
   /**
    * Check if local OCR is available
-   * @returns {boolean}
    */
   isAvailable() {
-    return true; // Always available since it's local
+    return true;
   }
 }
 

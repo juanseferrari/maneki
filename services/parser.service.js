@@ -60,10 +60,21 @@ class ParserService {
   async parseCSV(fileBuffer) {
     try {
       const csvText = fileBuffer.toString('utf-8');
+
+      // Detect delimiter (semicolon, tab, or comma)
+      const firstLine = csvText.split('\n')[0] || '';
+      let delimiter = ',';
+      if (firstLine.includes(';')) {
+        delimiter = ';';
+      } else if (firstLine.includes('\t')) {
+        delimiter = '\t';
+      }
+
       const records = parse(csvText, {
         skip_empty_lines: true,
         trim: true,
-        relax_column_count: true
+        relax_column_count: true,
+        delimiter: delimiter
       });
 
       // Convert to a readable text format
@@ -109,11 +120,22 @@ class ParserService {
     try {
       if (mimeType === 'text/csv' || fileName.endsWith('.csv')) {
         const csvText = fileBuffer.toString('utf-8');
+
+        // Detect delimiter (semicolon, tab, or comma)
+        const firstLine = csvText.split('\n')[0] || '';
+        let delimiter = ',';
+        if (firstLine.includes(';')) {
+          delimiter = ';';
+        } else if (firstLine.includes('\t')) {
+          delimiter = '\t';
+        }
+
         const records = parse(csvText, {
           columns: true, // Use first row as headers
           skip_empty_lines: true,
           trim: true,
-          relax_column_count: true
+          relax_column_count: true,
+          delimiter: delimiter
         });
         return records;
       } else if (

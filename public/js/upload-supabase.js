@@ -3,6 +3,37 @@ let accessToken = null;
 let currentUser = null;
 let isDev = false;
 
+// Pagination state variables
+let allTransactions = [];
+let currentPage = 1;
+let currentLimit = 50;
+let totalTransactions = 0;
+let totalPages = 1;
+
+// Filter state variables
+let currentFilters = {
+  dateFrom: '',
+  dateTo: '',
+  description: ''
+};
+
+// Helper function to format date without timezone issues
+// Dates come as "YYYY-MM-DD" which JavaScript interprets as UTC midnight
+// This causes off-by-one errors when converting to local time
+function formatDate(dateStr, options = {}) {
+  if (!dateStr) return '-';
+
+  // If it's just a date string (YYYY-MM-DD), parse it directly without timezone conversion
+  if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day); // month is 0-indexed
+    return date.toLocaleDateString('es-AR', options);
+  }
+
+  // For full datetime strings, use normal parsing
+  return new Date(dateStr).toLocaleDateString('es-AR', options);
+}
+
 // Helper function to get fresh access token
 async function getAccessToken() {
   if (accessToken) return accessToken;
@@ -163,7 +194,7 @@ if (window.location.hash) {
 const fileInput = document.getElementById('file-input');
 const selectFileBtn = document.getElementById('select-file-btn');
 const uploadForm = document.getElementById('upload-form');
-const fileSelected = document.getElementById('file-selected');
+const uploadArea = document.getElementById('upload-area');
 const uploadMessage = document.getElementById('upload-message');
 const uploadProgress = document.getElementById('upload-progress');
 
@@ -171,30 +202,59 @@ selectFileBtn.addEventListener('click', () => {
   fileInput.click();
 });
 
-fileInput.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (file) {
-    document.getElementById('selected-file-name').textContent = file.name;
-    document.getElementById('selected-file-size').textContent = formatFileSize(file.size);
-    fileSelected.style.display = 'flex';
+// Make the entire upload area clickable
+uploadArea.addEventListener('click', (e) => {
+  if (e.target !== selectFileBtn && !selectFileBtn.contains(e.target)) {
+    fileInput.click();
   }
 });
 
-uploadForm.addEventListener('submit', async (e) => {
+// Drag and Drop support
+uploadArea.addEventListener('dragover', (e) => {
   e.preventDefault();
+  e.stopPropagation();
+  uploadArea.classList.add('drag-over');
+});
 
-  const file = fileInput.files[0];
-  if (!file) {
-    showMessage('Please select a file', 'error');
-    return;
+uploadArea.addEventListener('dragenter', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  uploadArea.classList.add('drag-over');
+});
+
+uploadArea.addEventListener('dragleave', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  uploadArea.classList.remove('drag-over');
+});
+
+uploadArea.addEventListener('drop', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  uploadArea.classList.remove('drag-over');
+
+  const files = e.dataTransfer.files;
+  if (files.length > 0) {
+    uploadFile(files[0]);
   }
+});
 
+// When file is selected via input, upload directly
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    uploadFile(file);
+  }
+});
+
+// Direct upload function
+async function uploadFile(file) {
   const formData = new FormData();
   formData.append('file', file);
 
   try {
     uploadProgress.style.display = 'block';
-    fileSelected.style.display = 'none';
+    document.getElementById('progress-text').textContent = `Subiendo ${file.name}...`;
     uploadMessage.textContent = '';
 
     const headers = {};
@@ -211,21 +271,29 @@ uploadForm.addEventListener('submit', async (e) => {
     const result = await response.json();
 
     if (result.success) {
-      showMessage('File uploaded successfully! Processing...', 'success');
+      showMessage('Archivo subido correctamente. Procesando...', 'success');
       fileInput.value = '';
-      fileSelected.style.display = 'none';
 
       setTimeout(() => {
         loadDashboardData();
       }, 1000);
     } else {
-      showMessage(result.error || 'Upload failed', 'error');
+      showMessage(result.error || 'Error al subir archivo', 'error');
     }
   } catch (error) {
     console.error('Upload error:', error);
-    showMessage('Upload failed: ' + error.message, 'error');
+    showMessage('Error al subir: ' + error.message, 'error');
   } finally {
     uploadProgress.style.display = 'none';
+  }
+}
+
+// Keep form submit for fallback
+uploadForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const file = fileInput.files[0];
+  if (file) {
+    uploadFile(file);
   }
 });
 
@@ -413,21 +481,31 @@ async function viewTransactions(fileId) {
   }
 }
 
-// Store all transactions globally for filtering
-let allTransactions = [];
-
-async function loadAllTransactions() {
+async function loadAllTransactions(page = 1, limit = currentLimit) {
   const container = document.getElementById('all-transactions-container');
   container.innerHTML = '<p>Cargando transacciones...</p>';
 
   try {
     const headers = await getAuthHeaders();
-    const response = await fetch('/api/transactions', { headers });
+
+    // Build query params with filters
+    const params = new URLSearchParams();
+    params.append('page', page);
+    params.append('limit', limit);
+    if (currentFilters.dateFrom) params.append('dateFrom', currentFilters.dateFrom);
+    if (currentFilters.dateTo) params.append('dateTo', currentFilters.dateTo);
+    if (currentFilters.description) params.append('description', currentFilters.description);
+
+    const response = await fetch(`/api/transactions?${params.toString()}`, { headers });
 
     const result = await response.json();
 
     if (result.success) {
       allTransactions = result.transactions;
+      currentPage = result.pagination.page;
+      currentLimit = result.pagination.limit;
+      totalTransactions = result.pagination.total;
+      totalPages = result.pagination.totalPages;
       displayTransactions(allTransactions);
     }
   } catch (error) {
@@ -436,77 +514,325 @@ async function loadAllTransactions() {
   }
 }
 
+// Default categories
+const defaultCategories = [
+  { id: 'sin_categoria', name: 'Sin categoría', color: '#9CA3AF' },
+  { id: 'alimentacion', name: 'Alimentación', color: '#F59E0B' },
+  { id: 'transporte', name: 'Transporte', color: '#3B82F6' },
+  { id: 'servicios', name: 'Servicios', color: '#8B5CF6' },
+  { id: 'entretenimiento', name: 'Entretenimiento', color: '#EC4899' },
+  { id: 'salud', name: 'Salud', color: '#10B981' },
+  { id: 'educacion', name: 'Educación', color: '#6366F1' },
+  { id: 'hogar', name: 'Hogar', color: '#F97316' },
+  { id: 'impuestos', name: 'Impuestos', color: '#EF4444' },
+  { id: 'transferencias', name: 'Transferencias', color: '#14B8A6' },
+  { id: 'ingresos', name: 'Ingresos', color: '#22C55E' }
+];
+
+function getCategoryById(categoryId) {
+  return defaultCategories.find(c => c.id === categoryId) || defaultCategories[0];
+}
+
 function displayTransactions(transactions) {
   const container = document.getElementById('all-transactions-container');
 
-  if (transactions.length === 0) {
+  if (transactions.length === 0 && totalTransactions === 0) {
     container.innerHTML = '<p style="padding: 2rem; text-align: center;">No hay transacciones disponibles</p>';
     return;
   }
 
+  const startRecord = ((currentPage - 1) * currentLimit) + 1;
+  const endRecord = Math.min(currentPage * currentLimit, totalTransactions);
+
   container.innerHTML = `
-    <div class="transactions-table">
+    <div class="transactions-table resizable">
       <table>
         <thead>
           <tr>
-            <th>Fecha</th>
-            <th>Descripción</th>
-            <th>Débito</th>
-            <th>Crédito</th>
-            <th>Balance</th>
-            <th>Archivo</th>
+            <th data-col="fecha" style="width: 12%;">Fecha<span class="col-resize-handle"></span></th>
+            <th data-col="descripcion" style="width: 35%;">Descripción<span class="col-resize-handle"></span></th>
+            <th data-col="monto" style="width: 15%;">Monto<span class="col-resize-handle"></span></th>
+            <th data-col="categoria" style="width: 18%;">Categoría<span class="col-resize-handle"></span></th>
+            <th data-col="banco" style="width: 20%;">Banco</th>
           </tr>
         </thead>
         <tbody>
-          ${transactions.map(t => `
-            <tr onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;">
-              <td>${new Date(t.transaction_date).toLocaleDateString()}</td>
-              <td>${t.description || '-'}</td>
-              <td class="${t.amount < 0 ? 'debit' : ''}">${t.amount < 0 ? '$' + Math.abs(t.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-'}</td>
-              <td class="${t.amount > 0 ? 'credit' : ''}">${t.amount > 0 ? '$' + t.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-'}</td>
-              <td>${t.balance ? '$' + t.balance.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-'}</td>
-              <td>${t.files?.original_name || '-'}</td>
+          ${transactions.map(t => {
+            const amountClass = t.amount < 0 ? 'amount-negative' : 'amount-positive';
+            const amountPrefix = t.amount < 0 ? '-' : '+';
+            const amountFormatted = '$' + Math.abs(t.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            const category = getCategoryById(t.category);
+
+            return `
+            <tr data-transaction-id="${t.id}">
+              <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;">${formatDate(t.transaction_date)}</td>
+              <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;">${t.description || '-'}</td>
+              <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;" class="${amountClass}">${amountPrefix}${amountFormatted}</td>
+              <td class="category-cell">
+                <div class="category-dropdown" onclick="event.stopPropagation();">
+                  <button class="category-btn" onclick="toggleCategoryDropdown('${t.id}')" style="--category-color: ${category.color}">
+                    <span class="category-dot" style="background: ${category.color}"></span>
+                    ${category.name}
+                    <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </button>
+                  <div class="category-options" id="category-options-${t.id}">
+                    ${defaultCategories.map(cat => `
+                      <div class="category-option ${cat.id === t.category ? 'selected' : ''}" onclick="updateTransactionCategory('${t.id}', '${cat.id}')">
+                        <span class="category-dot" style="background: ${cat.color}"></span>
+                        ${cat.name}
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              </td>
+              <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;">${t.bank_name || '-'}</td>
             </tr>
-          `).join('')}
+          `}).join('')}
         </tbody>
       </table>
     </div>
+    <div class="pagination-controls">
+      <div class="pagination-info">
+        Mostrando ${startRecord}-${endRecord} de ${totalTransactions.toLocaleString('es-AR')} transacciones
+      </div>
+      <div class="pagination-actions">
+        <div class="pagination-limit">
+          <label>Por página:</label>
+          <select id="pagination-limit" onchange="changePageLimit(this.value)">
+            <option value="50" ${currentLimit === 50 ? 'selected' : ''}>50</option>
+            <option value="100" ${currentLimit === 100 ? 'selected' : ''}>100</option>
+            <option value="300" ${currentLimit === 300 ? 'selected' : ''}>300</option>
+          </select>
+        </div>
+        <div class="pagination-buttons">
+          <button class="pagination-btn" onclick="goToPage(1)" ${currentPage === 1 ? 'disabled' : ''}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="11 17 6 12 11 7"></polyline>
+              <polyline points="18 17 13 12 18 7"></polyline>
+            </svg>
+          </button>
+          <button class="pagination-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <span class="pagination-page">Página ${currentPage} de ${totalPages}</span>
+          <button class="pagination-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+          <button class="pagination-btn" onclick="goToPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="13 17 18 12 13 7"></polyline>
+              <polyline points="6 17 11 12 6 7"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
   `;
+
+  // Load saved column widths and initialize resizing
+  loadColumnWidths();
+  initColumnResize();
 }
 
-// Filter functionality
+// Column resize functionality
+function initColumnResize() {
+  const table = document.querySelector('.transactions-table.resizable table');
+  if (!table) return;
+
+  const handles = document.querySelectorAll('.col-resize-handle');
+  let isResizing = false;
+  let currentTh = null;
+  let startX = 0;
+  let startWidth = 0;
+  let tableWidth = 0;
+
+  handles.forEach(handle => {
+    handle.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      isResizing = true;
+      currentTh = this.parentElement;
+      startX = e.pageX;
+      startWidth = currentTh.offsetWidth;
+      tableWidth = table.offsetWidth;
+
+      this.classList.add('active');
+      document.querySelector('.transactions-table').classList.add('resizing');
+
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    });
+  });
+
+  function handleMouseMove(e) {
+    if (!isResizing) return;
+
+    const diff = e.pageX - startX;
+    const newWidth = Math.max(80, startWidth + diff); // Min width 80px
+    const widthPercent = (newWidth / tableWidth) * 100;
+
+    currentTh.style.width = widthPercent + '%';
+  }
+
+  function handleMouseUp() {
+    if (!isResizing) return;
+
+    isResizing = false;
+    document.querySelector('.col-resize-handle.active')?.classList.remove('active');
+    document.querySelector('.transactions-table')?.classList.remove('resizing');
+
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+
+    // Save column widths to localStorage
+    saveColumnWidths();
+  }
+}
+
+// Save column widths to localStorage
+function saveColumnWidths() {
+  const headers = document.querySelectorAll('.transactions-table.resizable th[data-col]');
+  const widths = {};
+
+  headers.forEach(th => {
+    widths[th.dataset.col] = th.style.width;
+  });
+
+  localStorage.setItem('transactionColumnWidths', JSON.stringify(widths));
+}
+
+// Load column widths from localStorage
+function loadColumnWidths() {
+  const saved = localStorage.getItem('transactionColumnWidths');
+  if (!saved) return;
+
+  try {
+    const widths = JSON.parse(saved);
+    Object.keys(widths).forEach(col => {
+      const th = document.querySelector(`.transactions-table.resizable th[data-col="${col}"]`);
+      if (th && widths[col]) {
+        th.style.width = widths[col];
+      }
+    });
+  } catch (e) {
+    console.error('Error loading column widths:', e);
+  }
+}
+
+// Pagination helper functions
+function goToPage(page) {
+  if (page < 1 || page > totalPages) return;
+  loadAllTransactions(page, currentLimit);
+}
+
+function changePageLimit(limit) {
+  currentLimit = parseInt(limit);
+  loadAllTransactions(1, currentLimit);
+}
+
+// Toggle category dropdown
+function toggleCategoryDropdown(transactionId) {
+  // Close all other dropdowns first
+  document.querySelectorAll('.category-options.show').forEach(el => {
+    if (el.id !== `category-options-${transactionId}`) {
+      el.classList.remove('show');
+    }
+  });
+
+  const dropdown = document.getElementById(`category-options-${transactionId}`);
+  dropdown.classList.toggle('show');
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.category-dropdown')) {
+    document.querySelectorAll('.category-options.show').forEach(el => {
+      el.classList.remove('show');
+    });
+  }
+});
+
+// Update transaction category
+async function updateTransactionCategory(transactionId, categoryId) {
+  try {
+    const headers = await getAuthHeaders(true);
+
+    const response = await fetch(`/api/transactions/${transactionId}/category`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ category: categoryId })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      // Update the local data
+      const transaction = allTransactions.find(t => t.id === transactionId);
+      if (transaction) {
+        transaction.category = categoryId;
+      }
+
+      // Update the UI
+      const category = getCategoryById(categoryId);
+      const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
+      if (row) {
+        const btn = row.querySelector('.category-btn');
+        btn.style.setProperty('--category-color', category.color);
+        btn.innerHTML = `
+          <span class="category-dot" style="background: ${category.color}"></span>
+          ${category.name}
+          <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        `;
+
+        // Update selected state in options
+        row.querySelectorAll('.category-option').forEach(opt => {
+          opt.classList.remove('selected');
+        });
+        row.querySelector(`.category-option[onclick*="${categoryId}"]`)?.classList.add('selected');
+      }
+
+      // Close dropdown
+      document.getElementById(`category-options-${transactionId}`).classList.remove('show');
+    } else {
+      console.error('Failed to update category:', result.error);
+    }
+  } catch (error) {
+    console.error('Error updating category:', error);
+  }
+}
+
+// Filter functionality - now uses server-side filtering
 function filterTransactions() {
-  const dateFrom = document.getElementById('filter-date-from').value;
-  const dateTo = document.getElementById('filter-date-to').value;
-  const description = document.getElementById('filter-description').value.toLowerCase();
+  // Update filter state from UI
+  currentFilters.dateFrom = document.getElementById('filter-date-from').value;
+  currentFilters.dateTo = document.getElementById('filter-date-to').value;
+  currentFilters.description = document.getElementById('filter-description').value;
 
-  let filtered = allTransactions;
-
-  // Filter by date range
-  if (dateFrom) {
-    filtered = filtered.filter(t => new Date(t.transaction_date) >= new Date(dateFrom));
-  }
-
-  if (dateTo) {
-    filtered = filtered.filter(t => new Date(t.transaction_date) <= new Date(dateTo));
-  }
-
-  // Filter by description
-  if (description) {
-    filtered = filtered.filter(t =>
-      (t.description || '').toLowerCase().includes(description) ||
-      (t.merchant || '').toLowerCase().includes(description)
-    );
-  }
-
-  displayTransactions(filtered);
+  // Reload from page 1 with new filters
+  loadAllTransactions(1, currentLimit);
 }
 
 function clearFilters() {
   document.getElementById('filter-date-from').value = '';
   document.getElementById('filter-date-to').value = '';
   document.getElementById('filter-description').value = '';
-  displayTransactions(allTransactions);
+
+  // Clear filter state
+  currentFilters.dateFrom = '';
+  currentFilters.dateTo = '';
+  currentFilters.description = '';
+
+  // Reload from page 1 without filters
+  loadAllTransactions(1, currentLimit);
 }
 
 // Add event listeners for filters
@@ -607,7 +933,7 @@ async function showTransactionDetail(transactionId) {
         <div class="detail-info-grid">
           <div class="detail-info-item">
             <div class="detail-info-label">Fecha</div>
-            <div class="detail-info-value">${new Date(t.transaction_date).toLocaleDateString('es-AR', {
+            <div class="detail-info-value">${formatDate(t.transaction_date, {
               day: '2-digit',
               month: 'long',
               year: 'numeric'
@@ -630,6 +956,20 @@ async function showTransactionDetail(transactionId) {
             <div class="detail-info-item">
               <div class="detail-info-label">Balance</div>
               <div class="detail-info-value">$${t.balance.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+            </div>
+          ` : ''}
+
+          ${t.cuit ? `
+            <div class="detail-info-item">
+              <div class="detail-info-label">CUIT</div>
+              <div class="detail-info-value cuit-value">${t.cuit}</div>
+            </div>
+          ` : ''}
+
+          ${t.razon_social ? `
+            <div class="detail-info-item">
+              <div class="detail-info-label">Razón Social</div>
+              <div class="detail-info-value">${t.razon_social}</div>
             </div>
           ` : ''}
         </div>

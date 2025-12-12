@@ -2,6 +2,7 @@ const parserService = require('./parser.service');
 const extractorService = require('./extractor.service');
 const supabaseService = require('./supabase.service');
 const vepProcessorService = require('./vep-processor.service');
+const documentClassifier = require('./document-classifier.service');
 
 /**
  * Processing Service
@@ -32,16 +33,25 @@ class ProcessorService {
         fileMetadata.original_name
       );
 
-      // Step 1.5: Detect document type - VEP or Bank Statement
+      // Step 1.5: Detect document type using classifier
       console.log('[Processor] Step 1.5: Detecting document type...');
-      const isVep = vepProcessorService.isVepDocument(textContent);
+      const classification = documentClassifier.getFullClassification(textContent);
+      console.log(`[Processor] Document classified as: ${classification.documentType.name} (confidence: ${classification.documentType.confidence}%)`);
+      console.log(`[Processor] Bank detected: ${classification.bank.name}`);
 
-      if (isVep) {
+      // Save document type to file metadata
+      await supabaseService.updateFileProcessing(fileId, {
+        document_type: classification.documentType.type,
+        document_type_confidence: classification.documentType.confidence
+      });
+
+      // Route VEP documents to VEP processor
+      if (classification.documentType.type === 'vep') {
         console.log('[Processor] Document detected as VEP - routing to VEP processor');
         return await vepProcessorService.processVepFile(fileMetadata, fileBuffer);
       }
 
-      console.log('[Processor] Document detected as bank statement - continuing with standard processing');
+      console.log(`[Processor] Document type: ${classification.documentType.fullName} - continuing with transaction extraction`);
 
       // Step 2: Get structured data (for CSV/XLSX)
       console.log('[Processor] Step 2: Extracting structured data...');
@@ -64,10 +74,13 @@ class ProcessorService {
 
       // Step 4: Save transactions to database
       console.log('[Processor] Step 4: Saving transactions to database...');
+      // Use bank name from extraction result, or fall back to classifier detection
+      const bankName = extractionResult.bankName || classification.bank.name;
       await supabaseService.saveTransactions(
         fileId,
         extractionResult.transactions,
-        fileMetadata.user_id // Pass user_id from file metadata
+        fileMetadata.user_id, // Pass user_id from file metadata
+        bankName // Pass bank name to save with each transaction
       );
 
       // Step 5: Update file metadata

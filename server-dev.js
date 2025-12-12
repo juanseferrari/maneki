@@ -290,10 +290,22 @@ app.get('/api/files/:fileId/transactions', devAuth, async (req, res) => {
   }
 });
 
-// Get all transactions
+// Get transactions with pagination and filters
 app.get('/api/transactions', devAuth, async (req, res) => {
   try {
-    const { data: transactions, error } = await supabaseAdmin
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = (page - 1) * limit;
+    const { dateFrom, dateTo, description } = req.query;
+
+    // Build base query for count
+    let countQuery = supabaseAdmin
+      .from('transactions')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', req.user.id);
+
+    // Build base query for data
+    let dataQuery = supabaseAdmin
       .from('transactions')
       .select(`
         *,
@@ -302,8 +314,35 @@ app.get('/api/transactions', devAuth, async (req, res) => {
           stored_name
         )
       `)
-      .eq('user_id', req.user.id)
-      .order('transaction_date', { ascending: false });
+      .eq('user_id', req.user.id);
+
+    // Apply date filters
+    if (dateFrom) {
+      countQuery = countQuery.gte('transaction_date', dateFrom);
+      dataQuery = dataQuery.gte('transaction_date', dateFrom);
+    }
+    if (dateTo) {
+      countQuery = countQuery.lte('transaction_date', dateTo);
+      dataQuery = dataQuery.lte('transaction_date', dateTo);
+    }
+
+    // Apply description filter (search in description field)
+    if (description) {
+      countQuery = countQuery.ilike('description', `%${description}%`);
+      dataQuery = dataQuery.ilike('description', `%${description}%`);
+    }
+
+    // Get total count with filters
+    const { count, error: countError } = await countQuery;
+
+    if (countError) {
+      throw countError;
+    }
+
+    // Get paginated transactions with filters
+    const { data: transactions, error } = await dataQuery
+      .order('transaction_date', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       throw error;
@@ -311,13 +350,133 @@ app.get('/api/transactions', devAuth, async (req, res) => {
 
     res.json({
       success: true,
-      transactions
+      transactions,
+      pagination: {
+        page,
+        limit,
+        total: count,
+        totalPages: Math.ceil(count / limit)
+      }
     });
   } catch (error) {
     console.error('Get all transactions error:', error);
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to retrieve transactions'
+    });
+  }
+});
+
+// Get aggregated dashboard stats (scalable - uses pagination loop for unlimited data)
+app.get('/api/dashboard/stats', devAuth, async (req, res) => {
+  try {
+    const { dateFrom, dateTo, type, period = 'monthly' } = req.query;
+    const userId = req.user.id;
+
+    // Fetch ALL transactions using pagination loop (no arbitrary limits)
+    // Supabase has a max of 1000 rows per request, so we paginate until done
+    const BATCH_SIZE = 1000;
+    let allTransactions = [];
+    let offset = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      // Clone the query for each batch (need to rebuild since query is mutated)
+      let batchQuery = supabaseAdmin
+        .from('transactions')
+        .select('transaction_date, amount')
+        .eq('user_id', userId);
+
+      if (dateFrom) {
+        batchQuery = batchQuery.gte('transaction_date', dateFrom);
+      }
+      if (dateTo) {
+        batchQuery = batchQuery.lte('transaction_date', dateTo);
+      }
+
+      const { data: batch, error } = await batchQuery
+        .order('transaction_date', { ascending: true })
+        .range(offset, offset + BATCH_SIZE - 1);
+
+      if (error) throw error;
+
+      if (batch && batch.length > 0) {
+        allTransactions = allTransactions.concat(batch);
+        offset += BATCH_SIZE;
+        // If we got less than BATCH_SIZE, we've reached the end
+        hasMore = batch.length === BATCH_SIZE;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    const transactions = allTransactions;
+    console.log(`[Dashboard Stats] Fetched ${transactions.length} total transactions in ${Math.ceil(transactions.length / BATCH_SIZE)} batches`);
+
+    // Calculate summary
+    let filteredTransactions = transactions;
+    if (type === 'income') {
+      filteredTransactions = transactions.filter(t => t.amount > 0);
+    } else if (type === 'expense') {
+      filteredTransactions = transactions.filter(t => t.amount < 0);
+    }
+
+    const totalIncome = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+    const totalExpense = Math.abs(transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
+
+    // Group by period for time series
+    const grouped = {};
+
+    filteredTransactions.forEach(t => {
+      const date = new Date(t.transaction_date + 'T00:00:00');
+      let key;
+
+      if (period === 'daily') {
+        key = t.transaction_date;
+      } else if (period === 'weekly') {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split('T')[0];
+      } else { // monthly
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      }
+
+      if (!grouped[key]) {
+        grouped[key] = { income: 0, expense: 0 };
+      }
+
+      if (t.amount > 0) {
+        grouped[key].income += t.amount;
+      } else {
+        grouped[key].expense += Math.abs(t.amount);
+      }
+    });
+
+    // Convert to sorted array
+    const sortedKeys = Object.keys(grouped).sort();
+    const timeSeries = sortedKeys.map(key => ({
+      period: key,
+      income: type === 'expense' ? 0 : grouped[key].income,
+      expense: type === 'income' ? 0 : grouped[key].expense
+    }));
+
+    console.log(`[Dashboard Stats] User ${userId}: ${transactions.length} transactions, ${timeSeries.length} periods`);
+
+    res.json({
+      success: true,
+      summary: {
+        totalIncome,
+        totalExpense,
+        netBalance: totalIncome - totalExpense,
+        transactionCount: transactions.length
+      },
+      timeSeries
+    });
+  } catch (error) {
+    console.error('Get dashboard stats error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to retrieve dashboard stats'
     });
   }
 });
@@ -388,6 +547,35 @@ app.put('/api/transactions/:transactionId/notes', devAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to update notes'
+    });
+  }
+});
+
+// Update transaction category
+app.put('/api/transactions/:transactionId/category', devAuth, async (req, res) => {
+  try {
+    const { category } = req.body;
+    const { data: transaction, error } = await supabaseAdmin
+      .from('transactions')
+      .update({ category })
+      .eq('id', req.params.transactionId)
+      .eq('user_id', req.user.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      result: transaction
+    });
+  } catch (error) {
+    console.error('Update transaction category error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to update category'
     });
   }
 });

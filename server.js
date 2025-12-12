@@ -314,6 +314,24 @@ app.put('/api/transactions/:transactionId/notes', ensureAuthenticated, async (re
   }
 });
 
+// Update transaction category - Protected
+app.put('/api/transactions/:transactionId/category', ensureAuthenticated, async (req, res) => {
+  try {
+    const { category } = req.body;
+    const result = await supabaseService.updateTransactionCategory(req.params.transactionId, category, req.user.id);
+    res.json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    console.error('Update transaction category error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to update category'
+    });
+  }
+});
+
 // Get all transactions - Protected
 app.get('/api/transactions', ensureAuthenticated, async (req, res) => {
   try {
