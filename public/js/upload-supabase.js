@@ -37,6 +37,7 @@ function formatDate(dateStr, options = {}) {
 // Promise that resolves when auth is ready
 let authReadyPromise = null;
 let authReadyResolve = null;
+let authIsReady = false;
 
 // Initialize auth ready promise
 function initAuthReady() {
@@ -48,8 +49,10 @@ function initAuthReady() {
     // Set up auth state listener to resolve when session is available
     if (typeof supabaseClient !== 'undefined') {
       supabaseClient.auth.onAuthStateChange((event, session) => {
+        console.log('[Auth] State changed:', event, session ? 'has session' : 'no session');
         if (session) {
           accessToken = session.access_token;
+          authIsReady = true;
           if (authReadyResolve) {
             authReadyResolve();
             authReadyResolve = null;
@@ -59,8 +62,10 @@ function initAuthReady() {
 
       // Also check immediately in case session is already available
       supabaseClient.auth.getSession().then(({ data: { session } }) => {
+        console.log('[Auth] Initial session check:', session ? 'has session' : 'no session');
         if (session) {
           accessToken = session.access_token;
+          authIsReady = true;
           if (authReadyResolve) {
             authReadyResolve();
             authReadyResolve = null;
@@ -70,6 +75,28 @@ function initAuthReady() {
     }
   }
   return authReadyPromise;
+}
+
+// Helper to wait for auth with timeout
+async function waitForAuth(timeoutMs = 3000) {
+  if (authIsReady) return true;
+
+  return new Promise(resolve => {
+    const timeout = setTimeout(() => {
+      console.log('[Auth] Timeout waiting for auth');
+      resolve(false);
+    }, timeoutMs);
+
+    if (authReadyPromise) {
+      authReadyPromise.then(() => {
+        clearTimeout(timeout);
+        resolve(true);
+      });
+    } else {
+      clearTimeout(timeout);
+      resolve(false);
+    }
+  });
 }
 
 // Helper function to get fresh access token
@@ -537,7 +564,13 @@ async function loadAllTransactions(page = 1, limit = currentLimit) {
   container.innerHTML = '<p>Cargando transacciones...</p>';
 
   try {
+    // Wait for auth to be ready before making the request
+    // This handles the case where the page loads directly on #transacciones
+    const authReady = await waitForAuth(3000);
+    console.log('[Transactions] Auth ready:', authReady, 'Token:', accessToken ? 'present' : 'missing');
+
     const headers = await getAuthHeaders();
+    console.log('[Transactions] Headers:', Object.keys(headers));
 
     // Build query params with filters
     const params = new URLSearchParams();
