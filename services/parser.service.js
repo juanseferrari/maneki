@@ -174,11 +174,17 @@ class ParserService {
         }
 
         // Re-parse with the correct header row
+        // Use raw: false to get formatted values (respects cell number format)
         const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-          range: headerRowIndex // Start from the detected header row
+          range: headerRowIndex, // Start from the detected header row
+          raw: false, // Get formatted strings instead of raw numbers
+          defval: '' // Default value for empty cells
         });
 
         console.log(`[Parser] XLS parsed with ${jsonData.length} rows, starting from row ${headerRowIndex}`);
+        if (jsonData.length > 0) {
+          console.log(`[Parser] First data row sample:`, JSON.stringify(jsonData[0]).substring(0, 500));
+        }
         return jsonData;
       }
 
