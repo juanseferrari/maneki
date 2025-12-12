@@ -211,6 +211,40 @@ app.get('/api/files', requireAuth, async (req, res) => {
   }
 });
 
+// Get single file by ID - Protected
+app.get('/api/files/:fileId', requireAuth, async (req, res) => {
+  try {
+    const { data: file, error } = await supabaseAdmin
+      .from('files')
+      .select('*')
+      .eq('id', req.params.fileId)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!file) {
+      return res.status(404).json({
+        success: false,
+        error: 'File not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      file
+    });
+  } catch (error) {
+    console.error('Get file error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to retrieve file'
+    });
+  }
+});
+
 // Get transactions for a file - Protected
 app.get('/api/files/:fileId/transactions', requireAuth, async (req, res) => {
   try {

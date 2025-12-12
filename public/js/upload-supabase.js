@@ -34,27 +34,70 @@ function formatDate(dateStr, options = {}) {
   return new Date(dateStr).toLocaleDateString('es-AR', options);
 }
 
+// Promise that resolves when auth is ready
+let authReadyPromise = null;
+let authReadyResolve = null;
+
+// Initialize auth ready promise
+function initAuthReady() {
+  if (!authReadyPromise) {
+    authReadyPromise = new Promise(resolve => {
+      authReadyResolve = resolve;
+    });
+
+    // Set up auth state listener to resolve when session is available
+    if (typeof supabaseClient !== 'undefined') {
+      supabaseClient.auth.onAuthStateChange((event, session) => {
+        if (session) {
+          accessToken = session.access_token;
+          if (authReadyResolve) {
+            authReadyResolve();
+            authReadyResolve = null;
+          }
+        }
+      });
+
+      // Also check immediately in case session is already available
+      supabaseClient.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          accessToken = session.access_token;
+          if (authReadyResolve) {
+            authReadyResolve();
+            authReadyResolve = null;
+          }
+        }
+      });
+    }
+  }
+  return authReadyPromise;
+}
+
 // Helper function to get fresh access token
 // Waits for session to be available (handles race condition on page load)
-async function getAccessToken(retries = 3) {
+async function getAccessToken(retries = 5) {
+  // If we already have a token, return it
   if (accessToken) return accessToken;
 
   if (typeof supabaseClient !== 'undefined') {
+    // Try to get session directly first
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
       accessToken = session.access_token;
       return accessToken;
     }
 
-    // If no session yet and we have retries left, wait and try again
-    // This handles the race condition where page loads before Supabase restores session
+    // If no session yet, wait with exponential backoff
     if (retries > 0) {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const delay = Math.min(200 * Math.pow(2, 5 - retries), 2000); // 200ms, 400ms, 800ms, 1600ms, 2000ms
+      await new Promise(resolve => setTimeout(resolve, delay));
       return getAccessToken(retries - 1);
     }
   }
   return null;
 }
+
+// Initialize auth when script loads
+initAuthReady();
 
 // Helper function to get auth headers
 async function getAuthHeaders(includeContentType = false) {
