@@ -633,11 +633,12 @@ function displayTransactions(transactions) {
       <table>
         <thead>
           <tr>
-            <th data-col="fecha" style="width: 12%;">Fecha<span class="col-resize-handle"></span></th>
-            <th data-col="descripcion" style="width: 35%;">Descripción<span class="col-resize-handle"></span></th>
-            <th data-col="monto" style="width: 15%;">Monto<span class="col-resize-handle"></span></th>
+            <th data-col="fecha" style="width: 10%;">Fecha<span class="col-resize-handle"></span></th>
+            <th data-col="descripcion" style="width: 32%;">Descripción<span class="col-resize-handle"></span></th>
+            <th data-col="monto" style="width: 12%;">Monto<span class="col-resize-handle"></span></th>
             <th data-col="categoria" style="width: 18%;">Categoría<span class="col-resize-handle"></span></th>
-            <th data-col="banco" style="width: 20%;">Banco</th>
+            <th data-col="banco" style="width: 18%;">Banco<span class="col-resize-handle"></span></th>
+            <th data-col="acciones" style="width: 10%;">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -672,6 +673,16 @@ function displayTransactions(transactions) {
                 </div>
               </td>
               <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;">${t.bank_name || '-'}</td>
+              <td class="actions-cell">
+                <button class="action-btn create-service-btn" onclick="event.stopPropagation(); createServiceFromTransaction('${t.id}')" title="Crear servicio recurrente">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                    <path d="M21 3v5h-5"></path>
+                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                    <path d="M8 16H3v5"></path>
+                  </svg>
+                </button>
+              </td>
             </tr>
           `}).join('')}
         </tbody>
@@ -823,15 +834,27 @@ function changePageLimit(limit) {
 
 // Toggle category dropdown
 function toggleCategoryDropdown(transactionId) {
-  // Close all other dropdowns first
+  // Close all other dropdowns and remove active class from rows
   document.querySelectorAll('.category-options.show').forEach(el => {
     if (el.id !== `category-options-${transactionId}`) {
       el.classList.remove('show');
+      // Remove dropdown-active class from parent row
+      el.closest('tr')?.classList.remove('dropdown-active');
     }
   });
 
   const dropdown = document.getElementById(`category-options-${transactionId}`);
+  const row = dropdown.closest('tr');
+  const isOpening = !dropdown.classList.contains('show');
+
   dropdown.classList.toggle('show');
+
+  // Add/remove class to parent row to raise z-index
+  if (isOpening) {
+    row?.classList.add('dropdown-active');
+  } else {
+    row?.classList.remove('dropdown-active');
+  }
 }
 
 // Close dropdowns when clicking outside
@@ -839,6 +862,8 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('.category-dropdown')) {
     document.querySelectorAll('.category-options.show').forEach(el => {
       el.classList.remove('show');
+      // Remove dropdown-active class from parent row
+      el.closest('tr')?.classList.remove('dropdown-active');
     });
   }
 });
@@ -961,6 +986,98 @@ function showMessage(message, type) {
   setTimeout(() => {
     messageDiv.style.display = 'none';
   }, 5000);
+}
+
+// ========================================
+// CREATE SERVICE FROM TRANSACTION
+// ========================================
+
+// Map transaction categories to service categories
+const transactionToServiceCategory = {
+  'servicios': 'utilities',
+  'entretenimiento': 'streaming',
+  'hogar': 'housing',
+  'transporte': 'subscriptions',
+  'salud': 'insurance',
+  'educacion': 'subscriptions',
+  'impuestos': 'other',
+  'alimentacion': 'other',
+  'transferencias': 'other',
+  'ingresos': 'other',
+  'sin_categoria': 'other'
+};
+
+// Create a recurring service from a transaction
+async function createServiceFromTransaction(transactionId) {
+  try {
+    // Get transaction data from API
+    const headers = {};
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const response = await fetch(`/api/transactions/${transactionId}`, { headers });
+    const result = await response.json();
+
+    if (!result.success) {
+      console.error('Failed to get transaction:', result.error);
+      showNotification('Error al obtener la transacción', 'error');
+      return;
+    }
+
+    const t = result.transaction;
+
+    // Check if openAddServiceModal exists (from services.js)
+    if (typeof openAddServiceModal !== 'function') {
+      // Navigate to services section and wait for it to load
+      navigateToSection('servicios');
+      showNotification('Navega a Servicios para crear un servicio recurrente', 'info');
+      return;
+    }
+
+    // Open the service modal
+    openAddServiceModal();
+
+    // Pre-fill the form with transaction data
+    setTimeout(() => {
+      // Name: use description or merchant
+      const serviceName = t.merchant || t.description || '';
+      document.getElementById('service-name').value = serviceName;
+
+      // Category: map from transaction category
+      const serviceCategory = transactionToServiceCategory[t.category] || 'other';
+      document.getElementById('service-category').value = serviceCategory;
+
+      // Amount: use absolute value
+      if (t.amount) {
+        document.getElementById('service-amount').value = Math.abs(t.amount).toFixed(2);
+      }
+
+      // Currency: default to ARS
+      document.getElementById('service-currency').value = 'ARS';
+
+      // Day: extract from transaction date
+      if (t.transaction_date) {
+        const date = new Date(t.transaction_date);
+        const day = date.getDate();
+        document.getElementById('service-day').value = day;
+      }
+
+      // Set default frequency to monthly
+      document.getElementById('service-frequency').value = 'monthly';
+
+      // Notes: add reference to original transaction
+      const notes = `Creado desde transacción del ${formatDate(t.transaction_date)}`;
+      document.getElementById('service-notes').value = notes;
+
+      // Show notification
+      showNotification('Complete los datos del servicio', 'info');
+    }, 100);
+
+  } catch (error) {
+    console.error('Error creating service from transaction:', error);
+    showNotification('Error al crear servicio', 'error');
+  }
 }
 
 // ========================================
@@ -1404,6 +1521,9 @@ function updateConnectionsUI(connections) {
   const mpBtnEl = document.getElementById('mercadopago-btn');
   const mpCardEl = document.getElementById('mercadopago-card');
 
+  const mpSyncBtn = document.getElementById('mercadopago-sync-btn');
+  const mpDisconnectBtn = document.getElementById('mercadopago-disconnect-btn');
+
   if (mercadoPagoConnection && mercadoPagoConnection.status === 'active') {
     // Connected state
     if (mpStatusEl) {
@@ -1411,11 +1531,15 @@ function updateConnectionsUI(connections) {
       mpStatusEl.className = 'connection-status connected';
     }
 
+    // Hide connect button, show sync and disconnect buttons
     if (mpBtnEl) {
-      mpBtnEl.textContent = 'Desconectar';
-      mpBtnEl.onclick = () => disconnectProvider('mercadopago');
-      mpBtnEl.classList.remove('btn-connection');
-      mpBtnEl.classList.add('btn-disconnect');
+      mpBtnEl.style.display = 'none';
+    }
+    if (mpSyncBtn) {
+      mpSyncBtn.style.display = 'inline-flex';
+    }
+    if (mpDisconnectBtn) {
+      mpDisconnectBtn.style.display = 'inline-flex';
     }
 
     if (mpCardEl) {
@@ -1436,11 +1560,15 @@ function updateConnectionsUI(connections) {
       mpStatusEl.className = 'connection-status disconnected';
     }
 
+    // Show connect button, hide sync and disconnect buttons
     if (mpBtnEl) {
-      mpBtnEl.textContent = 'Conectar Mercado Pago';
-      mpBtnEl.onclick = () => connectMercadoPago();
-      mpBtnEl.classList.remove('btn-disconnect');
-      mpBtnEl.classList.add('btn-connection');
+      mpBtnEl.style.display = 'inline-flex';
+    }
+    if (mpSyncBtn) {
+      mpSyncBtn.style.display = 'none';
+    }
+    if (mpDisconnectBtn) {
+      mpDisconnectBtn.style.display = 'none';
     }
 
     if (mpCardEl) {
@@ -1526,6 +1654,96 @@ async function connectMercadoPago() {
   } catch (error) {
     console.error('Error connecting Mercado Pago:', error);
     alert('Error al conectar con Mercado Pago');
+  }
+}
+
+// Sync Mercado Pago transactions
+async function syncMercadoPago() {
+  const syncBtn = document.getElementById('mercadopago-sync-btn');
+  const originalText = syncBtn ? syncBtn.innerHTML : '';
+
+  try {
+    if (syncBtn) {
+      syncBtn.disabled = true;
+      syncBtn.innerHTML = '<div class="spinner-small"></div> Sincronizando...';
+    }
+
+    const headers = await getAuthHeaders(true);
+
+    const response = await fetch('/api/sync/mercadopago', {
+      method: 'POST',
+      headers
+    });
+    const result = await response.json();
+
+    if (result.success) {
+      const msg = result.imported > 0
+        ? `Se importaron ${result.imported} transacciones de Mercado Pago`
+        : 'No hay transacciones nuevas para importar';
+      alert(msg);
+
+      // Reload connections to update last sync time
+      await loadConnections();
+
+      // Reload transactions if we're on that section
+      if (typeof loadAllTransactions === 'function') {
+        loadAllTransactions();
+      }
+    } else {
+      alert('Error al sincronizar: ' + (result.error || 'Error desconocido'));
+    }
+  } catch (error) {
+    console.error('Error syncing Mercado Pago:', error);
+    alert('Error al sincronizar con Mercado Pago');
+  } finally {
+    if (syncBtn) {
+      syncBtn.disabled = false;
+      syncBtn.innerHTML = originalText;
+    }
+  }
+}
+
+// Sync Mercury transactions
+async function syncMercury() {
+  const syncBtn = document.getElementById('mercury-sync-btn');
+  const originalText = syncBtn ? syncBtn.innerHTML : '';
+
+  try {
+    if (syncBtn) {
+      syncBtn.disabled = true;
+      syncBtn.innerHTML = '<div class="spinner-small"></div> Sincronizando...';
+    }
+
+    const headers = await getAuthHeaders(true);
+
+    const response = await fetch('/api/sync/mercury', {
+      method: 'POST',
+      headers
+    });
+    const result = await response.json();
+
+    if (result.success) {
+      const msg = result.imported > 0
+        ? `Se importaron ${result.imported} transacciones de Mercury`
+        : 'No hay transacciones nuevas para importar';
+      alert(msg);
+
+      await loadConnections();
+
+      if (typeof loadAllTransactions === 'function') {
+        loadAllTransactions();
+      }
+    } else {
+      alert('Error al sincronizar: ' + (result.error || 'Error desconocido'));
+    }
+  } catch (error) {
+    console.error('Error syncing Mercury:', error);
+    alert('Error al sincronizar con Mercury');
+  } finally {
+    if (syncBtn) {
+      syncBtn.disabled = false;
+      syncBtn.innerHTML = originalText;
+    }
   }
 }
 

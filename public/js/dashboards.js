@@ -47,6 +47,7 @@ async function loadDashboardChartData() {
     const dateTo = document.getElementById('dashboard-date-to')?.value || '';
     const typeFilter = document.getElementById('dashboard-type')?.value || 'all';
     const period = document.getElementById('dashboard-period')?.value || 'monthly';
+    const groupBy = document.getElementById('dashboard-group-by')?.value || 'none';
 
     // Build query params
     const params = new URLSearchParams();
@@ -54,6 +55,7 @@ async function loadDashboardChartData() {
     if (dateTo) params.append('dateTo', dateTo);
     if (typeFilter !== 'all') params.append('type', typeFilter);
     params.append('period', period);
+    if (groupBy !== 'none') params.append('groupBy', groupBy);
 
     const headers = await getAuthHeaders();
     const response = await fetch(`/api/dashboard/stats?${params.toString()}`, { headers });
@@ -82,9 +84,14 @@ async function loadDashboardChartData() {
       if (chartWrapper) chartWrapper.style.display = 'block';
     }
 
-    // Hide grouped data for now (would need separate endpoint)
+    // Show grouped data table if groupBy is set
     const groupedContainer = document.getElementById('grouped-data-container');
-    if (groupedContainer) groupedContainer.style.display = 'none';
+    if (groupBy !== 'none' && result.groupedData && result.groupedData.length > 0) {
+      renderGroupedDataTable(result.groupedData, groupBy);
+      if (groupedContainer) groupedContainer.style.display = 'block';
+    } else {
+      if (groupedContainer) groupedContainer.style.display = 'none';
+    }
 
   } catch (error) {
     console.error('Error loading dashboard data:', error);
@@ -275,6 +282,42 @@ function updateChartLegend() {
   }
 
   legendEl.innerHTML = html;
+}
+
+// Render grouped data table
+function renderGroupedDataTable(groupedData, groupBy) {
+  const labelEl = document.getElementById('grouped-by-label');
+  const bodyEl = document.getElementById('grouped-data-body');
+
+  if (!bodyEl) return;
+
+  // Update label
+  if (labelEl) {
+    labelEl.textContent = groupBy === 'category' ? 'Categoría' : 'Descripción';
+  }
+
+  // Format currency helper
+  var formatCurrency = function(val) {
+    return '$' + val.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  // Render table rows
+  bodyEl.innerHTML = groupedData.map(function(item) {
+    return '<tr>' +
+      '<td>' + escapeHtml(item.name) + '</td>' +
+      '<td>' + item.count.toLocaleString() + '</td>' +
+      '<td>' + formatCurrency(item.total) + '</td>' +
+      '<td>' + formatCurrency(item.average) + '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+// Helper function to escape HTML
+function escapeHtml(text) {
+  if (!text) return '';
+  var div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 // Add dashboard section listener

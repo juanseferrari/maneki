@@ -8,8 +8,12 @@ const processorService = require('./services/processor.service');
 const uploadConfig = require('./config/upload.config');
 const mercadoPagoOAuth = require('./services/oauth/mercadopago-oauth.service');
 const eubanksOAuth = require('./services/oauth/eubanks-oauth.service');
+const mercuryOAuth = require('./services/oauth/mercury-oauth.service');
 const connectionsService = require('./services/connections.service');
 const emailInboundService = require('./services/email-inbound.service');
+const mercadoPagoSync = require('./services/sync/mercadopago-sync.service');
+const mercurySync = require('./services/sync/mercury-sync.service');
+const recurringServicesService = require('./services/recurring-services.service');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -370,8 +374,13 @@ app.get('/api/transactions', devAuth, async (req, res) => {
 // Get aggregated dashboard stats (scalable - uses pagination loop for unlimited data)
 app.get('/api/dashboard/stats', devAuth, async (req, res) => {
   try {
-    const { dateFrom, dateTo, type, period = 'monthly' } = req.query;
+    const { dateFrom, dateTo, type, period = 'monthly', groupBy = 'none' } = req.query;
     const userId = req.user.id;
+
+    // Determine which fields to fetch based on groupBy
+    const selectFields = groupBy !== 'none'
+      ? 'transaction_date, amount, description, category'
+      : 'transaction_date, amount';
 
     // Fetch ALL transactions using pagination loop (no arbitrary limits)
     // Supabase has a max of 1000 rows per request, so we paginate until done
@@ -384,7 +393,7 @@ app.get('/api/dashboard/stats', devAuth, async (req, res) => {
       // Clone the query for each batch (need to rebuild since query is mutated)
       let batchQuery = supabaseAdmin
         .from('transactions')
-        .select('transaction_date, amount')
+        .select(selectFields)
         .eq('user_id', userId);
 
       if (dateFrom) {
@@ -460,6 +469,35 @@ app.get('/api/dashboard/stats', devAuth, async (req, res) => {
       expense: type === 'income' ? 0 : grouped[key].expense
     }));
 
+    // Calculate grouped data if groupBy is set
+    let groupedData = null;
+    if (groupBy !== 'none') {
+      const groupedByField = {};
+
+      filteredTransactions.forEach(t => {
+        const key = groupBy === 'category'
+          ? (t.category || 'Sin categoría')
+          : (t.description || 'Sin descripción');
+
+        if (!groupedByField[key]) {
+          groupedByField[key] = { count: 0, total: 0, amounts: [] };
+        }
+        groupedByField[key].count += 1;
+        groupedByField[key].total += Math.abs(t.amount);
+        groupedByField[key].amounts.push(Math.abs(t.amount));
+      });
+
+      // Convert to array and sort by total descending
+      groupedData = Object.entries(groupedByField)
+        .map(([name, data]) => ({
+          name,
+          count: data.count,
+          total: data.total,
+          average: data.total / data.count
+        }))
+        .sort((a, b) => b.total - a.total);
+    }
+
     console.log(`[Dashboard Stats] User ${userId}: ${transactions.length} transactions, ${timeSeries.length} periods`);
 
     res.json({
@@ -470,7 +508,8 @@ app.get('/api/dashboard/stats', devAuth, async (req, res) => {
         netBalance: totalIncome - totalExpense,
         transactionCount: transactions.length
       },
-      timeSeries
+      timeSeries,
+      groupedData
     });
   } catch (error) {
     console.error('Get dashboard stats error:', error);
@@ -1175,6 +1214,477 @@ app.post('/api/email/inbound', async (req, res) => {
   } catch (error) {
     console.error('📧 [Email Inbound] Webhook error:', error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==========================================
+// Transaction Sync Routes
+// ==========================================
+
+// Sync Mercado Pago transactions
+app.post('/api/sync/mercadopago', devAuth, async (req, res) => {
+  try {
+    // Get connection
+    const connection = await connectionsService.getConnection(req.user.id, 'mercadopago');
+
+    if (!connection) {
+      return res.status(404).json({
+        success: false,
+        error: 'Mercado Pago connection not found. Please connect first.'
+      });
+    }
+
+    if (connection.status !== 'active') {
+      return res.status(400).json({
+        success: false,
+        error: 'Connection is not active. Please reconnect.'
+      });
+    }
+
+    // Check if token needs refresh
+    let accessToken = connection.access_token;
+    if (connection.expires_at && new Date() >= new Date(connection.expires_at)) {
+      console.log('[Sync] Refreshing expired Mercado Pago token');
+      try {
+        const refreshed = await mercadoPagoOAuth.refreshAccessToken(connection.refresh_token);
+        await connectionsService.updateConnectionTokens(connection.id, refreshed);
+        accessToken = refreshed.access_token;
+      } catch (refreshError) {
+        console.error('[Sync] Token refresh failed:', refreshError);
+        await connectionsService.updateConnectionStatus(connection.id, 'expired');
+        return res.status(401).json({
+          success: false,
+          error: 'Token expired. Please reconnect Mercado Pago.'
+        });
+      }
+    }
+
+    // Parse date range from request (optional)
+    const options = {};
+    if (req.body.fromDate) {
+      options.fromDate = new Date(req.body.fromDate);
+    }
+    if (req.body.toDate) {
+      options.toDate = new Date(req.body.toDate);
+    }
+
+    // Sync transactions
+    const result = await mercadoPagoSync.syncPayments(
+      req.user.id,
+      accessToken,
+      connection.id,
+      options
+    );
+
+    // Update last synced timestamp
+    await connectionsService.updateLastSynced(connection.id);
+
+    // Create sync log
+    await connectionsService.createSyncLog(connection.id, req.user.id, {
+      sync_type: 'transactions',
+      status: 'success',
+      records_synced: result.syncedCount,
+      metadata: {
+        skipped: result.skippedCount,
+        totalFetched: result.totalFetched
+      }
+    });
+
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    console.error('Mercado Pago sync error:', error);
+
+    // Log the failed sync
+    try {
+      const connection = await connectionsService.getConnection(req.user.id, 'mercadopago');
+      if (connection) {
+        await connectionsService.createSyncLog(connection.id, req.user.id, {
+          sync_type: 'transactions',
+          status: 'error',
+          error_message: error.message
+        });
+      }
+    } catch (logError) {
+      console.error('Failed to log sync error:', logError);
+    }
+
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to sync transactions'
+    });
+  }
+});
+
+// Sync Mercury transactions
+app.post('/api/sync/mercury', devAuth, async (req, res) => {
+  try {
+    // Get connection
+    const connection = await connectionsService.getConnection(req.user.id, 'mercury');
+
+    if (!connection) {
+      return res.status(404).json({
+        success: false,
+        error: 'Mercury connection not found. Please connect first.'
+      });
+    }
+
+    if (connection.status !== 'active') {
+      return res.status(400).json({
+        success: false,
+        error: 'Connection is not active. Please reconnect.'
+      });
+    }
+
+    // Check if token needs refresh
+    let accessToken = connection.access_token;
+    if (connection.expires_at && new Date() >= new Date(connection.expires_at)) {
+      console.log('[Sync] Refreshing expired Mercury token');
+      try {
+        const refreshed = await mercuryOAuth.refreshAccessToken(connection.refresh_token);
+        await connectionsService.updateConnectionTokens(connection.id, refreshed);
+        accessToken = refreshed.access_token;
+      } catch (refreshError) {
+        console.error('[Sync] Token refresh failed:', refreshError);
+        await connectionsService.updateConnectionStatus(connection.id, 'expired');
+        return res.status(401).json({
+          success: false,
+          error: 'Token expired. Please reconnect Mercury.'
+        });
+      }
+    }
+
+    // Parse date range from request (optional)
+    const options = {};
+    if (req.body.fromDate) {
+      options.fromDate = new Date(req.body.fromDate);
+    }
+    if (req.body.toDate) {
+      options.toDate = new Date(req.body.toDate);
+    }
+
+    // Sync transactions
+    const result = await mercurySync.syncTransactions(
+      req.user.id,
+      accessToken,
+      connection.id,
+      options
+    );
+
+    // Update last synced timestamp
+    await connectionsService.updateLastSynced(connection.id);
+
+    // Create sync log
+    await connectionsService.createSyncLog(connection.id, req.user.id, {
+      sync_type: 'transactions',
+      status: 'success',
+      records_synced: result.syncedCount,
+      metadata: {
+        skipped: result.skippedCount,
+        accountsProcessed: result.accountsProcessed
+      }
+    });
+
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    console.error('Mercury sync error:', error);
+
+    // Log the failed sync
+    try {
+      const connection = await connectionsService.getConnection(req.user.id, 'mercury');
+      if (connection) {
+        await connectionsService.createSyncLog(connection.id, req.user.id, {
+          sync_type: 'transactions',
+          status: 'error',
+          error_message: error.message
+        });
+      }
+    } catch (logError) {
+      console.error('Failed to log sync error:', logError);
+    }
+
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to sync transactions'
+    });
+  }
+});
+
+// ==========================================
+// Recurring Services Routes
+// ==========================================
+
+// IMPORTANT: Specific routes must come BEFORE parameterized routes (:id)
+
+// Detect recurring services from transactions
+app.post('/api/services/detect', devAuth, async (req, res) => {
+  try {
+    const { minOccurrences, lookbackMonths } = req.body;
+    const detected = await recurringServicesService.detectRecurringServices(req.user.id, {
+      minOccurrences: minOccurrences || 2,
+      lookbackMonths: lookbackMonths || 12
+    });
+
+    res.json({
+      success: true,
+      detected,
+      count: detected.length
+    });
+  } catch (error) {
+    console.error('Detect services error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to detect services'
+    });
+  }
+});
+
+// Save detected services (confirm and create)
+app.post('/api/services/save-detected', devAuth, async (req, res) => {
+  try {
+    const { services } = req.body;
+
+    if (!services || !Array.isArray(services)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Services array is required'
+      });
+    }
+
+    const results = await recurringServicesService.saveDetectedServices(req.user.id, services);
+
+    res.json({
+      success: true,
+      ...results
+    });
+  } catch (error) {
+    console.error('Save detected services error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to save services'
+    });
+  }
+});
+
+// Get upcoming payments (calendar view)
+app.get('/api/services/calendar/upcoming', devAuth, async (req, res) => {
+  try {
+    const { months } = req.query;
+    const predictions = await recurringServicesService.getUpcomingPayments(req.user.id, {
+      months: parseInt(months) || 3
+    });
+
+    res.json({
+      success: true,
+      predictions
+    });
+  } catch (error) {
+    console.error('Get upcoming payments error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get upcoming payments'
+    });
+  }
+});
+
+// Get payments for a specific month
+app.get('/api/services/calendar/:year/:month', devAuth, async (req, res) => {
+  try {
+    const { year, month } = req.params;
+    const payments = await recurringServicesService.getMonthPayments(
+      req.user.id,
+      parseInt(year),
+      parseInt(month)
+    );
+
+    res.json({
+      success: true,
+      ...payments
+    });
+  } catch (error) {
+    console.error('Get month payments error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get month payments'
+    });
+  }
+});
+
+// Unlink a payment
+app.delete('/api/services/payments/:paymentId', devAuth, async (req, res) => {
+  try {
+    await recurringServicesService.unlinkTransaction(req.user.id, req.params.paymentId);
+
+    res.json({
+      success: true,
+      message: 'Payment unlinked'
+    });
+  } catch (error) {
+    console.error('Unlink payment error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to unlink payment'
+    });
+  }
+});
+
+// Get all recurring services for user
+app.get('/api/services', devAuth, async (req, res) => {
+  try {
+    const { status, includePayments } = req.query;
+    const services = await recurringServicesService.getServices(req.user.id, {
+      status: status || 'active',
+      includePayments: includePayments === 'true'
+    });
+
+    res.json({
+      success: true,
+      services
+    });
+  } catch (error) {
+    console.error('Get services error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get services'
+    });
+  }
+});
+
+// Create a new service
+app.post('/api/services', devAuth, async (req, res) => {
+  try {
+    const service = await recurringServicesService.createService(req.user.id, req.body);
+
+    res.json({
+      success: true,
+      service
+    });
+  } catch (error) {
+    console.error('Create service error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to create service'
+    });
+  }
+});
+
+// Get a single service (parameterized route - must come after specific routes)
+app.get('/api/services/:id', devAuth, async (req, res) => {
+  try {
+    const service = await recurringServicesService.getService(req.user.id, req.params.id);
+
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        error: 'Service not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      service
+    });
+  } catch (error) {
+    console.error('Get service error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get service'
+    });
+  }
+});
+
+// Update a service
+app.put('/api/services/:id', devAuth, async (req, res) => {
+  try {
+    const service = await recurringServicesService.updateService(req.user.id, req.params.id, req.body);
+
+    res.json({
+      success: true,
+      service
+    });
+  } catch (error) {
+    console.error('Update service error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to update service'
+    });
+  }
+});
+
+// Delete a service
+app.delete('/api/services/:id', devAuth, async (req, res) => {
+  try {
+    await recurringServicesService.deleteService(req.user.id, req.params.id);
+
+    res.json({
+      success: true,
+      message: 'Service deleted'
+    });
+  } catch (error) {
+    console.error('Delete service error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to delete service'
+    });
+  }
+});
+
+// Get payments for a service
+app.get('/api/services/:id/payments', devAuth, async (req, res) => {
+  try {
+    const { limit, includeTransactionDetails } = req.query;
+    const payments = await recurringServicesService.getServicePayments(req.user.id, req.params.id, {
+      limit: parseInt(limit) || 50,
+      includeTransactionDetails: includeTransactionDetails === 'true'
+    });
+
+    res.json({
+      success: true,
+      payments
+    });
+  } catch (error) {
+    console.error('Get service payments error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get payments'
+    });
+  }
+});
+
+// Link a transaction to a service
+app.post('/api/services/:id/link', devAuth, async (req, res) => {
+  try {
+    const { transactionId, paymentData } = req.body;
+
+    if (!transactionId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Transaction ID is required'
+      });
+    }
+
+    const payment = await recurringServicesService.linkTransactionToService(
+      req.user.id,
+      req.params.id,
+      transactionId,
+      paymentData
+    );
+
+    res.json({
+      success: true,
+      payment
+    });
+  } catch (error) {
+    console.error('Link transaction error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to link transaction'
+    });
   }
 });
 

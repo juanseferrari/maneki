@@ -82,10 +82,49 @@
         <div class="connection-info">
           <h3>Mercado Pago</h3>
           <p class="connection-status disconnected" id="mercadopago-status">No conectado</p>
+          <p class="connection-last-sync" id="mercadopago-last-sync" style="display: none;"></p>
         </div>
       </div>
       <p class="connection-description">Conecta tu cuenta de Mercado Pago para importar transacciones automáticamente</p>
-      <button class="btn-connection" id="mercadopago-btn" onclick="connectMercadoPago()">Conectar Mercado Pago</button>
+      <div class="connection-actions">
+        <button class="btn-connection" id="mercadopago-btn" onclick="connectMercadoPago()">Conectar Mercado Pago</button>
+        <button class="btn-sync" id="mercadopago-sync-btn" onclick="syncMercadoPago()" style="display: none;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          Sincronizar
+        </button>
+        <button class="btn-disconnect" id="mercadopago-disconnect-btn" onclick="disconnectProvider('mercadopago')" style="display: none;">Desconectar</button>
+      </div>
+    </div>
+
+    <div class="connection-card" id="mercury-card">
+      <div class="connection-header">
+        <div class="connection-icon mercury-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+            <line x1="1" y1="10" x2="23" y2="10"></line>
+          </svg>
+        </div>
+        <div class="connection-info">
+          <h3>Mercury</h3>
+          <p class="connection-status disconnected" id="mercury-status">No conectado</p>
+          <p class="connection-last-sync" id="mercury-last-sync" style="display: none;"></p>
+        </div>
+      </div>
+      <p class="connection-description">Conecta tu cuenta Mercury (banco de EE.UU.) para importar transacciones automáticamente</p>
+      <div class="connection-actions">
+        <button class="btn-connection" id="mercury-btn" onclick="connectMercury()">Conectar Mercury</button>
+        <button class="btn-sync" id="mercury-sync-btn" onclick="syncMercury()" style="display: none;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          Sincronizar
+        </button>
+        <button class="btn-disconnect" id="mercury-disconnect-btn" onclick="disconnectProvider('mercury')" style="display: none;">Desconectar</button>
+      </div>
     </div>
 
     <div class="connection-card" id="eubanks-card">
@@ -102,7 +141,9 @@
         </div>
       </div>
       <p class="connection-description">Conecta tus cuentas bancarias europeas para sincronizar movimientos</p>
-      <button class="btn-connection" id="eubanks-btn" onclick="connectEuBank()">Conectar Banco</button>
+      <div class="connection-actions">
+        <button class="btn-connection" id="eubanks-btn" onclick="connectEuBank()">Conectar Banco</button>
+      </div>
     </div>
 
     <div class="connection-card disabled">
