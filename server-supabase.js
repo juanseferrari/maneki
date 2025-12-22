@@ -588,6 +588,35 @@ app.get('/api/transactions/:transactionId', requireAuth, async (req, res) => {
   }
 });
 
+// Update transaction category - Protected
+app.put('/api/transactions/:transactionId/category', requireAuth, async (req, res) => {
+  try {
+    const { category } = req.body;
+    const { data: transaction, error } = await supabaseAdmin
+      .from('transactions')
+      .update({ category })
+      .eq('id', req.params.transactionId)
+      .eq('user_id', req.user.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      result: transaction
+    });
+  } catch (error) {
+    console.error('Update transaction category error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to update category'
+    });
+  }
+});
+
 // Get VEP data for a file - Protected
 app.get('/api/files/:fileId/vep', requireAuth, async (req, res) => {
   try {
