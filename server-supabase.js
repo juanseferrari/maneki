@@ -282,7 +282,7 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const offset = (page - 1) * limit;
-    const { dateFrom, dateTo, description } = req.query;
+    const { dateFrom, dateTo, description, includeDeleted } = req.query;
 
     // Build base query for count
     let countQuery = supabaseAdmin
@@ -301,6 +301,12 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
         )
       `)
       .eq('user_id', req.user.id);
+
+    // Filter out deleted transactions by default (unless includeDeleted is true)
+    if (includeDeleted !== 'true') {
+      countQuery = countQuery.or('status.is.null,status.neq.deleted');
+      dataQuery = dataQuery.or('status.is.null,status.neq.deleted');
+    }
 
     // Apply date filters
     if (dateFrom) {
@@ -349,6 +355,45 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to retrieve transactions'
+    });
+  }
+});
+
+// Soft delete a transaction (mark as deleted)
+app.delete('/api/transactions/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Soft delete by setting status to 'deleted'
+    const { data, error } = await supabaseAdmin
+      .from('transactions')
+      .update({ status: 'deleted' })
+      .eq('id', id)
+      .eq('user_id', req.user.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        error: 'Transaction not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Transaction deleted successfully',
+      transaction: data
+    });
+  } catch (error) {
+    console.error('Delete transaction error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to delete transaction'
     });
   }
 });
