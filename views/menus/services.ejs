@@ -1,7 +1,7 @@
-<!-- Servicios Section -->
+<!-- Pagos Section -->
 <section id="section-servicios" class="content-section">
   <div class="section-header">
-    <h1>Servicios y Suscripciones</h1>
+    <h1>Pagos y Suscripciones</h1>
     <p>Gestiona tus pagos recurrentes y predice tus gastos futuros</p>
   </div>
 
@@ -12,53 +12,67 @@
         <line x1="12" y1="5" x2="12" y2="19"></line>
         <line x1="5" y1="12" x2="19" y2="12"></line>
       </svg>
-      Agregar Servicio
+      Agregar Pago
     </button>
     <button class="btn-secondary" onclick="detectRecurringServices()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="8"></circle>
         <path d="m21 21-4.35-4.35"></path>
       </svg>
-      Detectar Automáticamente
+      Detectar Automaticamente
     </button>
   </div>
 
-  <!-- Services List Section -->
-  <div class="services-list-section">
-      <div class="services-list-header">
-        <h3>Mis Servicios</h3>
-        <div class="services-filter">
-          <select id="services-status-filter" onchange="filterServices()">
-            <option value="active">Activos</option>
-            <option value="paused">Pausados</option>
-            <option value="all">Todos</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Loading State -->
-      <div class="services-loading" id="services-loading">
-        <div class="spinner"></div>
-        <span>Cargando servicios...</span>
-      </div>
-
-      <!-- Empty State -->
-      <div class="services-empty" id="services-empty" style="display: none;">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-          <line x1="16" y1="2" x2="16" y2="6"></line>
-          <line x1="8" y1="2" x2="8" y2="6"></line>
-          <line x1="3" y1="10" x2="21" y2="10"></line>
-        </svg>
-        <p>No hay servicios registrados</p>
-        <span>Agrega servicios manualmente o detecta automáticamente</span>
-      </div>
-
-      <!-- Services List -->
-      <div class="services-list" id="services-list">
-        <!-- Services will be loaded here -->
+  <!-- Services Table Section -->
+  <div class="services-table-section">
+    <div class="services-table-header">
+      <h3>Mis Pagos</h3>
+      <div class="services-filter">
+        <select id="services-status-filter" onchange="filterServices()">
+          <option value="active">Activos</option>
+          <option value="paused">Pausados</option>
+          <option value="all">Todos</option>
+        </select>
       </div>
     </div>
+
+    <!-- Loading State -->
+    <div class="services-loading" id="services-loading">
+      <div class="spinner"></div>
+      <span>Cargando pagos...</span>
+    </div>
+
+    <!-- Empty State -->
+    <div class="services-empty" id="services-empty" style="display: none;">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="16" y1="2" x2="16" y2="6"></line>
+        <line x1="8" y1="2" x2="8" y2="6"></line>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+      </svg>
+      <p>No hay pagos registrados</p>
+      <span>Agrega pagos manualmente o detecta automaticamente</span>
+    </div>
+
+    <!-- Services Table -->
+    <div class="services-table-container" id="services-table-container" style="display: none;">
+      <table class="services-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Categoria</th>
+            <th>Frecuencia</th>
+            <th>Monto</th>
+            <th>Proximo Pago</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="services-table-body">
+          <!-- Services will be loaded here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
 
   <!-- Upcoming Payments Summary -->
   <div class="upcoming-payments-section">

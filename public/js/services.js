@@ -247,7 +247,8 @@ async function loadServices() {
 }
 
 function renderServicesList() {
-  const listEl = document.getElementById('services-list');
+  const tableBody = document.getElementById('services-table-body');
+  const tableContainer = document.getElementById('services-table-container');
   const emptyEl = document.getElementById('services-empty');
   const filterValue = document.getElementById('services-status-filter')?.value || 'active';
 
@@ -259,52 +260,45 @@ function renderServicesList() {
   }
 
   if (filteredServices.length === 0) {
-    if (listEl) listEl.innerHTML = '';
+    if (tableBody) tableBody.innerHTML = '';
+    if (tableContainer) tableContainer.style.display = 'none';
     if (emptyEl) emptyEl.style.display = 'flex';
     return;
   }
 
   if (emptyEl) emptyEl.style.display = 'none';
+  if (tableContainer) tableContainer.style.display = 'block';
 
-  if (listEl) {
-    listEl.innerHTML = filteredServices.map(service => `
-      <div class="service-card ${service.status}" onclick="openServiceDetail('${service.id}')" style="--service-color: ${service.color || categoryColors[service.category] || '#607D8B'}">
-        <div class="service-color-bar"></div>
-        <div class="service-info">
-          <div class="service-header">
-            <h4 class="service-name">${escapeHtml(service.name)}</h4>
-            ${service.status === 'paused' ? '<span class="service-badge paused">Pausado</span>' : ''}
-          </div>
-          <div class="service-meta">
-            <span class="service-category">${categoryLabels[service.category] || service.category}</span>
-            <span class="service-frequency">${frequencyLabels[service.frequency] || service.frequency}</span>
-          </div>
-          <div class="service-amount">
-            ${service.estimated_amount ? formatCurrency(service.estimated_amount, service.currency) : 'Monto variable'}
-            ${service.amount_varies ? '<span class="amount-varies">(variable)</span>' : ''}
-          </div>
-          ${service.next_expected_date ? `
-            <div class="service-next-date">
-              Próximo: ${formatDate(service.next_expected_date)}
+  if (tableBody) {
+    tableBody.innerHTML = filteredServices.map(service => {
+      const statusLabel = service.status === 'active' ? 'Activo' : service.status === 'paused' ? 'Pausado' : 'Cancelado';
+      const statusClass = service.status;
+      const categoryColor = service.color || categoryColors[service.category] || '#607D8B';
+
+      return `
+        <tr class="service-row ${statusClass}" onclick="openServiceDetail('${service.id}')">
+          <td class="service-name-cell">
+            <div class="service-name-wrapper">
+              <span class="service-color-dot" style="background: ${categoryColor}"></span>
+              <span class="service-name-text">${escapeHtml(service.name)}</span>
             </div>
-          ` : ''}
-        </div>
-        <div class="service-actions">
-          <button class="service-action-btn" onclick="event.stopPropagation(); toggleServiceStatus('${service.id}')" title="${service.status === 'active' ? 'Pausar' : 'Activar'}">
-            ${service.status === 'active' ? `
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="6" y="4" width="4" height="16"></rect>
-                <rect x="14" y="4" width="4" height="16"></rect>
-              </svg>
-            ` : `
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="5 3 19 12 5 21 5 3"></polygon>
-              </svg>
-            `}
-          </button>
-        </div>
-      </div>
-    `).join('');
+          </td>
+          <td>
+            <span class="service-category-badge" style="background: ${categoryColor}20; color: ${categoryColor}">
+              ${categoryLabels[service.category] || service.category || 'Otro'}
+            </span>
+          </td>
+          <td>${frequencyLabels[service.frequency] || service.frequency}</td>
+          <td class="service-amount-cell">
+            ${service.estimated_amount ? formatCurrency(service.estimated_amount, service.currency) : 'Variable'}
+          </td>
+          <td>${service.next_expected_date ? formatDate(service.next_expected_date) : '-'}</td>
+          <td>
+            <span class="service-status-badge ${statusClass}">${statusLabel}</span>
+          </td>
+        </tr>
+      `;
+    }).join('');
   }
 }
 

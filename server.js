@@ -338,7 +338,7 @@ app.get('/api/transactions', ensureAuthenticated, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const offset = (page - 1) * limit;
-    const { dateFrom, dateTo, description } = req.query;
+    const { dateFrom, dateTo, description, includeDeleted } = req.query;
 
     // Build base query for count
     let countQuery = supabaseService.supabase
@@ -357,6 +357,12 @@ app.get('/api/transactions', ensureAuthenticated, async (req, res) => {
         )
       `)
       .eq('user_id', req.user.id);
+
+    // Filter out deleted transactions by default (unless includeDeleted is true)
+    if (includeDeleted !== 'true') {
+      countQuery = countQuery.or('status.is.null,status.neq.deleted');
+      dataQuery = dataQuery.or('status.is.null,status.neq.deleted');
+    }
 
     // Apply date filters
     if (dateFrom) {
@@ -405,6 +411,186 @@ app.get('/api/transactions', ensureAuthenticated, async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to retrieve transactions'
+    });
+  }
+});
+
+// Soft delete a transaction (mark as deleted)
+app.delete('/api/transactions/:id', ensureAuthenticated, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Update transaction status to 'deleted'
+    const { data, error } = await supabaseService.supabase
+      .from('transactions')
+      .update({ status: 'deleted' })
+      .eq('id', id)
+      .eq('user_id', req.user.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        error: 'Transaction not found'
+      });
+    }
+
+    console.log(`[Transaction Deleted] User ${req.user.id}: Transaction ${id} marked as deleted`);
+
+    res.json({
+      success: true,
+      message: 'Transaction deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete transaction error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to delete transaction'
+    });
+  }
+});
+
+// Get aggregated dashboard stats
+app.get('/api/dashboard/stats', ensureAuthenticated, async (req, res) => {
+  try {
+    const { dateFrom, dateTo, type, period = 'monthly', groupBy = 'none' } = req.query;
+    const userId = req.user.id;
+
+    // Determine which fields to fetch based on groupBy
+    const selectFields = groupBy !== 'none'
+      ? 'transaction_date, amount, description, category'
+      : 'transaction_date, amount';
+
+    // Fetch ALL transactions using pagination loop
+    const BATCH_SIZE = 1000;
+    let allTransactions = [];
+    let offset = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      let batchQuery = supabaseService.supabase
+        .from('transactions')
+        .select(selectFields)
+        .eq('user_id', userId)
+        .or('status.is.null,status.neq.deleted'); // Exclude deleted transactions
+
+      if (dateFrom) {
+        batchQuery = batchQuery.gte('transaction_date', dateFrom);
+      }
+      if (dateTo) {
+        batchQuery = batchQuery.lte('transaction_date', dateTo);
+      }
+
+      const { data: batch, error } = await batchQuery
+        .order('transaction_date', { ascending: true })
+        .range(offset, offset + BATCH_SIZE - 1);
+
+      if (error) throw error;
+
+      if (batch && batch.length > 0) {
+        allTransactions = allTransactions.concat(batch);
+        offset += BATCH_SIZE;
+        hasMore = batch.length === BATCH_SIZE;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    const transactions = allTransactions;
+
+    // Calculate summary
+    let filteredTransactions = transactions;
+    if (type === 'income') {
+      filteredTransactions = transactions.filter(t => t.amount > 0);
+    } else if (type === 'expense') {
+      filteredTransactions = transactions.filter(t => t.amount < 0);
+    }
+
+    const totalIncome = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+    const totalExpense = Math.abs(transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
+
+    // Group by period for time series
+    const grouped = {};
+
+    filteredTransactions.forEach(t => {
+      const date = new Date(t.transaction_date + 'T00:00:00');
+      let key;
+
+      if (period === 'daily') {
+        key = t.transaction_date;
+      } else if (period === 'weekly') {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split('T')[0];
+      } else { // monthly
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      }
+
+      if (!grouped[key]) {
+        grouped[key] = { income: 0, expense: 0 };
+      }
+
+      if (t.amount > 0) {
+        grouped[key].income += t.amount;
+      } else {
+        grouped[key].expense += Math.abs(t.amount);
+      }
+    });
+
+    // Convert to sorted array
+    const sortedKeys = Object.keys(grouped).sort();
+    const timeSeries = sortedKeys.map(key => ({
+      period: key,
+      income: type === 'expense' ? 0 : grouped[key].income,
+      expense: type === 'income' ? 0 : grouped[key].expense
+    }));
+
+    // Calculate grouped data if groupBy is set
+    let groupedData = null;
+    if (groupBy !== 'none') {
+      const groupMap = new Map();
+      filteredTransactions.forEach(t => {
+        const groupKey = groupBy === 'category' ? (t.category || 'Sin categoría') : (t.description || 'Sin descripción');
+        if (!groupMap.has(groupKey)) {
+          groupMap.set(groupKey, { total: 0, count: 0 });
+        }
+        const group = groupMap.get(groupKey);
+        group.total += Math.abs(t.amount);
+        group.count += 1;
+      });
+
+      groupedData = Array.from(groupMap.entries())
+        .map(([name, data]) => ({
+          name,
+          total: data.total,
+          count: data.count,
+          average: data.total / data.count
+        }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 20);
+    }
+
+    res.json({
+      success: true,
+      summary: {
+        totalIncome,
+        totalExpense,
+        balance: totalIncome - totalExpense,
+        transactionCount: transactions.length
+      },
+      timeSeries,
+      groupedData
+    });
+  } catch (error) {
+    console.error('Dashboard stats error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load dashboard stats'
     });
   }
 });

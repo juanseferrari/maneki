@@ -14,6 +14,7 @@ let totalPages = 1;
 let currentFilters = {
   dateFrom: '',
   dateTo: '',
+  includeDeleted: false,
   description: ''
 };
 
@@ -250,6 +251,8 @@ function showSection(sectionName) {
 
   if (sectionName === 'transacciones') {
     loadAllTransactions();
+  } else if (sectionName === 'archivos') {
+    loadDashboardData();
   }
 
   window.location.hash = sectionName;
@@ -377,6 +380,15 @@ uploadForm.addEventListener('submit', async (e) => {
 
 // Load dashboard data
 async function loadDashboardData() {
+  const loadingEl = document.getElementById('files-loading');
+  const emptyEl = document.getElementById('files-empty');
+  const tableContainer = document.getElementById('files-table-container');
+
+  // Show loading state
+  if (loadingEl) loadingEl.style.display = 'flex';
+  if (emptyEl) emptyEl.style.display = 'none';
+  if (tableContainer) tableContainer.style.display = 'none';
+
   try {
     const headers = {};
     if (accessToken) {
@@ -386,17 +398,25 @@ async function loadDashboardData() {
     const response = await fetch('/api/files', { headers });
     const result = await response.json();
 
+    if (loadingEl) loadingEl.style.display = 'none';
+
     if (result.success) {
       updateDashboard(result.files);
       displayFiles(result.files);
+    } else {
+      if (emptyEl) emptyEl.style.display = 'flex';
     }
   } catch (error) {
     console.error('Error loading files:', error);
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (emptyEl) emptyEl.style.display = 'flex';
   }
 }
 
 function updateDashboard(files) {
-  document.getElementById('total-files').textContent = files.length;
+  // Update stats if elements exist (legacy dashboard)
+  const totalFilesEl = document.getElementById('total-files');
+  if (totalFilesEl) totalFilesEl.textContent = files.length;
 
   let totalTransactions = 0;
   let totalVeps = 0;
@@ -405,18 +425,20 @@ function updateDashboard(files) {
     if (file.document_type === 'vep') {
       totalVeps++;
     } else if (file.processing_status === 'completed') {
-      // Assume bank statements have transactions
-      totalTransactions += 10; // Placeholder
+      totalTransactions += 10;
     }
   });
 
-  document.getElementById('total-transactions').textContent = totalTransactions;
-  document.getElementById('total-veps').textContent = totalVeps;
+  const totalTransEl = document.getElementById('total-transactions');
+  const totalVepsEl = document.getElementById('total-veps');
+  if (totalTransEl) totalTransEl.textContent = totalTransactions;
+  if (totalVepsEl) totalVepsEl.textContent = totalVeps;
 
-  // Recent activity
-  const recentFiles = files.slice(0, 5);
+  // Recent activity (if element exists)
   const recentContainer = document.getElementById('recent-files');
+  if (!recentContainer) return;
 
+  const recentFiles = files.slice(0, 5);
   if (recentFiles.length === 0) {
     recentContainer.innerHTML = '<p>No hay actividad reciente</p>';
   } else {
@@ -457,34 +479,57 @@ function getFileExtension(fileName) {
 }
 
 function displayFiles(files) {
-  const filesList = document.getElementById('files-list');
+  const tableBody = document.getElementById('files-table-body');
+  const tableContainer = document.getElementById('files-table-container');
+  const emptyEl = document.getElementById('files-empty');
 
   if (files.length === 0) {
-    filesList.innerHTML = '<p class="no-files-message">No hay archivos cargados aún</p>';
+    if (tableContainer) tableContainer.style.display = 'none';
+    if (emptyEl) emptyEl.style.display = 'flex';
     return;
   }
 
-  filesList.innerHTML = files.map(file => `
-    <div class="file-card" data-file-id="${file.id}" onclick="viewFileDetails('${file.id}', '${file.document_type}')">
-      <div class="file-preview">
-        <div class="file-icon-large">${getFileIcon(file.original_name)}</div>
-        <div class="file-type-badge">${getFileExtension(file.original_name)}</div>
-      </div>
-      <div class="file-body">
-        <div class="file-name" title="${file.original_name}">${file.original_name}</div>
-        <div class="file-meta">
-          <span class="file-size">${formatFileSize(file.file_size)}</span>
-          <span class="file-date">${new Date(file.created_at).toLocaleDateString('es-AR')}</span>
-        </div>
-        <div class="file-status-badge ${file.processing_status}">
-          ${file.processing_status === 'completed' ? 'Completado' :
-            file.processing_status === 'pending' ? 'Pendiente' :
-            file.processing_status === 'processing' ? 'Procesando' :
-            file.processing_status === 'failed' ? 'Error' : file.processing_status}
-        </div>
-      </div>
-    </div>
-  `).join('');
+  if (emptyEl) emptyEl.style.display = 'none';
+  if (tableContainer) tableContainer.style.display = 'block';
+
+  if (tableBody) {
+    tableBody.innerHTML = files.map(file => {
+      const statusLabel = file.processing_status === 'completed' ? 'Completado' :
+        file.processing_status === 'pending' ? 'Pendiente' :
+        file.processing_status === 'processing' ? 'Procesando' :
+        file.processing_status === 'failed' ? 'Error' : file.processing_status;
+      const statusClass = file.processing_status;
+      const transactionCount = file.transaction_count || 0;
+
+      return `
+        <tr class="file-row" onclick="viewFileDetails('${file.id}', '${file.document_type}')">
+          <td class="file-name-cell">
+            <div class="file-name-wrapper">
+              <span class="file-icon">${getFileIcon(file.original_name)}</span>
+              <span class="file-name-text" title="${file.original_name}">${file.original_name}</span>
+            </div>
+          </td>
+          <td>
+            <span class="file-type-badge">${getFileExtension(file.original_name)}</span>
+          </td>
+          <td>${formatFileSize(file.file_size)}</td>
+          <td>${transactionCount > 0 ? transactionCount : '-'}</td>
+          <td>${new Date(file.created_at).toLocaleDateString('es-AR')}</td>
+          <td>
+            <div class="file-actions">
+              <span class="file-status-badge ${statusClass}">${statusLabel}</span>
+              <button class="btn-icon-delete" onclick="event.stopPropagation(); deleteFile('${file.id}')" title="Eliminar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
 }
 
 async function deleteFile(fileId) {
@@ -561,7 +606,34 @@ async function viewTransactions(fileId) {
 
 async function loadAllTransactions(page = 1, limit = currentLimit) {
   const container = document.getElementById('all-transactions-container');
-  container.innerHTML = '<p>Cargando transacciones...</p>';
+
+  // Show table structure with header and loading spinner in tbody
+  container.innerHTML = `
+    <div class="transactions-table resizable">
+      <table>
+        <thead>
+          <tr>
+            <th data-col="fecha" style="width: 10%;">Fecha<span class="col-resize-handle"></span></th>
+            <th data-col="descripcion" style="width: 32%;">Descripción<span class="col-resize-handle"></span></th>
+            <th data-col="monto" style="width: 12%;">Monto<span class="col-resize-handle"></span></th>
+            <th data-col="categoria" style="width: 18%;">Categoría<span class="col-resize-handle"></span></th>
+            <th data-col="banco" style="width: 18%;">Banco<span class="col-resize-handle"></span></th>
+            <th data-col="acciones" style="width: 10%;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="transactions-tbody">
+          <tr class="transactions-loading-row">
+            <td colspan="6">
+              <div class="table-loading">
+                <div class="spinner"></div>
+                <span>Cargando transacciones...</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
 
   try {
     // Wait for auth to be ready before making the request
@@ -579,6 +651,7 @@ async function loadAllTransactions(page = 1, limit = currentLimit) {
     if (currentFilters.dateFrom) params.append('dateFrom', currentFilters.dateFrom);
     if (currentFilters.dateTo) params.append('dateTo', currentFilters.dateTo);
     if (currentFilters.description) params.append('description', currentFilters.description);
+    if (currentFilters.includeDeleted) params.append('includeDeleted', 'true');
 
     const response = await fetch(`/api/transactions?${params.toString()}`, { headers });
 
@@ -594,7 +667,18 @@ async function loadAllTransactions(page = 1, limit = currentLimit) {
     }
   } catch (error) {
     console.error('Error loading transactions:', error);
-    container.innerHTML = '<p>Error al cargar transacciones</p>';
+    const tbody = document.getElementById('transactions-tbody');
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr class="transactions-error-row">
+          <td colspan="6">
+            <div class="table-error">
+              <span>Error al cargar transacciones</span>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
   }
 }
 
@@ -618,121 +702,151 @@ function getCategoryById(categoryId) {
 }
 
 function displayTransactions(transactions) {
-  const container = document.getElementById('all-transactions-container');
+  const tbody = document.getElementById('transactions-tbody');
 
+  // Handle empty state - show message inside tbody
   if (transactions.length === 0 && totalTransactions === 0) {
-    container.innerHTML = '<p style="padding: 2rem; text-align: center;">No hay transacciones disponibles</p>';
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr class="transactions-empty-row">
+          <td colspan="6">
+            <div class="table-empty">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+              <p>No hay transacciones disponibles</p>
+              <span>Sube archivos o conecta tus cuentas para ver transacciones</span>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+    // Remove pagination if exists
+    const existingPagination = document.querySelector('#all-transactions-container .pagination-controls');
+    if (existingPagination) existingPagination.remove();
     return;
   }
 
   const startRecord = ((currentPage - 1) * currentLimit) + 1;
   const endRecord = Math.min(currentPage * currentLimit, totalTransactions);
 
-  container.innerHTML = `
-    <div class="transactions-table resizable">
-      <table>
-        <thead>
-          <tr>
-            <th data-col="fecha" style="width: 10%;">Fecha<span class="col-resize-handle"></span></th>
-            <th data-col="descripcion" style="width: 32%;">Descripción<span class="col-resize-handle"></span></th>
-            <th data-col="monto" style="width: 12%;">Monto<span class="col-resize-handle"></span></th>
-            <th data-col="categoria" style="width: 18%;">Categoría<span class="col-resize-handle"></span></th>
-            <th data-col="banco" style="width: 18%;">Banco<span class="col-resize-handle"></span></th>
-            <th data-col="acciones" style="width: 10%;">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${transactions.map(t => {
-            const amountClass = t.amount < 0 ? 'amount-negative' : 'amount-positive';
-            const amountPrefix = t.amount < 0 ? '-' : '+';
-            const amountFormatted = '$' + Math.abs(t.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            const category = getCategoryById(t.category);
+  // Update tbody with transaction rows
+  if (tbody) {
+    tbody.innerHTML = transactions.map(t => {
+      const amountClass = t.amount < 0 ? 'amount-negative' : 'amount-positive';
+      const amountPrefix = t.amount < 0 ? '-' : '+';
+      const amountFormatted = '$' + Math.abs(t.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+      const category = getCategoryById(t.category);
 
-            return `
-            <tr data-transaction-id="${t.id}">
-              <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;">${formatDate(t.transaction_date)}</td>
-              <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;">${t.description || '-'}</td>
-              <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;" class="${amountClass}">${amountPrefix}${amountFormatted}</td>
-              <td class="category-cell">
-                <div class="category-dropdown" onclick="event.stopPropagation();">
-                  <button class="category-btn" onclick="toggleCategoryDropdown('${t.id}')" style="--category-color: ${category.color}">
-                    <span class="category-dot" style="background: ${category.color}"></span>
-                    ${category.name}
-                    <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                  </button>
-                  <div class="category-options" id="category-options-${t.id}">
-                    ${defaultCategories.map(cat => `
-                      <div class="category-option ${cat.id === t.category ? 'selected' : ''}" onclick="updateTransactionCategory('${t.id}', '${cat.id}')">
-                        <span class="category-dot" style="background: ${cat.color}"></span>
-                        ${cat.name}
-                      </div>
-                    `).join('')}
+      return `
+        <tr data-transaction-id="${t.id}">
+          <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;">${formatDate(t.transaction_date)}</td>
+          <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;">${t.description || '-'}</td>
+          <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;" class="${amountClass}">${amountPrefix}${amountFormatted}</td>
+          <td class="category-cell">
+            <div class="category-dropdown" onclick="event.stopPropagation();">
+              <button class="category-btn" onclick="toggleCategoryDropdown('${t.id}')" style="--category-color: ${category.color}">
+                <span class="category-dot" style="background: ${category.color}"></span>
+                ${category.name}
+                <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              <div class="category-options" id="category-options-${t.id}">
+                ${defaultCategories.map(cat => `
+                  <div class="category-option ${cat.id === t.category ? 'selected' : ''}" data-transaction-id="${t.id}" data-category-id="${cat.id}">
+                    <span class="category-dot" style="background: ${cat.color}"></span>
+                    ${cat.name}
                   </div>
-                </div>
-              </td>
-              <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;">${t.bank_name || '-'}</td>
-              <td class="actions-cell">
-                <button class="action-btn create-service-btn" onclick="event.stopPropagation(); createServiceFromTransaction('${t.id}')" title="Crear servicio recurrente">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                    <path d="M21 3v5h-5"></path>
-                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-                    <path d="M8 16H3v5"></path>
-                  </svg>
-                </button>
-              </td>
-            </tr>
-          `}).join('')}
-        </tbody>
-      </table>
+                `).join('')}
+              </div>
+            </div>
+          </td>
+          <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;">${t.bank_name || '-'}</td>
+          <td class="actions-cell">
+            <button class="action-btn create-service-btn" onclick="event.stopPropagation(); createServiceFromTransaction('${t.id}')" title="Crear servicio recurrente">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                <path d="M21 3v5h-5"></path>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                <path d="M8 16H3v5"></path>
+              </svg>
+            </button>
+            <button class="action-btn delete-transaction-btn" onclick="event.stopPropagation(); confirmDeleteTransaction('${t.id}')" title="Eliminar transaccion">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Update or create pagination
+  const container = document.getElementById('all-transactions-container');
+  let paginationEl = container.querySelector('.pagination-controls');
+
+  const paginationHTML = `
+    <div class="pagination-info">
+      Mostrando ${startRecord}-${endRecord} de ${totalTransactions.toLocaleString('es-AR')} transacciones
     </div>
-    <div class="pagination-controls">
-      <div class="pagination-info">
-        Mostrando ${startRecord}-${endRecord} de ${totalTransactions.toLocaleString('es-AR')} transacciones
+    <div class="pagination-actions">
+      <div class="pagination-limit">
+        <label>Por página:</label>
+        <select id="pagination-limit" onchange="changePageLimit(this.value)">
+          <option value="50" ${currentLimit === 50 ? 'selected' : ''}>50</option>
+          <option value="100" ${currentLimit === 100 ? 'selected' : ''}>100</option>
+          <option value="300" ${currentLimit === 300 ? 'selected' : ''}>300</option>
+        </select>
       </div>
-      <div class="pagination-actions">
-        <div class="pagination-limit">
-          <label>Por página:</label>
-          <select id="pagination-limit" onchange="changePageLimit(this.value)">
-            <option value="50" ${currentLimit === 50 ? 'selected' : ''}>50</option>
-            <option value="100" ${currentLimit === 100 ? 'selected' : ''}>100</option>
-            <option value="300" ${currentLimit === 300 ? 'selected' : ''}>300</option>
-          </select>
-        </div>
-        <div class="pagination-buttons">
-          <button class="pagination-btn" onclick="goToPage(1)" ${currentPage === 1 ? 'disabled' : ''}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="11 17 6 12 11 7"></polyline>
-              <polyline points="18 17 13 12 18 7"></polyline>
-            </svg>
-          </button>
-          <button class="pagination-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="15 18 9 12 15 6"></polyline>
-            </svg>
-          </button>
-          <span class="pagination-page">Página ${currentPage} de ${totalPages}</span>
-          <button class="pagination-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-          </button>
-          <button class="pagination-btn" onclick="goToPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="13 17 18 12 13 7"></polyline>
-              <polyline points="6 17 11 12 6 7"></polyline>
-            </svg>
-          </button>
-        </div>
+      <div class="pagination-buttons">
+        <button class="pagination-btn" onclick="goToPage(1)" ${currentPage === 1 ? 'disabled' : ''}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="11 17 6 12 11 7"></polyline>
+            <polyline points="18 17 13 12 18 7"></polyline>
+          </svg>
+        </button>
+        <button class="pagination-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <span class="pagination-page">Página ${currentPage} de ${totalPages}</span>
+        <button class="pagination-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+        <button class="pagination-btn" onclick="goToPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="13 17 18 12 13 7"></polyline>
+            <polyline points="6 17 11 12 6 7"></polyline>
+          </svg>
+        </button>
       </div>
     </div>
   `;
 
+  if (paginationEl) {
+    paginationEl.innerHTML = paginationHTML;
+  } else {
+    paginationEl = document.createElement('div');
+    paginationEl.className = 'pagination-controls';
+    paginationEl.innerHTML = paginationHTML;
+    container.appendChild(paginationEl);
+  }
+
   // Load saved column widths and initialize resizing
   loadColumnWidths();
   initColumnResize();
+
+  // Initialize category option click listeners
+  initCategoryOptionListeners();
 }
 
 // Column resize functionality
@@ -868,8 +982,67 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Update transaction category
+// Initialize category option click listeners (called after rendering transactions)
+function initCategoryOptionListeners() {
+  document.querySelectorAll('.category-option').forEach(option => {
+    // Remove existing listener to avoid duplicates
+    option.removeEventListener('click', handleCategoryOptionClick);
+    option.addEventListener('click', handleCategoryOptionClick);
+  });
+}
+
+function handleCategoryOptionClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const transactionId = this.dataset.transactionId;
+  const categoryId = this.dataset.categoryId;
+  if (transactionId && categoryId) {
+    updateTransactionCategory(transactionId, categoryId);
+  }
+}
+
+// Update transaction category with Optimistic UI Update + Loading indicator
 async function updateTransactionCategory(transactionId, categoryId) {
+  const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
+  const transaction = allTransactions.find(t => t.id === transactionId);
+
+  // Store previous state for rollback
+  const previousCategoryId = transaction?.category;
+  const previousCategory = getCategoryById(previousCategoryId);
+  const newCategory = getCategoryById(categoryId);
+
+  // === OPTIMISTIC UPDATE: Update UI immediately with loading spinner ===
+
+  // Update local data immediately
+  if (transaction) {
+    transaction.category = categoryId;
+  }
+
+  // Update UI immediately - show category with loading spinner
+  if (row) {
+    const btn = row.querySelector('.category-btn');
+    btn.style.setProperty('--category-color', newCategory.color);
+    btn.innerHTML = `
+      <span class="category-dot" style="background: ${newCategory.color}"></span>
+      ${newCategory.name}
+      <span class="category-saving-spinner"></span>
+    `;
+
+    // Update selected state in options
+    row.querySelectorAll('.category-option').forEach(opt => {
+      opt.classList.remove('selected');
+    });
+    row.querySelector(`.category-option[data-category-id="${categoryId}"]`)?.classList.add('selected');
+  }
+
+  // Close dropdown immediately
+  const dropdownEl = document.getElementById(`category-options-${transactionId}`);
+  if (dropdownEl) {
+    dropdownEl.classList.remove('show');
+    dropdownEl.closest('tr')?.classList.remove('dropdown-active');
+  }
+
+  // === BACKGROUND: Save to server ===
   try {
     const headers = await getAuthHeaders(true);
 
@@ -881,41 +1054,65 @@ async function updateTransactionCategory(transactionId, categoryId) {
 
     const result = await response.json();
 
-    if (result.success) {
-      // Update the local data
-      const transaction = allTransactions.find(t => t.id === transactionId);
-      if (transaction) {
-        transaction.category = categoryId;
-      }
-
-      // Update the UI
-      const category = getCategoryById(categoryId);
-      const row = document.querySelector(`tr[data-transaction-id="${transactionId}"]`);
-      if (row) {
-        const btn = row.querySelector('.category-btn');
-        btn.style.setProperty('--category-color', category.color);
-        btn.innerHTML = `
-          <span class="category-dot" style="background: ${category.color}"></span>
-          ${category.name}
-          <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        `;
-
-        // Update selected state in options
-        row.querySelectorAll('.category-option').forEach(opt => {
-          opt.classList.remove('selected');
-        });
-        row.querySelector(`.category-option[onclick*="${categoryId}"]`)?.classList.add('selected');
-      }
-
-      // Close dropdown
-      document.getElementById(`category-options-${transactionId}`).classList.remove('show');
-    } else {
-      console.error('Failed to update category:', result.error);
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to update category');
     }
+
+    // Success - show checkmark briefly, then restore arrow
+    if (row) {
+      const btn = row.querySelector('.category-btn');
+      btn.innerHTML = `
+        <span class="category-dot" style="background: ${newCategory.color}"></span>
+        ${newCategory.name}
+        <svg class="category-success-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      `;
+
+      // After brief delay, restore normal arrow
+      setTimeout(() => {
+        if (btn) {
+          btn.innerHTML = `
+            <span class="category-dot" style="background: ${newCategory.color}"></span>
+            ${newCategory.name}
+            <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          `;
+        }
+      }, 800);
+    }
+
   } catch (error) {
     console.error('Error updating category:', error);
+
+    // === ROLLBACK: Revert to previous state ===
+    if (transaction) {
+      transaction.category = previousCategoryId;
+    }
+
+    if (row) {
+      const btn = row.querySelector('.category-btn');
+      btn.style.setProperty('--category-color', previousCategory.color);
+      btn.innerHTML = `
+        <span class="category-dot" style="background: ${previousCategory.color}"></span>
+        ${previousCategory.name}
+        <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      `;
+
+      // Revert selected state
+      row.querySelectorAll('.category-option').forEach(opt => {
+        opt.classList.remove('selected');
+      });
+      row.querySelector(`.category-option[data-category-id="${previousCategoryId}"]`)?.classList.add('selected');
+    }
+
+    // Show error notification
+    if (typeof showNotification === 'function') {
+      showNotification('Error al guardar categoría', 'error');
+    }
   }
 }
 
@@ -925,6 +1122,8 @@ function filterTransactions() {
   currentFilters.dateFrom = document.getElementById('filter-date-from').value;
   currentFilters.dateTo = document.getElementById('filter-date-to').value;
   currentFilters.description = document.getElementById('filter-description').value;
+  const includeDeletedCheckbox = document.getElementById('filter-include-deleted');
+  currentFilters.includeDeleted = includeDeletedCheckbox ? includeDeletedCheckbox.checked : false;
 
   // Reload from page 1 with new filters
   loadAllTransactions(1, currentLimit);
@@ -934,11 +1133,14 @@ function clearFilters() {
   document.getElementById('filter-date-from').value = '';
   document.getElementById('filter-date-to').value = '';
   document.getElementById('filter-description').value = '';
+  const includeDeletedCheckbox = document.getElementById('filter-include-deleted');
+  if (includeDeletedCheckbox) includeDeletedCheckbox.checked = false;
 
   // Clear filter state
   currentFilters.dateFrom = '';
   currentFilters.dateTo = '';
   currentFilters.description = '';
+  currentFilters.includeDeleted = false;
 
   // Reload from page 1 without filters
   loadAllTransactions(1, currentLimit);
@@ -1077,6 +1279,100 @@ async function createServiceFromTransaction(transactionId) {
   } catch (error) {
     console.error('Error creating service from transaction:', error);
     showNotification('Error al crear servicio', 'error');
+  }
+}
+
+// Open delete transaction confirmation modal
+function confirmDeleteTransaction(transactionId) {
+  const transaction = allTransactions.find(t => t.id === transactionId);
+  if (!transaction) return;
+
+  const modal = document.getElementById('delete-transaction-modal');
+  const detailsEl = document.getElementById('delete-transaction-details');
+  const idInput = document.getElementById('delete-transaction-id');
+
+  if (!modal || !detailsEl || !idInput) return;
+
+  // Store the transaction ID
+  idInput.value = transactionId;
+
+  // Format the transaction details
+  const date = transaction.transaction_date
+    ? new Date(transaction.transaction_date + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })
+    : 'Sin fecha';
+  const description = transaction.description || 'Sin descripcion';
+  const amount = transaction.amount || 0;
+  const formattedAmount = '$' + Math.abs(amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const amountClass = amount >= 0 ? 'income' : 'expense';
+
+  detailsEl.innerHTML = `
+    <div class="delete-detail-row">
+      <span class="delete-detail-label">Fecha:</span>
+      <span class="delete-detail-value">${date}</span>
+    </div>
+    <div class="delete-detail-row">
+      <span class="delete-detail-label">Descripcion:</span>
+      <span class="delete-detail-value">${escapeHtml(description)}</span>
+    </div>
+    <div class="delete-detail-row">
+      <span class="delete-detail-label">Monto:</span>
+      <span class="delete-detail-value ${amountClass}">${amount >= 0 ? '+' : '-'}${formattedAmount}</span>
+    </div>
+  `;
+
+  // Show the modal
+  modal.classList.add('active');
+
+  // Add click outside to close
+  modal.onclick = function(e) {
+    if (e.target === modal) {
+      closeDeleteTransactionModal();
+    }
+  };
+}
+
+// Close delete transaction modal
+function closeDeleteTransactionModal() {
+  const modal = document.getElementById('delete-transaction-modal');
+  if (modal) {
+    modal.classList.remove('active');
+  }
+}
+
+// Confirm delete from modal
+function confirmDeleteFromModal() {
+  const idInput = document.getElementById('delete-transaction-id');
+  if (idInput && idInput.value) {
+    deleteTransaction(idInput.value);
+    closeDeleteTransactionModal();
+  }
+}
+
+// Delete transaction (soft delete - mark as deleted)
+async function deleteTransaction(transactionId) {
+  try {
+    const headers = await getAuthHeaders();
+    headers['Content-Type'] = 'application/json';
+
+    const response = await fetch(`/api/transactions/${transactionId}`, {
+      method: 'DELETE',
+      headers
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || 'Error al eliminar transaccion');
+    }
+
+    showNotification('Transaccion eliminada', 'success');
+
+    // Reload transactions to reflect changes
+    loadAllTransactions(currentPage, currentLimit);
+
+  } catch (error) {
+    console.error('Error deleting transaction:', error);
+    showNotification('Error al eliminar transaccion', 'error');
   }
 }
 
@@ -1677,10 +1973,14 @@ async function syncMercadoPago() {
     const result = await response.json();
 
     if (result.success) {
-      const msg = result.imported > 0
-        ? `Se importaron ${result.imported} transacciones de Mercado Pago`
-        : 'No hay transacciones nuevas para importar';
-      alert(msg);
+      // Show sync result modal with correct field names
+      showSyncResultModal({
+        success: true,
+        provider: 'Mercado Pago',
+        syncedCount: result.syncedCount || 0,
+        skippedCount: result.skippedCount || 0,
+        totalFetched: result.totalFetched || 0
+      });
 
       // Reload connections to update last sync time
       await loadConnections();
@@ -1690,16 +1990,100 @@ async function syncMercadoPago() {
         loadAllTransactions();
       }
     } else {
-      alert('Error al sincronizar: ' + (result.error || 'Error desconocido'));
+      showSyncResultModal({
+        success: false,
+        provider: 'Mercado Pago',
+        error: result.error || 'Error desconocido'
+      });
     }
   } catch (error) {
     console.error('Error syncing Mercado Pago:', error);
-    alert('Error al sincronizar con Mercado Pago');
+    showSyncResultModal({
+      success: false,
+      provider: 'Mercado Pago',
+      error: 'Error de conexion'
+    });
   } finally {
     if (syncBtn) {
       syncBtn.disabled = false;
       syncBtn.innerHTML = originalText;
     }
+  }
+}
+
+// Show sync result modal
+function showSyncResultModal(data) {
+  const modal = document.getElementById('sync-result-modal');
+  const iconEl = document.getElementById('sync-result-icon');
+  const titleEl = document.getElementById('sync-result-title');
+  const messageEl = document.getElementById('sync-result-message');
+  const detailsEl = document.getElementById('sync-result-details');
+
+  if (!modal) return;
+
+  if (data.success) {
+    // Success state
+    iconEl.className = 'custom-modal-icon success';
+    iconEl.innerHTML = `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    `;
+    titleEl.textContent = 'Sincronizacion Completa';
+
+    if (data.syncedCount > 0) {
+      messageEl.textContent = `Se importaron ${data.syncedCount} transacciones de ${data.provider}`;
+    } else {
+      messageEl.textContent = `No hay transacciones nuevas para importar de ${data.provider}`;
+    }
+
+    // Build details HTML
+    let detailsHtml = '<div class="sync-detail-row">';
+    detailsHtml += `<span class="sync-detail-label">Transacciones obtenidas</span>`;
+    detailsHtml += `<span class="sync-detail-value">${data.totalFetched}</span>`;
+    detailsHtml += '</div>';
+    detailsHtml += '<div class="sync-detail-row">';
+    detailsHtml += `<span class="sync-detail-label">Importadas (nuevas)</span>`;
+    detailsHtml += `<span class="sync-detail-value highlight">${data.syncedCount}</span>`;
+    detailsHtml += '</div>';
+    if (data.skippedCount > 0) {
+      detailsHtml += '<div class="sync-detail-row">';
+      detailsHtml += `<span class="sync-detail-label">Omitidas (ya existian)</span>`;
+      detailsHtml += `<span class="sync-detail-value muted">${data.skippedCount}</span>`;
+      detailsHtml += '</div>';
+    }
+    detailsEl.innerHTML = detailsHtml;
+  } else {
+    // Error state
+    iconEl.className = 'custom-modal-icon danger';
+    iconEl.innerHTML = `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="15" y1="9" x2="9" y2="15"></line>
+        <line x1="9" y1="9" x2="15" y2="15"></line>
+      </svg>
+    `;
+    titleEl.textContent = 'Error de Sincronizacion';
+    messageEl.textContent = `Error al sincronizar con ${data.provider}`;
+    detailsEl.innerHTML = `<div class="sync-error-message">${data.error}</div>`;
+  }
+
+  // Show modal
+  modal.classList.add('active');
+
+  // Close on overlay click
+  modal.onclick = function(e) {
+    if (e.target === modal) {
+      closeSyncResultModal();
+    }
+  };
+}
+
+// Close sync result modal
+function closeSyncResultModal() {
+  const modal = document.getElementById('sync-result-modal');
+  if (modal) {
+    modal.classList.remove('active');
   }
 }
 

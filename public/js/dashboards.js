@@ -329,8 +329,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Check if URL has dashboards hash
-  if (window.location.hash.includes('dashboards')) {
+  // Initialize dashboard on page load if it's the default/active section or URL has hash
+  const dashboardSection = document.getElementById('section-dashboards');
+  const isDefaultSection = !window.location.hash || window.location.hash === '#dashboards';
+
+  if (window.location.hash.includes('dashboards') || (isDefaultSection && dashboardSection?.classList.contains('active'))) {
     setTimeout(initDashboard, 500);
   }
 });

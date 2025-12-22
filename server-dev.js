@@ -300,7 +300,7 @@ app.get('/api/transactions', devAuth, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const offset = (page - 1) * limit;
-    const { dateFrom, dateTo, description } = req.query;
+    const { dateFrom, dateTo, description, includeDeleted } = req.query;
 
     // Build base query for count
     let countQuery = supabaseAdmin
@@ -319,6 +319,12 @@ app.get('/api/transactions', devAuth, async (req, res) => {
         )
       `)
       .eq('user_id', req.user.id);
+
+    // Filter out deleted transactions by default (unless includeDeleted is true)
+    if (includeDeleted !== 'true') {
+      countQuery = countQuery.or('status.is.null,status.neq.deleted');
+      dataQuery = dataQuery.or('status.is.null,status.neq.deleted');
+    }
 
     // Apply date filters
     if (dateFrom) {
@@ -371,6 +377,46 @@ app.get('/api/transactions', devAuth, async (req, res) => {
   }
 });
 
+// Soft delete a transaction (mark as deleted)
+app.delete('/api/transactions/:id', devAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Update transaction status to 'deleted'
+    const { data, error } = await supabaseAdmin
+      .from('transactions')
+      .update({ status: 'deleted' })
+      .eq('id', id)
+      .eq('user_id', req.user.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        error: 'Transaction not found'
+      });
+    }
+
+    console.log(`[Transaction Deleted] User ${req.user.id}: Transaction ${id} marked as deleted`);
+
+    res.json({
+      success: true,
+      message: 'Transaction deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete transaction error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to delete transaction'
+    });
+  }
+});
+
 // Get aggregated dashboard stats (scalable - uses pagination loop for unlimited data)
 app.get('/api/dashboard/stats', devAuth, async (req, res) => {
   try {
@@ -394,7 +440,8 @@ app.get('/api/dashboard/stats', devAuth, async (req, res) => {
       let batchQuery = supabaseAdmin
         .from('transactions')
         .select(selectFields)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .or('status.is.null,status.neq.deleted'); // Exclude deleted transactions
 
       if (dateFrom) {
         batchQuery = batchQuery.gte('transaction_date', dateFrom);
