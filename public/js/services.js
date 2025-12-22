@@ -313,9 +313,10 @@ async function toggleServiceStatus(serviceId) {
   const newStatus = service.status === 'active' ? 'paused' : 'active';
 
   try {
+    const authHeaders = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
     const response = await fetch(`/api/services/${serviceId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...authHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus })
     });
 
@@ -390,19 +391,20 @@ async function saveService(event) {
   const serviceId = document.getElementById('service-id').value;
 
   try {
+    const authHeaders = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
     let response;
     if (serviceId) {
       // Update existing
       response = await fetch(`/api/services/${serviceId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify(serviceData)
       });
     } else {
       // Create new
       response = await fetch('/api/services', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify(serviceData)
       });
     }
@@ -651,9 +653,10 @@ async function detectRecurringServices() {
   showNotification('Analizando transacciones...', 'info');
 
   try {
+    const authHeaders = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
     const response = await fetch('/api/services/detect', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { ...authHeaders, 'Content-Type': 'application/json' }
     });
 
     const data = await response.json();
@@ -723,9 +726,10 @@ async function saveSelectedDetected() {
   }
 
   try {
+    const authHeaders = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
     const response = await fetch('/api/services/save-detected', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...authHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify({ services: selectedServices })
     });
 
@@ -752,7 +756,8 @@ async function loadUpcomingPayments() {
   if (!listEl) return;
 
   try {
-    const response = await fetch('/api/services/calendar/upcoming');
+    const authHeaders = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
+    const response = await fetch('/api/services/calendar/upcoming', { headers: authHeaders });
     const data = await response.json();
 
     if (!response.ok) {
