@@ -1,76 +1,8 @@
 <!-- Conexiones Section -->
-<section id="section-configuracion" class="content-section">
+<section id="section-conexiones" class="content-section">
   <div class="section-header">
-    <h1>Configuración</h1>
-    <p>Conecta tus cuentas y configura opciones de carga</p>
-  </div>
-
-  <!-- Email Upload Section -->
-  <div class="settings-section">
-    <h2 class="settings-section-title">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-        <polyline points="22,6 12,13 2,6"></polyline>
-      </svg>
-      Carga por Email
-    </h2>
-    <p class="settings-section-description">Reenvía extractos bancarios y comprobantes a tu email personalizado para cargarlos automáticamente</p>
-
-    <div class="email-upload-card" id="email-upload-card">
-      <div class="email-upload-loading" id="email-upload-loading">
-        <div class="spinner"></div>
-        <span>Cargando...</span>
-      </div>
-
-      <div class="email-upload-content" id="email-upload-content" style="display: none;">
-        <div class="email-upload-address">
-          <label>Tu email de carga:</label>
-          <div class="email-copy-container">
-            <input type="text" id="upload-email-address" readonly class="email-address-input" />
-            <button class="btn-copy" onclick="copyUploadEmail()" title="Copiar email">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <div class="email-upload-instructions">
-          <h4>Cómo funciona:</h4>
-          <ol>
-            <li>Reenvía cualquier email con archivos adjuntos a tu dirección de carga</li>
-            <li>Los archivos se procesarán automáticamente</li>
-            <li>Verás los resultados en tu dashboard en pocos minutos</li>
-          </ol>
-          <p class="email-supported-formats">
-            <strong>Formatos soportados:</strong> PDF, CSV, XLSX, XLS, PNG, JPG
-          </p>
-        </div>
-
-        <div class="email-upload-actions">
-          <button class="btn-secondary" onclick="regenerateUploadEmail()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="23 4 23 10 17 10"></polyline>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-            </svg>
-            Regenerar Email
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Conexiones Section -->
-  <div class="settings-section">
-    <h2 class="settings-section-title">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-      </svg>
-      Conexiones
-    </h2>
-    <p class="settings-section-description">Conecta tus cuentas bancarias y servicios de pago para sincronizar automáticamente</p>
+    <h1>Conexiones</h1>
+    <p>Conecta tus cuentas bancarias y servicios de pago</p>
   </div>
 
   <div class="connections-container">

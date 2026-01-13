@@ -22,7 +22,6 @@
     <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
       <div style="background: white; padding: 3rem; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); max-width: 400px; width: 90%; margin: 0 auto; text-align: center;">
         <div style="margin-bottom: 2rem;">
-          <span style="font-size: 3rem;">🐱</span>
           <h1 style="margin: 1rem 0; font-size: 2rem; color: #1a1a1a;">Maneki</h1>
           <p style="color: #666;">Gestión Financiera Inteligente</p>
         </div>
@@ -48,7 +47,6 @@
     <nav class="sidebar">
       <div class="sidebar-header">
         <div class="logo">
-          <span class="logo-icon">🐱</span>
           <span class="logo-text">Maneki</span>
         </div>
       </div>
@@ -64,20 +62,20 @@
           <span class="menu-text">Dashboard</span>
         </a>
 
-        <a href="#transacciones" class="menu-item" data-section="transacciones">
-          <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="1" x2="12" y2="23"></line>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-          </svg>
-          <span class="menu-text">Transacciones</span>
-        </a>
-
         <a href="#archivos" class="menu-item" data-section="archivos">
           <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
             <polyline points="13 2 13 9 20 9"></polyline>
           </svg>
           <span class="menu-text">Archivos</span>
+        </a>
+
+        <a href="#transacciones" class="menu-item" data-section="transacciones">
+          <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="1" x2="12" y2="23"></line>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+          <span class="menu-text">Transacciones</span>
         </a>
 
         <a href="#servicios" class="menu-item" data-section="servicios">
@@ -99,12 +97,20 @@
           <span class="menu-text">Calendario</span>
         </a>
 
-        <a href="#configuracion" class="menu-item" data-section="configuracion">
+        <a href="#conexiones" class="menu-item" data-section="conexiones">
           <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="M12 1v6m0 6v6m5.656-14.656l-4.242 4.242m0 6.364l4.242 4.242M23 12h-6m-6 0H1m17.656 5.656l-4.242-4.242m0-6.364l4.242-4.242"></path>
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
           </svg>
           <span class="menu-text">Conexiones</span>
+        </a>
+
+        <a href="#ajustes" class="menu-item" data-section="ajustes">
+          <svg class="menu-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span class="menu-text">Configuración</span>
         </a>
       </div>
 
@@ -150,6 +156,7 @@
       <%- include('menus/services') %>
       <%- include('menus/calendar') %>
       <%- include('menus/settings') %>
+      <%- include('menus/ajustes') %>
     </div>
 
     <!-- Right Sidebar Panel -->
@@ -244,6 +251,7 @@
   <script src="/js/dashboards.js"></script>
   <script src="/js/services.js"></script>
   <script src="/js/calendar.js"></script>
+  <script src="/js/categories.js"></script>
   <script>
     // Initialize Supabase
     const supabaseUrl = '<%= supabaseUrl %>';

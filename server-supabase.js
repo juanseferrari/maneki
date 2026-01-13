@@ -1862,6 +1862,253 @@ app.post('/api/services/:id/link', requireAuth, async (req, res) => {
 });
 
 // ==========================================
+// Categories API
+// ==========================================
+
+const MAX_CATEGORIES_PER_USER = 30;
+
+// Get all categories for user
+app.get('/api/categories', requireAuth, async (req, res) => {
+  try {
+    const { data: categories, error } = await supabaseAdmin
+      .from('categories')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('sort_order', { ascending: true });
+
+    if (error) throw error;
+
+    // If user has no categories, create defaults
+    if (!categories || categories.length === 0) {
+      const { data: newCategories, error: createError } = await supabaseAdmin.rpc(
+        'create_default_categories_for_user',
+        { p_user_id: req.user.id }
+      );
+
+      if (createError) {
+        console.error('Error creating default categories:', createError);
+      }
+
+      // Fetch the newly created categories
+      const { data: createdCategories, error: fetchError } = await supabaseAdmin
+        .from('categories')
+        .select('*')
+        .eq('user_id', req.user.id)
+        .order('sort_order', { ascending: true });
+
+      if (fetchError) throw fetchError;
+
+      return res.json({ success: true, categories: createdCategories || [] });
+    }
+
+    res.json({ success: true, categories });
+  } catch (error) {
+    console.error('Get categories error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Create category
+app.post('/api/categories', requireAuth, async (req, res) => {
+  try {
+    const { name, color, icon, description, parent_id } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, error: 'Category name is required' });
+    }
+
+    // Check category limit
+    const { count, error: countError } = await supabaseAdmin
+      .from('categories')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', req.user.id);
+
+    if (countError) throw countError;
+
+    if (count >= MAX_CATEGORIES_PER_USER) {
+      return res.status(400).json({
+        success: false,
+        error: `Maximum ${MAX_CATEGORIES_PER_USER} categories allowed per user`
+      });
+    }
+
+    // Get max sort_order
+    const { data: maxOrderResult } = await supabaseAdmin
+      .from('categories')
+      .select('sort_order')
+      .eq('user_id', req.user.id)
+      .order('sort_order', { ascending: false })
+      .limit(1)
+      .single();
+
+    const newSortOrder = (maxOrderResult?.sort_order || 0) + 1;
+
+    const { data: category, error } = await supabaseAdmin
+      .from('categories')
+      .insert({
+        user_id: req.user.id,
+        name: name.trim(),
+        color: color || '#9CA3AF',
+        icon: icon || null,
+        description: description || null,
+        parent_id: parent_id || null,
+        sort_order: newSortOrder,
+        is_system: false
+      })
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') { // Unique constraint violation
+        return res.status(400).json({ success: false, error: 'A category with this name already exists' });
+      }
+      throw error;
+    }
+
+    res.json({ success: true, category });
+  } catch (error) {
+    console.error('Create category error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update category
+app.put('/api/categories/:id', requireAuth, async (req, res) => {
+  try {
+    const { name, color, icon, description, parent_id, sort_order } = req.body;
+
+    const updateData = {};
+    if (name !== undefined) updateData.name = name.trim();
+    if (color !== undefined) updateData.color = color;
+    if (icon !== undefined) updateData.icon = icon;
+    if (description !== undefined) updateData.description = description;
+    if (parent_id !== undefined) updateData.parent_id = parent_id;
+    if (sort_order !== undefined) updateData.sort_order = sort_order;
+
+    const { data: category, error } = await supabaseAdmin
+      .from('categories')
+      .update(updateData)
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') {
+        return res.status(400).json({ success: false, error: 'A category with this name already exists' });
+      }
+      throw error;
+    }
+
+    if (!category) {
+      return res.status(404).json({ success: false, error: 'Category not found' });
+    }
+
+    res.json({ success: true, category });
+  } catch (error) {
+    console.error('Update category error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Delete category
+app.delete('/api/categories/:id', requireAuth, async (req, res) => {
+  try {
+    // First check if this is a system category
+    const { data: existing, error: checkError } = await supabaseAdmin
+      .from('categories')
+      .select('is_system, name')
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (checkError || !existing) {
+      return res.status(404).json({ success: false, error: 'Category not found' });
+    }
+
+    // Prevent deleting "Sin categoría" (the default category)
+    if (existing.name === 'Sin categoría') {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot delete the default category'
+      });
+    }
+
+    const { error } = await supabaseAdmin
+      .from('categories')
+      .delete()
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id);
+
+    if (error) throw error;
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete category error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Reorder categories
+app.put('/api/categories/reorder', requireAuth, async (req, res) => {
+  try {
+    const { categoryIds } = req.body;
+
+    if (!Array.isArray(categoryIds)) {
+      return res.status(400).json({ success: false, error: 'categoryIds must be an array' });
+    }
+
+    // Update sort_order for each category
+    const updates = categoryIds.map((id, index) =>
+      supabaseAdmin
+        .from('categories')
+        .update({ sort_order: index })
+        .eq('id', id)
+        .eq('user_id', req.user.id)
+    );
+
+    await Promise.all(updates);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Reorder categories error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==========================================
+// User Upload Email API
+// ==========================================
+
+// Get user's upload email
+app.get('/api/user/upload-email', requireAuth, async (req, res) => {
+  try {
+    // For now, generate email based on user ID (can be enhanced with custom table later)
+    const token = req.user.id.substring(0, 8);
+    const email = `upload-${token}@uploads.maneki.app`;
+    res.json({ success: true, email });
+  } catch (error) {
+    console.error('Get upload email error:', error);
+    const token = req.user.id.substring(0, 8);
+    const email = `upload-${token}@uploads.maneki.app`;
+    res.json({ success: true, email });
+  }
+});
+
+// Regenerate user's upload email (placeholder - actual implementation needs custom table)
+app.post('/api/user/upload-email/regenerate', requireAuth, async (req, res) => {
+  try {
+    const crypto = require('crypto');
+    const token = crypto.randomBytes(4).toString('hex');
+    const email = `upload-${token}@uploads.maneki.app`;
+    res.json({ success: true, email });
+  } catch (error) {
+    console.error('Regenerate upload email error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==========================================
 // Health Check
 // ==========================================
 

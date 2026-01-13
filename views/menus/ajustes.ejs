@@ -1,0 +1,193 @@
+<!-- Configuración Section -->
+<section id="section-ajustes" class="content-section">
+  <div class="section-header">
+    <h1>Configuración</h1>
+    <p>Personaliza tu experiencia y configura opciones de carga</p>
+  </div>
+
+  <!-- Categories Section -->
+  <div class="settings-section">
+    <h2 class="settings-section-title">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+        <line x1="7" y1="7" x2="7.01" y2="7"></line>
+      </svg>
+      Categorías
+    </h2>
+    <p class="settings-section-description">Administra las categorías para clasificar tus transacciones</p>
+
+    <div class="categories-card">
+      <div class="categories-header">
+        <span class="categories-count" id="categories-count">0 / 30 categorías</span>
+        <button class="btn-primary btn-sm" onclick="openAddCategoryModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Nueva Categoría
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div class="categories-loading" id="categories-loading">
+        <div class="spinner"></div>
+        <span>Cargando categorías...</span>
+      </div>
+
+      <!-- Empty State -->
+      <div class="categories-empty" id="categories-empty" style="display: none;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+          <line x1="7" y1="7" x2="7.01" y2="7"></line>
+        </svg>
+        <p>No hay categorías</p>
+        <span>Crea categorías para organizar tus transacciones</span>
+      </div>
+
+      <!-- Categories List -->
+      <div class="categories-list" id="categories-list" style="display: none;">
+        <!-- Categories will be loaded here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Email Upload Section -->
+  <div class="settings-section">
+    <h2 class="settings-section-title">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+        <polyline points="22,6 12,13 2,6"></polyline>
+      </svg>
+      Carga por Email
+    </h2>
+    <p class="settings-section-description">Reenvía extractos bancarios y comprobantes a tu email personalizado para cargarlos automáticamente</p>
+
+    <div class="email-upload-card" id="email-upload-card">
+      <div class="email-upload-loading" id="email-upload-loading">
+        <div class="spinner"></div>
+        <span>Cargando...</span>
+      </div>
+
+      <div class="email-upload-content" id="email-upload-content" style="display: none;">
+        <div class="email-upload-address">
+          <label>Tu email de carga:</label>
+          <div class="email-copy-container">
+            <input type="text" id="upload-email-address" readonly class="email-address-input" />
+            <button class="btn-copy" onclick="copyUploadEmail()" title="Copiar email">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="email-upload-instructions">
+          <h4>Cómo funciona:</h4>
+          <ol>
+            <li>Reenvía cualquier email con archivos adjuntos a tu dirección de carga</li>
+            <li>Los archivos se procesarán automáticamente</li>
+            <li>Verás los resultados en tu dashboard en pocos minutos</li>
+          </ol>
+          <p class="email-supported-formats">
+            <strong>Formatos soportados:</strong> PDF, CSV, XLSX, XLS, PNG, JPG
+          </p>
+        </div>
+
+        <div class="email-upload-actions">
+          <button class="btn-secondary" onclick="regenerateUploadEmail()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            Regenerar Email
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Add/Edit Category Modal -->
+<div class="custom-modal-overlay" id="category-modal">
+  <div class="custom-modal category-modal">
+    <div class="custom-modal-header">
+      <div class="custom-modal-icon info">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+          <line x1="7" y1="7" x2="7.01" y2="7"></line>
+        </svg>
+      </div>
+      <h3 class="custom-modal-title" id="category-modal-title">Nueva Categoría</h3>
+    </div>
+
+    <form id="category-form" onsubmit="saveCategory(event)" class="category-form">
+      <input type="hidden" id="category-id" value="">
+
+      <div class="form-group">
+        <label for="category-name">Nombre *</label>
+        <input type="text" id="category-name" required placeholder="Ej: Alimentación, Transporte, etc." maxlength="50">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="category-color">Color</label>
+          <div class="color-picker-wrapper">
+            <input type="color" id="category-color" value="#9CA3AF">
+            <div class="color-presets">
+              <button type="button" class="color-preset" style="background: #F59E0B" onclick="setCategoryColor('#F59E0B')"></button>
+              <button type="button" class="color-preset" style="background: #3B82F6" onclick="setCategoryColor('#3B82F6')"></button>
+              <button type="button" class="color-preset" style="background: #8B5CF6" onclick="setCategoryColor('#8B5CF6')"></button>
+              <button type="button" class="color-preset" style="background: #EC4899" onclick="setCategoryColor('#EC4899')"></button>
+              <button type="button" class="color-preset" style="background: #10B981" onclick="setCategoryColor('#10B981')"></button>
+              <button type="button" class="color-preset" style="background: #EF4444" onclick="setCategoryColor('#EF4444')"></button>
+              <button type="button" class="color-preset" style="background: #14B8A6" onclick="setCategoryColor('#14B8A6')"></button>
+              <button type="button" class="color-preset" style="background: #22C55E" onclick="setCategoryColor('#22C55E')"></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="category-description">Descripción (opcional)</label>
+        <input type="text" id="category-description" placeholder="Descripción breve de la categoría" maxlength="100">
+      </div>
+
+      <div class="custom-modal-actions">
+        <button type="button" class="custom-modal-btn btn-cancel" onclick="closeCategoryModal()">Cancelar</button>
+        <button type="submit" class="custom-modal-btn btn-confirm">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Category Confirmation Modal -->
+<div class="custom-modal-overlay" id="delete-category-modal">
+  <div class="custom-modal delete-confirm-modal">
+    <div class="custom-modal-header">
+      <div class="custom-modal-icon danger">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          <line x1="10" y1="11" x2="10" y2="17"></line>
+          <line x1="14" y1="11" x2="14" y2="17"></line>
+        </svg>
+      </div>
+      <h3 class="custom-modal-title">Eliminar Categoría</h3>
+    </div>
+    <p class="custom-modal-message">
+      ¿Estás seguro de que quieres eliminar esta categoría?
+    </p>
+    <div class="delete-category-details" id="delete-category-details">
+      <!-- Category details will be inserted here -->
+    </div>
+    <p class="custom-modal-hint">
+      Las transacciones asociadas quedarán sin categoría.
+    </p>
+    <input type="hidden" id="delete-category-id" value="">
+    <div class="custom-modal-actions">
+      <button type="button" class="custom-modal-btn btn-cancel" onclick="closeDeleteCategoryModal()">Cancelar</button>
+      <button type="button" class="custom-modal-btn btn-danger" onclick="confirmDeleteCategory()">Eliminar</button>
+    </div>
+  </div>
+</div>

@@ -1735,6 +1735,224 @@ app.post('/api/services/:id/link', devAuth, async (req, res) => {
   }
 });
 
+// =============================================
+// CATEGORIES API ENDPOINTS
+// =============================================
+
+// Get all categories for user
+app.get('/api/categories', devAuth, async (req, res) => {
+  try {
+    const { data: categories, error } = await supabaseAdmin
+      .from('categories')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('sort_order', { ascending: true });
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      categories: categories || []
+    });
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Error fetching categories'
+    });
+  }
+});
+
+// Create a new category
+app.post('/api/categories', devAuth, async (req, res) => {
+  try {
+    const { name, color, description } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'El nombre es requerido'
+      });
+    }
+
+    // Check category limit (max 30)
+    const { count, error: countError } = await supabaseAdmin
+      .from('categories')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', req.user.id);
+
+    if (countError) throw countError;
+
+    if (count >= 30) {
+      return res.status(400).json({
+        success: false,
+        error: 'Has alcanzado el límite máximo de 30 categorías'
+      });
+    }
+
+    // Get max sort_order
+    const { data: maxOrder } = await supabaseAdmin
+      .from('categories')
+      .select('sort_order')
+      .eq('user_id', req.user.id)
+      .order('sort_order', { ascending: false })
+      .limit(1)
+      .single();
+
+    const newSortOrder = (maxOrder?.sort_order || 0) + 1;
+
+    const { data: category, error } = await supabaseAdmin
+      .from('categories')
+      .insert({
+        user_id: req.user.id,
+        name: name.trim(),
+        color: color || '#9CA3AF',
+        description: description?.trim() || null,
+        sort_order: newSortOrder,
+        is_system: false
+      })
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') {
+        return res.status(400).json({
+          success: false,
+          error: 'Ya existe una categoría con ese nombre'
+        });
+      }
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      category
+    });
+  } catch (error) {
+    console.error('Error creating category:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Error creating category'
+    });
+  }
+});
+
+// Update a category
+app.put('/api/categories/:id', devAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, color, description } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'El nombre es requerido'
+      });
+    }
+
+    const { data: category, error } = await supabaseAdmin
+      .from('categories')
+      .update({
+        name: name.trim(),
+        color: color || '#9CA3AF',
+        description: description?.trim() || null
+      })
+      .eq('id', id)
+      .eq('user_id', req.user.id)
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') {
+        return res.status(400).json({
+          success: false,
+          error: 'Ya existe una categoría con ese nombre'
+        });
+      }
+      throw error;
+    }
+
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        error: 'Categoría no encontrada'
+      });
+    }
+
+    res.json({
+      success: true,
+      category
+    });
+  } catch (error) {
+    console.error('Error updating category:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Error updating category'
+    });
+  }
+});
+
+// Delete a category
+app.delete('/api/categories/:id', devAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { error } = await supabaseAdmin
+      .from('categories')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', req.user.id);
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      message: 'Categoría eliminada'
+    });
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Error deleting category'
+    });
+  }
+});
+
+// =============================================
+// USER UPLOAD EMAIL ENDPOINTS
+// =============================================
+
+// Get user's upload email
+app.get('/api/user/upload-email', devAuth, async (req, res) => {
+  try {
+    const token = req.user.id.substring(0, 8);
+    const email = `upload-${token}@uploads.maneki.app`;
+    res.json({ success: true, email });
+  } catch (error) {
+    console.error('Error getting upload email:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error getting upload email'
+    });
+  }
+});
+
+// Regenerate user's upload email
+app.post('/api/user/upload-email/regenerate', devAuth, async (req, res) => {
+  try {
+    const crypto = require('crypto');
+    const token = crypto.randomBytes(4).toString('hex');
+    const email = `upload-${token}@uploads.maneki.app`;
+    res.json({ success: true, email });
+  } catch (error) {
+    console.error('Error regenerating upload email:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error regenerating upload email'
+    });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running in DEVELOPMENT MODE on port ${PORT}`);

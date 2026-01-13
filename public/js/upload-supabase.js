@@ -253,6 +253,11 @@ function showSection(sectionName) {
     loadAllTransactions();
   } else if (sectionName === 'archivos') {
     loadDashboardData();
+  } else if (sectionName === 'ajustes') {
+    if (typeof initializeCategories === 'function') {
+      initializeCategories();
+    }
+    loadUploadEmail();
   }
 
   window.location.hash = sectionName;
@@ -682,8 +687,9 @@ async function loadAllTransactions(page = 1, limit = currentLimit) {
   }
 }
 
-// Default categories
-const defaultCategories = [
+// Dynamic categories - loaded from API, with fallback defaults
+let userCategories = [];
+const fallbackCategories = [
   { id: 'sin_categoria', name: 'Sin categoría', color: '#9CA3AF' },
   { id: 'alimentacion', name: 'Alimentación', color: '#F59E0B' },
   { id: 'transporte', name: 'Transporte', color: '#3B82F6' },
@@ -697,8 +703,56 @@ const defaultCategories = [
   { id: 'ingresos', name: 'Ingresos', color: '#22C55E' }
 ];
 
+// Load user categories from API
+async function loadUserCategories() {
+  try {
+    const headers = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
+    const response = await fetch('/api/categories', { headers });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.categories && data.categories.length > 0) {
+        userCategories = data.categories;
+        return;
+      }
+    }
+  } catch (error) {
+    console.error('Error loading user categories:', error);
+  }
+  // Use fallback if API fails
+  userCategories = fallbackCategories;
+}
+
+// Get categories (returns user categories if loaded, fallback otherwise)
+function getCategories() {
+  return userCategories.length > 0 ? userCategories : fallbackCategories;
+}
+
 function getCategoryById(categoryId) {
-  return defaultCategories.find(c => c.id === categoryId) || defaultCategories[0];
+  const categories = getCategories();
+  // Try to find by ID first
+  let category = categories.find(c => c.id === categoryId);
+  // If not found and categoryId looks like an old string ID, try to find by name match
+  if (!category && typeof categoryId === 'string' && !categoryId.includes('-')) {
+    const nameMap = {
+      'sin_categoria': 'Sin categoría',
+      'alimentacion': 'Alimentación',
+      'transporte': 'Transporte',
+      'servicios': 'Servicios',
+      'entretenimiento': 'Entretenimiento',
+      'salud': 'Salud',
+      'educacion': 'Educación',
+      'hogar': 'Hogar',
+      'impuestos': 'Impuestos',
+      'transferencias': 'Transferencias',
+      'ingresos': 'Ingresos'
+    };
+    const mappedName = nameMap[categoryId];
+    if (mappedName) {
+      category = categories.find(c => c.name === mappedName);
+    }
+  }
+  return category || categories[0] || { id: null, name: 'Sin categoría', color: '#9CA3AF' };
 }
 
 function displayTransactions(transactions) {
@@ -756,8 +810,8 @@ function displayTransactions(transactions) {
                 </svg>
               </button>
               <div class="category-options" id="category-options-${t.id}">
-                ${defaultCategories.map(cat => `
-                  <div class="category-option ${cat.id === t.category ? 'selected' : ''}" data-transaction-id="${t.id}" data-category-id="${cat.id}">
+                ${getCategories().map(cat => `
+                  <div class="category-option ${cat.id === t.category || cat.id === category.id ? 'selected' : ''}" data-transaction-id="${t.id}" data-category-id="${cat.id}">
                     <span class="category-dot" style="background: ${cat.color}"></span>
                     ${cat.name}
                   </div>
@@ -1148,6 +1202,9 @@ function clearFilters() {
 
 // Add event listeners for filters
 document.addEventListener('DOMContentLoaded', () => {
+  // Load user categories from API
+  loadUserCategories();
+
   const applyBtn = document.getElementById('apply-filters-btn');
   const clearBtn = document.getElementById('clear-filters-btn');
   const descInput = document.getElementById('filter-description');
