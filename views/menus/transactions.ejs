@@ -7,28 +7,116 @@
 
   <!-- Filters Section -->
   <div class="filters-container">
-    <div class="filter-group">
-      <label for="filter-date-from">Desde:</label>
-      <input type="date" id="filter-date-from" class="filter-input">
+    <!-- Primary Filters Row -->
+    <div class="filters-row">
+      <div class="filter-group">
+        <label for="filter-date-from">Desde:</label>
+        <input type="date" id="filter-date-from" class="filter-input">
+      </div>
+
+      <div class="filter-group">
+        <label for="filter-date-to">Hasta:</label>
+        <input type="date" id="filter-date-to" class="filter-input">
+      </div>
+
+      <div class="filter-group">
+        <label for="filter-description">Descripción:</label>
+        <input type="text" id="filter-description" class="filter-input" placeholder="Buscar por descripción...">
+      </div>
+
+      <div class="filter-group filter-checkbox-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="filter-include-deleted">
+          <span>Mostrar eliminadas</span>
+        </label>
+      </div>
     </div>
 
-    <div class="filter-group">
-      <label for="filter-date-to">Hasta:</label>
-      <input type="date" id="filter-date-to" class="filter-input">
+    <!-- Advanced Filters Row -->
+    <div class="filters-row filters-advanced">
+      <!-- Category Filter -->
+      <div class="filter-group filter-dropdown-group">
+        <button type="button" class="filter-dropdown-btn" id="filter-category-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+          </svg>
+          <span id="filter-category-label">Categoría</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-arrow">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+        <div class="filter-dropdown-menu" id="filter-category-menu" style="display: none;">
+          <div class="filter-dropdown-search">
+            <input type="text" id="filter-category-search" placeholder="Buscar categoría..." />
+          </div>
+          <div class="filter-dropdown-options" id="filter-category-options">
+            <label class="filter-dropdown-option">
+              <input type="checkbox" value="" data-category-all>
+              <span>Todas las categorías</span>
+            </label>
+            <!-- Categories will be loaded dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Amount Filter -->
+      <div class="filter-group filter-dropdown-group">
+        <button type="button" class="filter-dropdown-btn" id="filter-amount-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="1" x2="12" y2="23"></line>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+          <span id="filter-amount-label">Monto</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-arrow">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+        <div class="filter-dropdown-menu" id="filter-amount-menu" style="display: none;">
+          <div class="filter-dropdown-options">
+            <label class="filter-dropdown-option">
+              <input type="radio" name="amount-filter" value="all" checked>
+              <span>Todos los montos</span>
+            </label>
+            <label class="filter-dropdown-option">
+              <input type="radio" name="amount-filter" value="positive">
+              <span>Solo ingresos</span>
+            </label>
+            <label class="filter-dropdown-option">
+              <input type="radio" name="amount-filter" value="negative">
+              <span>Solo egresos</span>
+            </label>
+            <div class="filter-dropdown-divider"></div>
+            <label class="filter-dropdown-option">
+              <input type="radio" name="amount-filter" value="custom">
+              <span>Rango personalizado</span>
+            </label>
+            <div class="filter-amount-range" id="filter-amount-range" style="display: none;">
+              <div class="filter-amount-inputs">
+                <div class="filter-amount-input-group">
+                  <label>Mínimo</label>
+                  <input type="number" id="filter-amount-min" placeholder="0" step="0.01">
+                </div>
+                <div class="filter-amount-input-group">
+                  <label>Máximo</label>
+                  <input type="number" id="filter-amount-max" placeholder="0" step="0.01">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="filter-group">
-      <label for="filter-description">Descripción:</label>
-      <input type="text" id="filter-description" class="filter-input" placeholder="Buscar por descripción...">
+    <!-- Active Filters Pills -->
+    <div class="active-filters" id="active-filters" style="display: none;">
+      <span class="active-filters-label">Filtros activos:</span>
+      <div class="active-filters-pills" id="active-filters-pills">
+        <!-- Pills will be added dynamically -->
+      </div>
     </div>
 
-    <div class="filter-group filter-checkbox-group">
-      <label class="checkbox-label">
-        <input type="checkbox" id="filter-include-deleted">
-        <span>Mostrar eliminadas</span>
-      </label>
-    </div>
-
+    <!-- Action Buttons -->
     <div class="filter-actions">
       <button id="apply-filters-btn" class="btn-primary">Aplicar Filtros</button>
       <button id="clear-filters-btn" class="btn-secondary">Limpiar</button>

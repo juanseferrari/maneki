@@ -5,8 +5,20 @@
     <p>Conecta tus cuentas bancarias y servicios de pago</p>
   </div>
 
-  <div class="connections-container">
-    <div class="connection-card" id="mercadopago-card">
+  <!-- Active Connections -->
+  <div id="active-connections-section" style="display: none;">
+    <h2 class="connections-subsection-title">Conexiones Activas</h2>
+    <div id="active-connections-container" class="connections-container">
+      <!-- Active connections will be inserted here by JS -->
+    </div>
+  </div>
+
+  <!-- Available Connections -->
+  <div id="available-connections-section">
+    <h2 class="connections-subsection-title">Conexiones Disponibles</h2>
+    <div id="available-connections-container" class="connections-container">
+      <!-- Template cards that will be moved by JS -->
+      <div class="connection-card" id="mercadopago-card" data-provider="mercadopago">
       <div class="connection-header">
         <div class="connection-icon mercadopago-icon">
           <img src="/images/mercadopago.png" alt="Mercado Pago" />
@@ -14,7 +26,13 @@
         <div class="connection-info">
           <h3>Mercado Pago</h3>
           <p class="connection-status disconnected" id="mercadopago-status">No conectado</p>
-          <p class="connection-last-sync" id="mercadopago-last-sync" style="display: none;"></p>
+          <div class="connection-user-info" id="mercadopago-user-info" style="display: none;">
+            <div class="connection-user-avatar" id="mercadopago-avatar"></div>
+            <div class="connection-user-details">
+              <p class="connection-user-email" id="mercadopago-email"></p>
+              <p class="connection-last-sync" id="mercadopago-last-sync"></p>
+            </div>
+          </div>
         </div>
       </div>
       <p class="connection-description">Conecta tu cuenta de Mercado Pago para importar transacciones automáticamente</p>
@@ -31,7 +49,7 @@
       </div>
     </div>
 
-    <div class="connection-card" id="mercury-card">
+    <div class="connection-card" id="mercury-card" data-provider="mercury">
       <div class="connection-header">
         <div class="connection-icon mercury-icon">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -42,7 +60,13 @@
         <div class="connection-info">
           <h3>Mercury</h3>
           <p class="connection-status disconnected" id="mercury-status">No conectado</p>
-          <p class="connection-last-sync" id="mercury-last-sync" style="display: none;"></p>
+          <div class="connection-user-info" id="mercury-user-info" style="display: none;">
+            <div class="connection-user-avatar" id="mercury-avatar"></div>
+            <div class="connection-user-details">
+              <p class="connection-user-email" id="mercury-email"></p>
+              <p class="connection-last-sync" id="mercury-last-sync"></p>
+            </div>
+          </div>
         </div>
       </div>
       <p class="connection-description">Conecta tu cuenta Mercury (banco de EE.UU.) para importar transacciones automáticamente</p>
@@ -59,7 +83,7 @@
       </div>
     </div>
 
-    <div class="connection-card" id="eubanks-card">
+    <div class="connection-card" id="eubanks-card" data-provider="eubanks">
       <div class="connection-header">
         <div class="connection-icon">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -70,6 +94,13 @@
         <div class="connection-info">
           <h3>Bancos Europeos</h3>
           <p class="connection-status disconnected" id="eubanks-status">No conectado</p>
+          <div class="connection-user-info" id="eubanks-user-info" style="display: none;">
+            <div class="connection-user-avatar" id="eubanks-avatar"></div>
+            <div class="connection-user-details">
+              <p class="connection-user-email" id="eubanks-email"></p>
+              <p class="connection-last-sync" id="eubanks-last-sync"></p>
+            </div>
+          </div>
         </div>
       </div>
       <p class="connection-description">Conecta tus cuentas bancarias europeas para sincronizar movimientos</p>
@@ -78,21 +109,22 @@
       </div>
     </div>
 
-    <div class="connection-card disabled">
-      <div class="connection-header">
-        <div class="connection-icon">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
+      <div class="connection-card disabled">
+        <div class="connection-header">
+          <div class="connection-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+          </div>
+          <div class="connection-info">
+            <h3>Más Conexiones</h3>
+            <p class="connection-status">Próximamente</p>
+          </div>
         </div>
-        <div class="connection-info">
-          <h3>Más Conexiones</h3>
-          <p class="connection-status">Próximamente</p>
-        </div>
+        <p class="connection-description">Más integraciones disponibles pronto</p>
       </div>
-      <p class="connection-description">Más integraciones disponibles pronto</p>
     </div>
   </div>
 </section>

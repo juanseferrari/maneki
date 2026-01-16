@@ -210,9 +210,23 @@ app.get('/api/files', devAuth, async (req, res) => {
       throw error;
     }
 
+    // Add transaction count to each file
+    const filesWithCounts = await Promise.all(files.map(async (file) => {
+      const { data: transactions, error: transError } = await supabaseAdmin
+        .from('transactions')
+        .select('id')
+        .eq('file_id', file.id)
+        .eq('user_id', req.user.id);
+
+      return {
+        ...file,
+        transaction_count: transError ? 0 : (transactions?.length || 0)
+      };
+    }));
+
     res.json({
       success: true,
-      files
+      files: filesWithCounts
     });
   } catch (error) {
     console.error('List files error:', error);
@@ -300,7 +314,18 @@ app.get('/api/transactions', devAuth, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const offset = (page - 1) * limit;
-    const { dateFrom, dateTo, description, includeDeleted } = req.query;
+    const {
+      dateFrom,
+      dateTo,
+      description,
+      includeDeleted,
+      categories,        // New: array of category IDs
+      amountType,        // New: 'all', 'positive', 'negative', 'custom'
+      amountMin,         // New: minimum amount
+      amountMax          // New: maximum amount
+    } = req.query;
+
+    console.log('[Transactions API] Filters received:', { categories, amountType, amountMin, amountMax });
 
     // Build base query for count
     let countQuery = supabaseAdmin
@@ -342,6 +367,44 @@ app.get('/api/transactions', devAuth, async (req, res) => {
       dataQuery = dataQuery.ilike('description', `%${description}%`);
     }
 
+    // Apply category filter
+    if (categories) {
+      const categoryArray = Array.isArray(categories) ? categories : [categories];
+      if (categoryArray.length > 0) {
+        countQuery = countQuery.in('category', categoryArray);
+        dataQuery = dataQuery.in('category', categoryArray);
+      }
+    }
+
+    // Apply amount type filter
+    if (amountType && amountType !== 'all') {
+      if (amountType === 'positive') {
+        // Only incomes (amount > 0)
+        countQuery = countQuery.gt('amount', 0);
+        dataQuery = dataQuery.gt('amount', 0);
+      } else if (amountType === 'negative') {
+        // Only expenses (amount < 0)
+        countQuery = countQuery.lt('amount', 0);
+        dataQuery = dataQuery.lt('amount', 0);
+      } else if (amountType === 'custom') {
+        // Custom range
+        if (amountMin !== undefined && amountMin !== '') {
+          const min = parseFloat(amountMin);
+          if (!isNaN(min)) {
+            countQuery = countQuery.gte('amount', min);
+            dataQuery = dataQuery.gte('amount', min);
+          }
+        }
+        if (amountMax !== undefined && amountMax !== '') {
+          const max = parseFloat(amountMax);
+          if (!isNaN(max)) {
+            countQuery = countQuery.lte('amount', max);
+            dataQuery = dataQuery.lte('amount', max);
+          }
+        }
+      }
+    }
+
     // Get total count with filters
     const { count, error: countError } = await countQuery;
 
@@ -370,6 +433,8 @@ app.get('/api/transactions', devAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('Get all transactions error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error details:', JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to retrieve transactions'
@@ -638,6 +703,52 @@ app.put('/api/transactions/:transactionId/notes', devAuth, async (req, res) => {
 });
 
 // Update transaction category
+// Update transaction fields (description, etc.)
+app.put('/api/transactions/:id', devAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const allowedFields = ['description', 'notes', 'merchant'];
+    const updateData = {};
+
+    // Only allow specific fields to be updated
+    Object.keys(req.body).forEach(key => {
+      if (allowedFields.includes(key)) {
+        updateData[key] = req.body[key];
+      }
+    });
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No valid fields to update'
+      });
+    }
+
+    const { data: transaction, error } = await supabaseAdmin
+      .from('transactions')
+      .update(updateData)
+      .eq('id', id)
+      .eq('user_id', req.user.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      transaction
+    });
+  } catch (error) {
+    console.error('Update transaction error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to update transaction'
+    });
+  }
+});
+
 app.put('/api/transactions/:transactionId/category', devAuth, async (req, res) => {
   try {
     const { category } = req.body;
@@ -851,9 +962,13 @@ app.get('/oauth/mercadopago/callback', async (req, res) => {
       metadata: {
         email: userInfo.email,
         nickname: userInfo.nickname,
+        first_name: userInfo.first_name,
+        last_name: userInfo.last_name,
         country_id: userInfo.country_id,
         public_key: tokenData.public_key,
-        live_mode: tokenData.live_mode
+        live_mode: tokenData.live_mode,
+        thumbnail: userInfo.thumbnail,
+        logo: userInfo.logo
       }
     });
 

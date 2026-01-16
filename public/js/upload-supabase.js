@@ -10,12 +10,19 @@ let currentLimit = 50;
 let totalTransactions = 0;
 let totalPages = 1;
 
+// Files state variable
+let existingFiles = [];
+
 // Filter state variables
 let currentFilters = {
   dateFrom: '',
   dateTo: '',
   includeDeleted: false,
-  description: ''
+  description: '',
+  categories: [],      // Array of selected category IDs
+  amountType: 'all',   // 'all', 'positive', 'negative', 'custom'
+  amountMin: '',
+  amountMax: ''
 };
 
 // Helper function to format date without timezone issues
@@ -102,7 +109,7 @@ async function waitForAuth(timeoutMs = 3000) {
 
 // Helper function to get fresh access token
 // Waits for session to be available (handles race condition on page load)
-async function getAccessToken(retries = 5) {
+async function getAccessToken(retries = 2) {
   // If we already have a token, return it
   if (accessToken) return accessToken;
 
@@ -114,9 +121,9 @@ async function getAccessToken(retries = 5) {
       return accessToken;
     }
 
-    // If no session yet, wait with exponential backoff
+    // If no session yet, wait with minimal backoff (only 2 retries max)
     if (retries > 0) {
-      const delay = Math.min(200 * Math.pow(2, 5 - retries), 2000); // 200ms, 400ms, 800ms, 1600ms, 2000ms
+      const delay = retries === 2 ? 50 : 100; // 50ms first retry, 100ms second retry
       await new Promise(resolve => setTimeout(resolve, delay));
       return getAccessToken(retries - 1);
     }
@@ -335,6 +342,25 @@ fileInput.addEventListener('change', (e) => {
 
 // Direct upload function
 async function uploadFile(file) {
+  // Check if file already exists
+  const duplicateFile = existingFiles.find(f => f.original_name === file.name);
+
+  if (duplicateFile) {
+    const confirmed = await showCustomModal({
+      icon: 'warning',
+      title: 'Archivo Duplicado',
+      message: `El archivo "${file.name}" ya existe en el sistema.`,
+      hint: '¿Deseas cargar el archivo de todas formas? Esto creará una segunda copia del archivo.',
+      confirmText: 'Cargar de todas formas',
+      cancelText: 'Cancelar'
+    });
+
+    if (!confirmed) {
+      fileInput.value = '';
+      return;
+    }
+  }
+
   const formData = new FormData();
   formData.append('file', file);
 
@@ -488,6 +514,9 @@ function displayFiles(files) {
   const tableContainer = document.getElementById('files-table-container');
   const emptyEl = document.getElementById('files-empty');
 
+  // Store files globally for duplicate checking
+  existingFiles = files;
+
   if (files.length === 0) {
     if (tableContainer) tableContainer.style.display = 'none';
     if (emptyEl) emptyEl.style.display = 'flex';
@@ -509,10 +538,7 @@ function displayFiles(files) {
       return `
         <tr class="file-row" onclick="viewFileDetails('${file.id}', '${file.document_type}')">
           <td class="file-name-cell">
-            <div class="file-name-wrapper">
-              <span class="file-icon">${getFileIcon(file.original_name)}</span>
-              <span class="file-name-text" title="${file.original_name}">${file.original_name}</span>
-            </div>
+            <span class="file-name-text" title="${file.original_name}">${file.original_name}</span>
           </td>
           <td>
             <span class="file-type-badge">${getFileExtension(file.original_name)}</span>
@@ -641,11 +667,7 @@ async function loadAllTransactions(page = 1, limit = currentLimit) {
   `;
 
   try {
-    // Wait for auth to be ready before making the request
-    // This handles the case where the page loads directly on #transacciones
-    const authReady = await waitForAuth(500);
-    console.log('[Transactions] Auth ready:', authReady, 'Token:', accessToken ? 'present' : 'missing');
-
+    // Get auth headers directly - getAccessToken() has built-in retry logic
     const headers = await getAuthHeaders();
     console.log('[Transactions] Headers:', Object.keys(headers));
 
@@ -657,6 +679,22 @@ async function loadAllTransactions(page = 1, limit = currentLimit) {
     if (currentFilters.dateTo) params.append('dateTo', currentFilters.dateTo);
     if (currentFilters.description) params.append('description', currentFilters.description);
     if (currentFilters.includeDeleted) params.append('includeDeleted', 'true');
+
+    // Add category filters
+    if (currentFilters.categories && currentFilters.categories.length > 0) {
+      currentFilters.categories.forEach(catId => {
+        params.append('categories', catId);
+      });
+    }
+
+    // Add amount filters
+    if (currentFilters.amountType && currentFilters.amountType !== 'all') {
+      params.append('amountType', currentFilters.amountType);
+      if (currentFilters.amountType === 'custom') {
+        if (currentFilters.amountMin) params.append('amountMin', currentFilters.amountMin);
+        if (currentFilters.amountMax) params.append('amountMax', currentFilters.amountMax);
+      }
+    }
 
     const response = await fetch(`/api/transactions?${params.toString()}`, { headers });
 
@@ -1179,6 +1217,26 @@ function filterTransactions() {
   const includeDeletedCheckbox = document.getElementById('filter-include-deleted');
   currentFilters.includeDeleted = includeDeletedCheckbox ? includeDeletedCheckbox.checked : false;
 
+  // Get selected categories
+  const categoryCheckboxes = document.querySelectorAll('#filter-category-options input[type="checkbox"]:not([data-category-all]):checked');
+  currentFilters.categories = Array.from(categoryCheckboxes).map(cb => cb.value);
+
+  // Get amount filter type
+  const amountRadio = document.querySelector('input[name="amount-filter"]:checked');
+  currentFilters.amountType = amountRadio ? amountRadio.value : 'all';
+
+  // Get amount range if custom
+  if (currentFilters.amountType === 'custom') {
+    currentFilters.amountMin = document.getElementById('filter-amount-min').value;
+    currentFilters.amountMax = document.getElementById('filter-amount-max').value;
+  } else {
+    currentFilters.amountMin = '';
+    currentFilters.amountMax = '';
+  }
+
+  // Update active filters pills
+  updateActiveFiltersPills();
+
   // Reload from page 1 with new filters
   loadAllTransactions(1, currentLimit);
 }
@@ -1190,11 +1248,38 @@ function clearFilters() {
   const includeDeletedCheckbox = document.getElementById('filter-include-deleted');
   if (includeDeletedCheckbox) includeDeletedCheckbox.checked = false;
 
+  // Clear category checkboxes
+  const categoryCheckboxes = document.querySelectorAll('#filter-category-options input[type="checkbox"]');
+  categoryCheckboxes.forEach(cb => cb.checked = false);
+  // Check "All categories"
+  const allCategoriesCheckbox = document.querySelector('#filter-category-options input[data-category-all]');
+  if (allCategoriesCheckbox) allCategoriesCheckbox.checked = true;
+
+  // Reset amount filter
+  const allAmountRadio = document.querySelector('input[name="amount-filter"][value="all"]');
+  if (allAmountRadio) allAmountRadio.checked = true;
+  document.getElementById('filter-amount-min').value = '';
+  document.getElementById('filter-amount-max').value = '';
+  const amountRange = document.getElementById('filter-amount-range');
+  if (amountRange) amountRange.style.display = 'none';
+
+  // Reset dropdown labels
+  document.getElementById('filter-category-label').textContent = 'Categoría';
+  document.getElementById('filter-amount-label').textContent = 'Monto';
+
   // Clear filter state
   currentFilters.dateFrom = '';
   currentFilters.dateTo = '';
   currentFilters.description = '';
   currentFilters.includeDeleted = false;
+  currentFilters.categories = [];
+  currentFilters.amountType = 'all';
+  currentFilters.amountMin = '';
+  currentFilters.amountMax = '';
+
+  // Hide active filters pills
+  const activeFiltersDiv = document.getElementById('active-filters');
+  if (activeFiltersDiv) activeFiltersDiv.style.display = 'none';
 
   // Reload from page 1 without filters
   loadAllTransactions(1, currentLimit);
@@ -1225,6 +1310,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // Initialize advanced filters
+  initializeAdvancedFilters();
 });
 
 // Utility functions
@@ -1463,10 +1551,7 @@ async function showTransactionDetail(transactionId) {
   sidebarContent.innerHTML = '<div class="detail-loading">Cargando...</div>';
 
   try {
-    const headers = {};
-    if (accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`;
-    }
+    const headers = await getAuthHeaders();
 
     const response = await fetch(`/api/transactions/${transactionId}`, { headers });
     const result = await response.json();
@@ -1475,9 +1560,42 @@ async function showTransactionDetail(transactionId) {
       const t = result.transaction;
       const isPositive = t.amount > 0;
 
+      // Get category info
+      const category = userCategories.find(c => c.id === t.category);
+      const categoryName = category?.name || 'Sin categoría';
+      const categoryColor = category?.color || '#9CA3AF';
+
+      // Determine source
+      let sourceInfo = '';
+      if (t.connection_id) {
+        // From bank connection
+        sourceInfo = `
+          <div class="detail-info-item">
+            <div class="detail-info-label">Origen</div>
+            <div class="detail-info-value">
+              <span class="source-badge connection-source">
+                Conexión bancaria${t.bank_name ? ` - ${t.bank_name}` : ''}
+              </span>
+            </div>
+          </div>
+        `;
+      } else if (t.file_id) {
+        // From file upload
+        sourceInfo = `
+          <div class="detail-info-item">
+            <div class="detail-info-label">Origen</div>
+            <div class="detail-info-value">
+              <span class="source-badge file-source" onclick="showFileDetail('${t.file_id}')">
+                📄 ${t.files?.original_name || 'Archivo importado'}
+              </span>
+            </div>
+          </div>
+        `;
+      }
+
       sidebarContent.innerHTML = `
         <div class="detail-section">
-          <div class="detail-title">Monto</div>
+          <div class="detail-title">MONTO</div>
           <div class="detail-value ${isPositive ? 'positive' : 'negative'}">
             ${isPositive ? '+' : ''}$${Math.abs(t.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
           </div>
@@ -1486,30 +1604,57 @@ async function showTransactionDetail(transactionId) {
 
         <div class="detail-info-grid">
           <div class="detail-info-item">
-            <div class="detail-info-label">Fecha</div>
+            <div class="detail-info-label">FECHA</div>
             <div class="detail-info-value">${formatDate(t.transaction_date, {
-              day: '2-digit',
+              day: 'numeric',
               month: 'long',
               year: 'numeric'
             })}</div>
           </div>
 
-          <div class="detail-info-item">
-            <div class="detail-info-label">Descripción</div>
-            <div class="detail-info-value">${t.description || '-'}</div>
+          <div class="detail-info-item editable-field">
+            <div class="detail-info-label">DESCRIPCIÓN</div>
+            <div class="detail-info-value" id="description-display" onclick="editTransactionField('${t.id}', 'description', this)">
+              ${t.description || '-'}
+              <svg class="edit-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </div>
           </div>
+
+          <div class="detail-info-item editable-field">
+            <div class="detail-info-label">CATEGORÍA</div>
+            <div class="detail-info-value category-value" id="category-display" onclick="editTransactionCategory('${t.id}', '${t.category || ''}')">
+              <span class="category-dot" style="background: ${categoryColor}"></span>
+              ${categoryName}
+              <svg class="edit-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </div>
+          </div>
+
+          ${sourceInfo}
+
+          ${t.currency ? `
+            <div class="detail-info-item">
+              <div class="detail-info-label">MONEDA</div>
+              <div class="detail-info-value">${t.currency}</div>
+            </div>
+          ` : ''}
 
           ${t.merchant ? `
             <div class="detail-info-item">
-              <div class="detail-info-label">Comercio</div>
+              <div class="detail-info-label">COMERCIO</div>
               <div class="detail-info-value">${t.merchant}</div>
             </div>
           ` : ''}
 
-          ${t.balance ? `
+          ${t.razon_social ? `
             <div class="detail-info-item">
-              <div class="detail-info-label">Balance</div>
-              <div class="detail-info-value">$${t.balance.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+              <div class="detail-info-label">RAZÓN SOCIAL</div>
+              <div class="detail-info-value">${t.razon_social}</div>
             </div>
           ` : ''}
 
@@ -1520,16 +1665,23 @@ async function showTransactionDetail(transactionId) {
             </div>
           ` : ''}
 
-          ${t.razon_social ? `
+          ${t.provider_transaction_id ? `
             <div class="detail-info-item">
-              <div class="detail-info-label">Razón Social</div>
-              <div class="detail-info-value">${t.razon_social}</div>
+              <div class="detail-info-label">ID DE TRANSACCIÓN</div>
+              <div class="detail-info-value transaction-id-value">${t.provider_transaction_id}</div>
+            </div>
+          ` : ''}
+
+          ${t.balance ? `
+            <div class="detail-info-item">
+              <div class="detail-info-label">BALANCE</div>
+              <div class="detail-info-value">$${t.balance.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
             </div>
           ` : ''}
         </div>
 
         <div class="notes-section">
-          <div class="detail-title">Notas</div>
+          <div class="detail-title">NOTAS</div>
           <textarea
             id="transaction-notes"
             class="notes-textarea"
@@ -1539,22 +1691,6 @@ async function showTransactionDetail(transactionId) {
             Guardar Nota
           </button>
         </div>
-
-        ${t.file_id ? `
-          <div class="file-preview-section">
-            <div class="detail-title">Archivo Original</div>
-            <div class="file-preview-card" onclick="showFileDetail('${t.file_id}')">
-              <div class="file-preview-icon">${getFileIcon(t.files?.original_name || 'file.pdf')}</div>
-              <div class="file-preview-info">
-                <div class="file-preview-name">${t.files?.original_name || 'Archivo'}</div>
-                <div class="file-preview-meta">
-                  ${t.files?.created_at ? new Date(t.files.created_at).toLocaleDateString('es-AR') : ''}
-                </div>
-              </div>
-              <div class="file-preview-arrow">→</div>
-            </div>
-          </div>
-        ` : ''}
       `;
     } else {
       sidebarContent.innerHTML = '<div class="detail-error">Error al cargar la transacción</div>';
@@ -1563,6 +1699,157 @@ async function showTransactionDetail(transactionId) {
     console.error('Error loading transaction:', error);
     sidebarContent.innerHTML = '<div class="detail-error">Error al cargar la transacción</div>';
   }
+}
+
+// Edit transaction description
+async function editTransactionField(transactionId, fieldName, element) {
+  const currentValue = element.textContent.trim().replace(/\s+/g, ' ');
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = currentValue === '-' ? '' : currentValue;
+  input.className = 'edit-input';
+
+  const originalHTML = element.innerHTML;
+  element.innerHTML = '';
+  element.appendChild(input);
+  input.focus();
+  input.select();
+
+  const saveEdit = async () => {
+    const newValue = input.value.trim();
+    if (newValue === currentValue || (newValue === '' && currentValue === '-')) {
+      element.innerHTML = originalHTML;
+      return;
+    }
+
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(`/api/transactions/${transactionId}`, {
+        method: 'PUT',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ [fieldName]: newValue })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        element.textContent = newValue || '-';
+        // Update the transaction in the list
+        const transaction = allTransactions.find(t => t.id === transactionId);
+        if (transaction) {
+          transaction[fieldName] = newValue;
+          displayTransactions(allTransactions);
+        }
+      } else {
+        element.innerHTML = originalHTML;
+        alert('Error al actualizar: ' + (result.error || 'Error desconocido'));
+      }
+    } catch (error) {
+      element.innerHTML = originalHTML;
+      console.error('Error updating field:', error);
+      alert('Error al actualizar el campo');
+    }
+  };
+
+  input.addEventListener('blur', saveEdit);
+  input.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      saveEdit();
+    } else if (e.key === 'Escape') {
+      element.innerHTML = originalHTML;
+    }
+  });
+}
+
+// Edit transaction category
+async function editTransactionCategory(transactionId, currentCategoryId) {
+  const categoryDisplay = document.getElementById('category-display');
+  if (!categoryDisplay) return;
+
+  // Create dropdown
+  const dropdown = document.createElement('div');
+  dropdown.className = 'category-edit-dropdown';
+  dropdown.innerHTML = `
+    <div class="category-edit-search">
+      <input type="text" placeholder="Buscar categoría..." class="category-search-input" />
+    </div>
+    <div class="category-edit-options">
+      ${userCategories.map(cat => `
+        <div class="category-edit-option ${cat.id === currentCategoryId ? 'selected' : ''}" data-category-id="${cat.id}">
+          <span class="category-dot" style="background: ${cat.color}"></span>
+          <span>${cat.name}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  categoryDisplay.innerHTML = '';
+  categoryDisplay.appendChild(dropdown);
+
+  const searchInput = dropdown.querySelector('.category-search-input');
+  const options = dropdown.querySelectorAll('.category-edit-option');
+
+  // Search functionality
+  searchInput.addEventListener('input', (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    options.forEach(option => {
+      const text = option.textContent.toLowerCase();
+      option.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+    });
+  });
+
+  // Category selection
+  options.forEach(option => {
+    option.addEventListener('click', async () => {
+      const newCategoryId = option.getAttribute('data-category-id');
+      if (newCategoryId === currentCategoryId) {
+        showTransactionDetail(transactionId);
+        return;
+      }
+
+      try {
+        const headers = await getAuthHeaders();
+        const response = await fetch(`/api/transactions/${transactionId}/category`, {
+          method: 'PUT',
+          headers: {
+            ...headers,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ category: newCategoryId })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          // Update the transaction in the list
+          const transaction = allTransactions.find(t => t.id === transactionId);
+          if (transaction) {
+            transaction.category = newCategoryId;
+            displayTransactions(allTransactions);
+          }
+          // Reload detail view
+          showTransactionDetail(transactionId);
+        } else {
+          alert('Error al actualizar categoría: ' + (result.error || 'Error desconocido'));
+          showTransactionDetail(transactionId);
+        }
+      } catch (error) {
+        console.error('Error updating category:', error);
+        alert('Error al actualizar la categoría');
+        showTransactionDetail(transactionId);
+      }
+    });
+  });
+
+  // Close on click outside
+  const closeDropdown = (e) => {
+    if (!dropdown.contains(e.target)) {
+      document.removeEventListener('click', closeDropdown);
+      showTransactionDetail(transactionId);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', closeDropdown), 100);
 }
 
 // File Detail View
@@ -1867,123 +2154,138 @@ async function loadConnections() {
 
 // Update connections UI
 function updateConnectionsUI(connections) {
-  // Update Mercado Pago connection
-  const mercadoPagoConnection = connections.find(conn => conn.provider === 'mercadopago');
+  const activeConnectionsSection = document.getElementById('active-connections-section');
+  const activeConnectionsContainer = document.getElementById('active-connections-container');
+  const availableConnectionsContainer = document.getElementById('available-connections-container');
 
-  const mpStatusEl = document.getElementById('mercadopago-status');
-  const mpBtnEl = document.getElementById('mercadopago-btn');
-  const mpCardEl = document.getElementById('mercadopago-card');
+  // Separate active and inactive connections
+  const activeConnections = connections.filter(conn => conn.status === 'active');
+  const hasActiveConnections = activeConnections.length > 0;
 
-  const mpSyncBtn = document.getElementById('mercadopago-sync-btn');
-  const mpDisconnectBtn = document.getElementById('mercadopago-disconnect-btn');
+  // Show/hide active connections section
+  if (activeConnectionsSection) {
+    activeConnectionsSection.style.display = hasActiveConnections ? 'block' : 'none';
+  }
 
-  if (mercadoPagoConnection && mercadoPagoConnection.status === 'active') {
+  // Process each provider
+  const providers = ['mercadopago', 'mercury', 'eubanks'];
+
+  providers.forEach(provider => {
+    const connection = connections.find(conn => conn.provider === provider);
+    const card = document.getElementById(`${provider}-card`);
+
+    if (!card) return;
+
+    const isConnected = connection && connection.status === 'active';
+
+    // Move card to appropriate container
+    if (isConnected && activeConnectionsContainer) {
+      activeConnectionsContainer.appendChild(card);
+    } else if (availableConnectionsContainer && card.parentElement !== availableConnectionsContainer) {
+      availableConnectionsContainer.appendChild(card);
+    }
+
+    // Update card UI
+    updateConnectionCard(provider, connection);
+  });
+}
+
+// Helper function to update individual connection card
+function updateConnectionCard(provider, connection) {
+  const statusEl = document.getElementById(`${provider}-status`);
+  const btnEl = document.getElementById(`${provider}-btn`);
+  const cardEl = document.getElementById(`${provider}-card`);
+  const userInfoEl = document.getElementById(`${provider}-user-info`);
+  const emailEl = document.getElementById(`${provider}-email`);
+  const lastSyncEl = document.getElementById(`${provider}-last-sync`);
+  const avatarEl = document.getElementById(`${provider}-avatar`);
+
+  const syncBtn = document.getElementById(`${provider}-sync-btn`);
+  const disconnectBtn = document.getElementById(`${provider}-disconnect-btn`);
+
+  const isConnected = connection && connection.status === 'active';
+
+  if (isConnected) {
     // Connected state
-    if (mpStatusEl) {
-      mpStatusEl.textContent = 'Conectado ✓';
-      mpStatusEl.className = 'connection-status connected';
+    if (statusEl) {
+      statusEl.textContent = 'Conectado';
+      statusEl.className = 'connection-status connected';
+      statusEl.style.display = 'none'; // Hide status when showing user info
+    }
+
+    // Show user info
+    if (userInfoEl) {
+      userInfoEl.style.display = 'flex';
+
+      // Set avatar
+      if (avatarEl && connection.metadata) {
+        const thumbnail = connection.metadata.thumbnail || connection.metadata.logo;
+        if (thumbnail) {
+          avatarEl.innerHTML = `<img src="${thumbnail}" alt="Avatar" />`;
+        } else {
+          // Fallback to initials
+          const email = connection.metadata.email || '';
+          const initial = email.charAt(0).toUpperCase() || '?';
+          avatarEl.innerHTML = `<div class="avatar-initials">${initial}</div>`;
+        }
+      }
+
+      // Set email
+      if (emailEl && connection.metadata) {
+        const displayName = connection.metadata.email || connection.metadata.nickname || connection.metadata.bank_name || 'Usuario conectado';
+        emailEl.textContent = displayName;
+      }
+
+      // Set last sync
+      if (lastSyncEl && connection.last_synced_at) {
+        const lastSync = new Date(connection.last_synced_at);
+        const now = new Date();
+        const diffMinutes = Math.floor((now - lastSync) / 1000 / 60);
+
+        let syncText;
+        if (diffMinutes < 1) {
+          syncText = 'Sincronizado hace un momento';
+        } else if (diffMinutes < 60) {
+          syncText = `Sincronizado hace ${diffMinutes} min`;
+        } else if (diffMinutes < 1440) {
+          const hours = Math.floor(diffMinutes / 60);
+          syncText = `Sincronizado hace ${hours}h`;
+        } else {
+          const days = Math.floor(diffMinutes / 1440);
+          syncText = `Sincronizado hace ${days}d`;
+        }
+        lastSyncEl.textContent = syncText;
+      } else if (lastSyncEl) {
+        lastSyncEl.textContent = 'Nunca sincronizado';
+      }
     }
 
     // Hide connect button, show sync and disconnect buttons
-    if (mpBtnEl) {
-      mpBtnEl.style.display = 'none';
-    }
-    if (mpSyncBtn) {
-      mpSyncBtn.style.display = 'inline-flex';
-    }
-    if (mpDisconnectBtn) {
-      mpDisconnectBtn.style.display = 'inline-flex';
-    }
+    if (btnEl) btnEl.style.display = 'none';
+    if (syncBtn) syncBtn.style.display = 'inline-flex';
+    if (disconnectBtn) disconnectBtn.style.display = 'inline-flex';
 
-    if (mpCardEl) {
-      mpCardEl.classList.add('connected');
-      const infoEl = mpCardEl.querySelector('.connection-description');
-      if (infoEl && mercadoPagoConnection.metadata) {
-        if (mercadoPagoConnection.metadata.email) {
-          infoEl.textContent = `Conectado como: ${mercadoPagoConnection.metadata.email}`;
-        } else if (mercadoPagoConnection.metadata.nickname) {
-          infoEl.textContent = `Conectado como: ${mercadoPagoConnection.metadata.nickname}`;
-        }
-      }
-    }
+    if (cardEl) cardEl.classList.add('connected');
+
   } else {
     // Disconnected state
-    if (mpStatusEl) {
-      mpStatusEl.textContent = 'No conectado';
-      mpStatusEl.className = 'connection-status disconnected';
+    if (statusEl) {
+      statusEl.textContent = 'No conectado';
+      statusEl.className = 'connection-status disconnected';
+      statusEl.style.display = 'block';
+    }
+
+    // Hide user info
+    if (userInfoEl) {
+      userInfoEl.style.display = 'none';
     }
 
     // Show connect button, hide sync and disconnect buttons
-    if (mpBtnEl) {
-      mpBtnEl.style.display = 'inline-flex';
-    }
-    if (mpSyncBtn) {
-      mpSyncBtn.style.display = 'none';
-    }
-    if (mpDisconnectBtn) {
-      mpDisconnectBtn.style.display = 'none';
-    }
+    if (btnEl) btnEl.style.display = 'inline-flex';
+    if (syncBtn) syncBtn.style.display = 'none';
+    if (disconnectBtn) disconnectBtn.style.display = 'none';
 
-    if (mpCardEl) {
-      mpCardEl.classList.remove('connected');
-      const infoEl = mpCardEl.querySelector('.connection-description');
-      if (infoEl) {
-        infoEl.textContent = 'Conecta tu cuenta de Mercado Pago para importar transacciones automáticamente';
-      }
-    }
-  }
-
-  // Update EuBanks connection
-  const eubanksConnection = connections.find(conn => conn.provider === 'eubanks');
-
-  const ebStatusEl = document.getElementById('eubanks-status');
-  const ebBtnEl = document.getElementById('eubanks-btn');
-  const ebCardEl = document.getElementById('eubanks-card');
-
-  if (eubanksConnection && eubanksConnection.status === 'active') {
-    // Connected state
-    if (ebStatusEl) {
-      ebStatusEl.textContent = 'Conectado ✓';
-      ebStatusEl.className = 'connection-status connected';
-    }
-
-    if (ebBtnEl) {
-      ebBtnEl.textContent = 'Desconectar';
-      ebBtnEl.onclick = () => disconnectProvider('eubanks');
-      ebBtnEl.classList.remove('btn-connection');
-      ebBtnEl.classList.add('btn-disconnect');
-    }
-
-    if (ebCardEl) {
-      ebCardEl.classList.add('connected');
-      const infoEl = ebCardEl.querySelector('.connection-description');
-      if (infoEl && eubanksConnection.metadata) {
-        const bankName = eubanksConnection.metadata.bank_name || 'Banco';
-        const country = eubanksConnection.metadata.country || '';
-        infoEl.textContent = `Conectado: ${bankName} ${country ? '(' + country + ')' : ''}`;
-      }
-    }
-  } else {
-    // Disconnected state
-    if (ebStatusEl) {
-      ebStatusEl.textContent = 'No conectado';
-      ebStatusEl.className = 'connection-status disconnected';
-    }
-
-    if (ebBtnEl) {
-      ebBtnEl.textContent = 'Conectar Banco';
-      ebBtnEl.onclick = () => connectEuBank();
-      ebBtnEl.classList.remove('btn-disconnect');
-      ebBtnEl.classList.add('btn-connection');
-    }
-
-    if (ebCardEl) {
-      ebCardEl.classList.remove('connected');
-      const infoEl = ebCardEl.querySelector('.connection-description');
-      if (infoEl) {
-        infoEl.textContent = 'Conecta tus cuentas bancarias europeas para sincronizar movimientos';
-      }
-    }
+    if (cardEl) cardEl.classList.remove('connected');
   }
 }
 
@@ -2621,3 +2923,375 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 100);
   }
 });
+// ========================================
+// ADVANCED FILTERS HELPERS
+// ========================================
+
+// Initialize advanced filters (categories and amount dropdowns)
+function initializeAdvancedFilters() {
+  // Category dropdown toggle
+  const categoryBtn = document.getElementById('filter-category-btn');
+  const categoryMenu = document.getElementById('filter-category-menu');
+
+  if (categoryBtn && categoryMenu) {
+    categoryBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = categoryMenu.style.display === 'block';
+      closeAllFilterDropdowns();
+      if (!isOpen) {
+        categoryMenu.style.display = 'block';
+        categoryBtn.classList.add('active');
+      }
+    });
+  }
+
+  // Amount dropdown toggle
+  const amountBtn = document.getElementById('filter-amount-btn');
+  const amountMenu = document.getElementById('filter-amount-menu');
+
+  if (amountBtn && amountMenu) {
+    amountBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = amountMenu.style.display === 'block';
+      closeAllFilterDropdowns();
+      if (!isOpen) {
+        amountMenu.style.display = 'block';
+        amountBtn.classList.add('active');
+      }
+    });
+  }
+
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.filter-dropdown-group')) {
+      closeAllFilterDropdowns();
+    }
+  });
+
+  // Category search functionality
+  const categorySearch = document.getElementById('filter-category-search');
+  if (categorySearch) {
+    categorySearch.addEventListener('input', (e) => {
+      const searchTerm = e.target.value.toLowerCase();
+      const options = document.querySelectorAll('#filter-category-options label:not(:first-child)');
+
+      options.forEach(option => {
+        const text = option.textContent.toLowerCase();
+        option.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+      });
+    });
+
+    // Prevent dropdown from closing when clicking search input
+    categorySearch.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+  }
+
+  // Handle "All categories" checkbox
+  const allCategoriesCheckbox = document.querySelector('#filter-category-options input[data-category-all]');
+  if (allCategoriesCheckbox) {
+    allCategoriesCheckbox.addEventListener('change', (e) => {
+      const categoryCheckboxes = document.querySelectorAll('#filter-category-options input[type="checkbox"]:not([data-category-all])');
+      categoryCheckboxes.forEach(cb => cb.checked = false);
+
+      updateCategoryLabel();
+    });
+  }
+
+  // Handle individual category checkboxes
+  const categoryCheckboxes = document.querySelectorAll('#filter-category-options input[type="checkbox"]:not([data-category-all])');
+  categoryCheckboxes.forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (allCategoriesCheckbox) {
+        allCategoriesCheckbox.checked = false;
+      }
+      updateCategoryLabel();
+    });
+  });
+
+  // Handle amount filter radio changes
+  const amountRadios = document.querySelectorAll('input[name="amount-filter"]');
+  amountRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      const customRange = document.getElementById('filter-amount-range');
+      if (radio.value === 'custom' && customRange) {
+        customRange.style.display = 'block';
+      } else if (customRange) {
+        customRange.style.display = 'none';
+      }
+      updateAmountLabel();
+    });
+  });
+
+  // Handle custom amount range inputs - update label on change
+  const amountMinInput = document.getElementById('filter-amount-min');
+  const amountMaxInput = document.getElementById('filter-amount-max');
+
+  if (amountMinInput) {
+    amountMinInput.addEventListener('input', () => {
+      updateAmountLabel();
+    });
+    amountMinInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        filterTransactions();
+      }
+    });
+  }
+
+  if (amountMaxInput) {
+    amountMaxInput.addEventListener('input', () => {
+      updateAmountLabel();
+    });
+    amountMaxInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        filterTransactions();
+      }
+    });
+  }
+
+  // Load categories into filter
+  loadCategoriesIntoFilter();
+}
+
+// Close all filter dropdowns
+function closeAllFilterDropdowns() {
+  const categoryMenu = document.getElementById('filter-category-menu');
+  const amountMenu = document.getElementById('filter-amount-menu');
+  const categoryBtn = document.getElementById('filter-category-btn');
+  const amountBtn = document.getElementById('filter-amount-btn');
+
+  if (categoryMenu) categoryMenu.style.display = 'none';
+  if (amountMenu) amountMenu.style.display = 'none';
+  if (categoryBtn) categoryBtn.classList.remove('active');
+  if (amountBtn) amountBtn.classList.remove('active');
+}
+
+// Update category dropdown label
+function updateCategoryLabel() {
+  const selectedCategories = document.querySelectorAll('#filter-category-options input[type="checkbox"]:not([data-category-all]):checked');
+  const label = document.getElementById('filter-category-label');
+
+  if (!label) return;
+
+  if (selectedCategories.length === 0) {
+    label.textContent = 'Categoría';
+  } else if (selectedCategories.length === 1) {
+    label.textContent = '1 categoría';
+  } else {
+    label.textContent = `${selectedCategories.length} categorías`;
+  }
+}
+
+// Update amount dropdown label
+function updateAmountLabel() {
+  const selectedAmount = document.querySelector('input[name="amount-filter"]:checked');
+  const label = document.getElementById('filter-amount-label');
+
+  if (!label || !selectedAmount) return;
+
+  if (selectedAmount.value === 'custom') {
+    const minInput = document.getElementById('filter-amount-min');
+    const maxInput = document.getElementById('filter-amount-max');
+    const min = minInput ? minInput.value : '';
+    const max = maxInput ? maxInput.value : '';
+
+    if (min || max) {
+      const parts = [];
+      if (min) parts.push(`≥ ${min}`);
+      if (max) parts.push(`≤ ${max}`);
+      label.textContent = parts.join(' y ') || 'Rango personalizado';
+    } else {
+      label.textContent = 'Rango personalizado';
+    }
+  } else {
+    const labelTexts = {
+      'all': 'Monto',
+      'positive': 'Solo ingresos',
+      'negative': 'Solo egresos'
+    };
+    label.textContent = labelTexts[selectedAmount.value] || 'Monto';
+  }
+}
+
+// Load categories into filter dropdown
+async function loadCategoriesIntoFilter() {
+  try {
+    const headers = await getAuthHeaders();
+    const response = await fetch('/api/categories', { headers });
+    const result = await response.json();
+
+    if (result.success && result.categories) {
+      const optionsContainer = document.getElementById('filter-category-options');
+      if (!optionsContainer) return;
+
+      // Keep the "All categories" option and append the rest
+      const existingAll = optionsContainer.querySelector('[data-category-all]').parentElement;
+
+      // Clear all except the "All" option
+      optionsContainer.innerHTML = '';
+      optionsContainer.appendChild(existingAll);
+
+      // Add each category
+      result.categories.forEach(category => {
+        const label = document.createElement('label');
+        label.className = 'filter-dropdown-option';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = category.id;
+
+        const colorDot = document.createElement('span');
+        colorDot.className = 'category-color-dot';
+        colorDot.style.background = category.color || '#9CA3AF';
+
+        const span = document.createElement('span');
+        span.textContent = category.name;
+
+        label.appendChild(checkbox);
+        label.appendChild(colorDot);
+        label.appendChild(span);
+        optionsContainer.appendChild(label);
+
+        // Add event listener
+        checkbox.addEventListener('change', () => {
+          const allCheckbox = document.querySelector('#filter-category-options input[data-category-all]');
+          if (allCheckbox) allCheckbox.checked = false;
+          updateCategoryLabel();
+        });
+      });
+    }
+  } catch (error) {
+    console.error('Error loading categories for filter:', error);
+  }
+}
+
+// Update active filters pills
+function updateActiveFiltersPills() {
+  const pillsContainer = document.getElementById('active-filters-pills');
+  const activeFiltersDiv = document.getElementById('active-filters');
+
+  if (!pillsContainer || !activeFiltersDiv) return;
+
+  pillsContainer.innerHTML = '';
+  let hasActiveFilters = false;
+
+  // Date range pill
+  if (currentFilters.dateFrom || currentFilters.dateTo) {
+    const dateText = [];
+    if (currentFilters.dateFrom) dateText.push(`desde ${currentFilters.dateFrom}`);
+    if (currentFilters.dateTo) dateText.push(`hasta ${currentFilters.dateTo}`);
+
+    pillsContainer.innerHTML += createFilterPill(dateText.join(' '), 'date');
+    hasActiveFilters = true;
+  }
+
+  // Description pill
+  if (currentFilters.description) {
+    pillsContainer.innerHTML += createFilterPill(`"${currentFilters.description}"`, 'description');
+    hasActiveFilters = true;
+  }
+
+  // Categories pill
+  if (currentFilters.categories && currentFilters.categories.length > 0) {
+    const categoryCheckboxes = document.querySelectorAll('#filter-category-options input[type="checkbox"]:not([data-category-all]):checked');
+    const categoryCount = categoryCheckboxes.length;
+
+    const pillText = categoryCount === 1 ? '1 categoría' : `${categoryCount} categorías`;
+
+    pillsContainer.innerHTML += createFilterPill(pillText, 'categories');
+    hasActiveFilters = true;
+  }
+
+  // Amount pill
+  if (currentFilters.amountType && currentFilters.amountType !== 'all') {
+    let amountText = '';
+    if (currentFilters.amountType === 'positive') {
+      amountText = 'Solo ingresos';
+    } else if (currentFilters.amountType === 'negative') {
+      amountText = 'Solo egresos';
+    } else if (currentFilters.amountType === 'custom') {
+      const parts = [];
+      if (currentFilters.amountMin) parts.push(`≥ ${currentFilters.amountMin}`);
+      if (currentFilters.amountMax) parts.push(`≤ ${currentFilters.amountMax}`);
+      amountText = parts.join(' y ');
+    }
+
+    pillsContainer.innerHTML += createFilterPill(amountText, 'amount');
+    hasActiveFilters = true;
+  }
+
+  // Show/hide active filters section
+  activeFiltersDiv.style.display = hasActiveFilters ? 'flex' : 'none';
+
+  // Attach event listeners to remove buttons using event delegation
+  attachPillRemoveListeners();
+}
+
+// Create a filter pill HTML
+function createFilterPill(text, filterType) {
+  return `
+    <span class="filter-pill">
+      ${text}
+      <button type="button" class="filter-pill-remove" data-filter-type="${filterType}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </span>
+  `;
+}
+
+// Attach event listeners to filter pill remove buttons
+function attachPillRemoveListeners() {
+  const removeButtons = document.querySelectorAll('.filter-pill-remove');
+  removeButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const filterType = e.currentTarget.getAttribute('data-filter-type');
+      removeFilterByType(filterType);
+    });
+  });
+}
+
+// Remove filter by type
+function removeFilterByType(filterType) {
+  switch (filterType) {
+    case 'date':
+      document.getElementById('filter-date-from').value = '';
+      document.getElementById('filter-date-to').value = '';
+      currentFilters.dateFrom = '';
+      currentFilters.dateTo = '';
+      break;
+
+    case 'description':
+      document.getElementById('filter-description').value = '';
+      currentFilters.description = '';
+      break;
+
+    case 'categories':
+      const categoryCheckboxes = document.querySelectorAll('#filter-category-options input[type="checkbox"]:not([data-category-all])');
+      categoryCheckboxes.forEach(cb => cb.checked = false);
+      const allCheckbox = document.querySelector('#filter-category-options input[data-category-all]');
+      if (allCheckbox) allCheckbox.checked = true;
+      currentFilters.categories = [];
+      updateCategoryLabel();
+      break;
+
+    case 'amount':
+      const allRadio = document.querySelector('input[name="amount-filter"][value="all"]');
+      if (allRadio) allRadio.checked = true;
+      document.getElementById('filter-amount-min').value = '';
+      document.getElementById('filter-amount-max').value = '';
+      const customRange = document.getElementById('filter-amount-range');
+      if (customRange) customRange.style.display = 'none';
+      currentFilters.amountType = 'all';
+      currentFilters.amountMin = '';
+      currentFilters.amountMax = '';
+      updateAmountLabel();
+      break;
+  }
+
+  // Reload transactions with updated filters
+  filterTransactions();
+}
+// ========================================

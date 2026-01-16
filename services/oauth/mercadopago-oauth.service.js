@@ -142,7 +142,9 @@ class MercadoPagoOAuthService extends BaseOAuthService {
         last_name: response.data.last_name,
         nickname: response.data.nickname,
         country_id: response.data.country_id,
-        site_id: response.data.site_id
+        site_id: response.data.site_id,
+        thumbnail: response.data.thumbnail,
+        logo: response.data.logo
       };
     } catch (error) {
       console.error('Mercado Pago user info error:', error.response?.data || error.message);
