@@ -2136,11 +2136,7 @@ async function regenerateUploadEmail() {
 // Load connections on page load
 async function loadConnections() {
   try {
-    const headers = {};
-    if (accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`;
-    }
-
+    const headers = await getAuthHeaders();
     const response = await fetch('/api/connections', { headers });
     const result = await response.json();
 
@@ -2904,21 +2900,36 @@ document.addEventListener('DOMContentLoaded', () => {
     window.history.replaceState({}, document.title, cleanUrl);
   }
 
-  // Load connections and email token when viewing the settings section
-  const configuracionMenuItem = document.querySelector('[data-section="configuracion"]');
+  // Load connections when clicking on Conexiones menu item
+  const conexionesMenuItem = document.querySelector('[data-section="conexiones"]');
+  if (conexionesMenuItem) {
+    conexionesMenuItem.addEventListener('click', () => {
+      setTimeout(() => {
+        loadConnections();
+      }, 100);
+    });
+  }
+
+  // Load email token when clicking on Configuración menu item
+  const configuracionMenuItem = document.querySelector('[data-section="ajustes"]');
   if (configuracionMenuItem) {
     configuracionMenuItem.addEventListener('click', () => {
       setTimeout(() => {
-        loadConnections();
         loadEmailUploadToken();
       }, 100);
     });
   }
 
-  // Load connections and email token on initial page load if on settings section
-  if (hash.includes('configuracion')) {
+  // Load connections on initial page load if on conexiones section
+  if (hash.includes('conexiones')) {
     setTimeout(() => {
       loadConnections();
+    }, 100);
+  }
+
+  // Load email token on initial page load if on ajustes section
+  if (hash.includes('ajustes')) {
+    setTimeout(() => {
       loadEmailUploadToken();
     }, 100);
   }
