@@ -961,14 +961,15 @@ app.get('/oauth/mercadopago/callback', async (req, res) => {
       user_id: userInfo.id,
       metadata: {
         email: userInfo.email,
-        nickname: userInfo.nickname,
         first_name: userInfo.first_name,
         last_name: userInfo.last_name,
-        country_id: userInfo.country_id,
-        public_key: tokenData.public_key,
-        live_mode: tokenData.live_mode,
+        nickname: userInfo.nickname,
         thumbnail: userInfo.thumbnail,
-        logo: userInfo.logo
+        logo: userInfo.logo,
+        country_id: userInfo.country_id,
+        site_id: userInfo.site_id,
+        public_key: tokenData.public_key,
+        live_mode: tokenData.live_mode
       }
     });
 
