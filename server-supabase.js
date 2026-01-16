@@ -617,6 +617,52 @@ app.put('/api/transactions/:transactionId/category', requireAuth, async (req, re
   }
 });
 
+// Update transaction fields (description, merchant, notes) - Protected
+app.put('/api/transactions/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const allowedFields = ['description', 'notes', 'merchant'];
+    const updateData = {};
+
+    // Only allow specific fields to be updated
+    Object.keys(req.body).forEach(key => {
+      if (allowedFields.includes(key)) {
+        updateData[key] = req.body[key];
+      }
+    });
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No valid fields to update'
+      });
+    }
+
+    const { data: transaction, error } = await supabaseAdmin
+      .from('transactions')
+      .update(updateData)
+      .eq('id', id)
+      .eq('user_id', req.user.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      transaction
+    });
+  } catch (error) {
+    console.error('Update transaction error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to update transaction'
+    });
+  }
+});
+
 // Get VEP data for a file - Protected
 app.get('/api/files/:fileId/vep', requireAuth, async (req, res) => {
   try {
