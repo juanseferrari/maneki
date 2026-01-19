@@ -320,12 +320,13 @@ app.get('/api/transactions', devAuth, async (req, res) => {
       description,
       includeDeleted,
       categories,        // New: array of category IDs
+      includeNoCategory, // New: include transactions with null category
       amountType,        // New: 'all', 'positive', 'negative', 'custom'
       amountMin,         // New: minimum amount
       amountMax          // New: maximum amount
     } = req.query;
 
-    console.log('[Transactions API] Filters received:', { categories, amountType, amountMin, amountMax });
+    console.log('[Transactions API] Filters received:', { categories, includeNoCategory, amountType, amountMin, amountMax });
 
     // Build base query for count
     let countQuery = supabaseAdmin
@@ -371,11 +372,21 @@ app.get('/api/transactions', devAuth, async (req, res) => {
     }
 
     // Apply category filter
-    if (categories) {
-      const categoryArray = Array.isArray(categories) ? categories : [categories];
-      if (categoryArray.length > 0) {
+    if (categories || includeNoCategory === 'true') {
+      const categoryArray = categories ? (Array.isArray(categories) ? categories : [categories]) : [];
+
+      if (categoryArray.length > 0 && includeNoCategory === 'true') {
+        // Both specific categories AND null category selected
+        countQuery = countQuery.or(`category.in.(${categoryArray.join(',')}),category.is.null`);
+        dataQuery = dataQuery.or(`category.in.(${categoryArray.join(',')}),category.is.null`);
+      } else if (categoryArray.length > 0) {
+        // Only specific categories selected
         countQuery = countQuery.in('category', categoryArray);
         dataQuery = dataQuery.in('category', categoryArray);
+      } else if (includeNoCategory === 'true') {
+        // Only null category selected
+        countQuery = countQuery.is('category', null);
+        dataQuery = dataQuery.is('category', null);
       }
     }
 

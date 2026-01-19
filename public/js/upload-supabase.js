@@ -1234,8 +1234,12 @@ function filterTransactions() {
   currentFilters.includeDeleted = includeDeletedCheckbox ? includeDeletedCheckbox.checked : false;
 
   // Get selected categories
-  const categoryCheckboxes = document.querySelectorAll('#filter-category-options input[type="checkbox"]:not([data-category-all]):checked');
+  const categoryCheckboxes = document.querySelectorAll('#filter-category-options input[type="checkbox"]:not([data-category-all]):not([data-category-null]):checked');
   currentFilters.categories = Array.from(categoryCheckboxes).map(cb => cb.value);
+
+  // Check if "Sin categoría" is selected
+  const noCategoryCheckbox = document.querySelector('#filter-category-options input[data-category-null]');
+  currentFilters.includeNoCategory = noCategoryCheckbox ? noCategoryCheckbox.checked : false;
 
   // Get amount filter type
   const amountRadio = document.querySelector('input[name="amount-filter"]:checked');
@@ -1691,7 +1695,7 @@ async function showTransactionDetail(transactionId) {
 
           ${t.provider_transaction_id ? `
             <div class="detail-info-item">
-              <div class="detail-info-label">ID DE TRANSACCIÓN</div>
+              <div class="detail-info-label">ID DE PROVEEDOR</div>
               <div class="detail-info-value transaction-id-value">${t.provider_transaction_id}</div>
             </div>
           ` : ''}
@@ -3459,6 +3463,33 @@ async function loadCategoriesIntoFilter() {
       // Clear all except the "All" option
       optionsContainer.innerHTML = '';
       optionsContainer.appendChild(existingAll);
+
+      // Add "Sin categoría" option (for null categories)
+      const noCategoryLabel = document.createElement('label');
+      noCategoryLabel.className = 'filter-dropdown-option';
+
+      const noCategoryCheckbox = document.createElement('input');
+      noCategoryCheckbox.type = 'checkbox';
+      noCategoryCheckbox.setAttribute('data-category-null', 'true');
+
+      const noCategoryDot = document.createElement('span');
+      noCategoryDot.className = 'category-color-dot';
+      noCategoryDot.style.background = '#9CA3AF';
+
+      const noCategorySpan = document.createElement('span');
+      noCategorySpan.textContent = 'Sin categoría';
+
+      noCategoryLabel.appendChild(noCategoryCheckbox);
+      noCategoryLabel.appendChild(noCategoryDot);
+      noCategoryLabel.appendChild(noCategorySpan);
+      optionsContainer.appendChild(noCategoryLabel);
+
+      // Add event listener for "Sin categoría"
+      noCategoryCheckbox.addEventListener('change', () => {
+        const allCheckbox = document.querySelector('#filter-category-options input[data-category-all]');
+        if (allCheckbox) allCheckbox.checked = false;
+        updateCategoryLabel();
+      });
 
       // Sort categories alphabetically by name
       const sortedCategories = [...result.categories].sort((a, b) => {
