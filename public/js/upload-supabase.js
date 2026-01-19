@@ -688,6 +688,11 @@ async function loadAllTransactions(page = 1, limit = currentLimit) {
       });
     }
 
+    // Add "Sin categoría" filter
+    if (currentFilters.includeNoCategory) {
+      params.append('includeNoCategory', 'true');
+    }
+
     // Add amount filters
     if (currentFilters.amountType && currentFilters.amountType !== 'all') {
       params.append('amountType', currentFilters.amountType);
@@ -1293,6 +1298,7 @@ function clearFilters() {
   currentFilters.description = '';
   currentFilters.includeDeleted = false;
   currentFilters.categories = [];
+  currentFilters.includeNoCategory = false;
   currentFilters.amountType = 'all';
   currentFilters.amountMin = '';
   currentFilters.amountMax = '';
@@ -3401,17 +3407,20 @@ function closeAllFilterDropdowns() {
 
 // Update category dropdown label
 function updateCategoryLabel() {
-  const selectedCategories = document.querySelectorAll('#filter-category-options input[type="checkbox"]:not([data-category-all]):checked');
+  const selectedCategories = document.querySelectorAll('#filter-category-options input[type="checkbox"]:not([data-category-all]):not([data-category-null]):checked');
+  const noCategoryCheckbox = document.querySelector('#filter-category-options input[data-category-null]:checked');
   const label = document.getElementById('filter-category-label');
 
   if (!label) return;
 
-  if (selectedCategories.length === 0) {
+  const totalSelected = selectedCategories.length + (noCategoryCheckbox ? 1 : 0);
+
+  if (totalSelected === 0) {
     label.textContent = 'Categoría';
-  } else if (selectedCategories.length === 1) {
+  } else if (totalSelected === 1) {
     label.textContent = '1 categoría';
   } else {
-    label.textContent = `${selectedCategories.length} categorías`;
+    label.textContent = `${totalSelected} categorías`;
   }
 }
 
@@ -3557,9 +3566,13 @@ function updateActiveFiltersPills() {
   }
 
   // Categories pill
-  if (currentFilters.categories && currentFilters.categories.length > 0) {
-    const categoryCheckboxes = document.querySelectorAll('#filter-category-options input[type="checkbox"]:not([data-category-all]):checked');
-    const categoryCount = categoryCheckboxes.length;
+  const hasCategoryFilters = (currentFilters.categories && currentFilters.categories.length > 0) || currentFilters.includeNoCategory;
+
+  if (hasCategoryFilters) {
+    const categoryCheckboxes = document.querySelectorAll('#filter-category-options input[type="checkbox"]:not([data-category-all]):not([data-category-null]):checked');
+    const noCategoryCheckbox = document.querySelector('#filter-category-options input[data-category-null]:checked');
+
+    const categoryCount = categoryCheckboxes.length + (noCategoryCheckbox ? 1 : 0);
 
     const pillText = categoryCount === 1 ? '1 categoría' : `${categoryCount} categorías`;
 
@@ -3639,6 +3652,7 @@ function removeFilterByType(filterType) {
       const allCheckbox = document.querySelector('#filter-category-options input[data-category-all]');
       if (allCheckbox) allCheckbox.checked = true;
       currentFilters.categories = [];
+      currentFilters.includeNoCategory = false;
       updateCategoryLabel();
       break;
 
