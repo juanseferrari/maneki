@@ -47,7 +47,6 @@ async function loadDashboardChartData() {
     const dateTo = document.getElementById('dashboard-date-to')?.value || '';
     const typeFilter = document.getElementById('dashboard-type')?.value || 'all';
     const period = document.getElementById('dashboard-period')?.value || 'monthly';
-    const groupBy = document.getElementById('dashboard-group-by')?.value || 'none';
 
     // Build query params
     const params = new URLSearchParams();
@@ -55,7 +54,8 @@ async function loadDashboardChartData() {
     if (dateTo) params.append('dateTo', dateTo);
     if (typeFilter !== 'all') params.append('type', typeFilter);
     params.append('period', period);
-    if (groupBy !== 'none') params.append('groupBy', groupBy);
+    // Always group by category
+    params.append('groupBy', 'category');
 
     const headers = await getAuthHeaders();
     const response = await fetch(`/api/dashboard/stats?${params.toString()}`, { headers });
@@ -84,13 +84,18 @@ async function loadDashboardChartData() {
       if (chartWrapper) chartWrapper.style.display = 'block';
     }
 
-    // Show grouped data table if groupBy is set
+    // Always show category detail table
     const groupedContainer = document.getElementById('grouped-data-container');
-    if (groupBy !== 'none' && result.groupedData && result.groupedData.length > 0) {
-      renderGroupedDataTable(result.groupedData, groupBy);
+    if (result.groupedData && result.groupedData.length > 0) {
+      renderGroupedDataTable(result.groupedData);
       if (groupedContainer) groupedContainer.style.display = 'block';
     } else {
-      if (groupedContainer) groupedContainer.style.display = 'none';
+      // Show empty state in table
+      const bodyEl = document.getElementById('grouped-data-body');
+      if (bodyEl) {
+        bodyEl.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #9CA3AF;">No hay datos para mostrar</td></tr>';
+      }
+      if (groupedContainer) groupedContainer.style.display = 'block';
     }
 
   } catch (error) {
@@ -284,17 +289,11 @@ function updateChartLegend() {
   legendEl.innerHTML = html;
 }
 
-// Render grouped data table
-function renderGroupedDataTable(groupedData, groupBy) {
-  const labelEl = document.getElementById('grouped-by-label');
+// Render grouped data table (always for categories)
+function renderGroupedDataTable(groupedData) {
   const bodyEl = document.getElementById('grouped-data-body');
 
   if (!bodyEl) return;
-
-  // Update label
-  if (labelEl) {
-    labelEl.textContent = groupBy === 'category' ? 'Categoría' : 'Descripción';
-  }
 
   // Format currency helper
   var formatCurrency = function(val) {

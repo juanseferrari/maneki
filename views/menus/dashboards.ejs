@@ -32,14 +32,6 @@
           <option value="monthly" selected>Mensual</option>
         </select>
       </div>
-      <div class="filter-group">
-        <label for="dashboard-group-by">Agrupar por</label>
-        <select id="dashboard-group-by" class="filter-select">
-          <option value="none">Sin agrupar</option>
-          <option value="description">Descripcion</option>
-          <option value="category">Categoria</option>
-        </select>
-      </div>
       <div class="filter-group filter-actions">
         <button id="apply-dashboard-filters" class="btn-primary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -129,10 +121,10 @@
     </div>
   </div>
 
-  <!-- Grouped Data Table (when grouping is selected) -->
-  <div class="dashboard-grouped-data" id="grouped-data-container" style="display: none;">
+  <!-- Category Detail Table (always shown) -->
+  <div class="dashboard-grouped-data" id="grouped-data-container">
     <div class="grouped-data-header">
-      <h3>Detalle por <span id="grouped-by-label">Descripcion</span></h3>
+      <h3>Detalle por Categoría</h3>
     </div>
     <div class="grouped-data-table-wrapper">
       <table class="grouped-data-table">
