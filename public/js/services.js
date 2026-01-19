@@ -801,34 +801,14 @@ async function loadUpcomingPayments() {
 // =============================================
 
 async function editServiceField(serviceId, fieldName, element) {
-  // Remove the edit icon from the current value
-  const iconEl = element.querySelector('.edit-icon');
-  if (iconEl) iconEl.remove();
-
   const currentValue = element.textContent.trim();
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.value = currentValue;
-  input.className = 'edit-input';
-  input.style.cssText = 'width: 100%; padding: 8px; font-size: inherit; font-weight: inherit; border: 2px solid #667eea; border-radius: 4px; background: white;';
 
-  const originalHTML = element.innerHTML;
-  element.innerHTML = '';
-  element.appendChild(input);
-  input.focus();
-  input.select();
-
-  const saveEdit = async () => {
-    const newValue = input.value.trim();
-    if (newValue === currentValue || newValue === '') {
-      element.innerHTML = originalHTML;
-      return;
-    }
-
-    // Show loading state
-    element.innerHTML = '<span style="opacity: 0.6;">Guardando...</span>';
-
-    try {
+  await createInlineEditField({
+    elementId: serviceId,
+    fieldName: fieldName,
+    element: element,
+    currentValue: currentValue,
+    onSave: async (field, newValue) => {
       const headers = await getAuthHeaders();
       const response = await fetch(`/api/services/${serviceId}`, {
         method: 'PUT',
@@ -836,7 +816,7 @@ async function editServiceField(serviceId, fieldName, element) {
           ...headers,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ [fieldName]: newValue })
+        body: JSON.stringify({ [field]: newValue })
       });
 
       if (!response.ok) {
@@ -844,46 +824,19 @@ async function editServiceField(serviceId, fieldName, element) {
       }
 
       const result = await response.json();
-      if (result.success) {
-        // Update the service in the local array
-        const service = servicesData.find(s => s.id === serviceId);
-        if (service) {
-          service[fieldName] = newValue;
-        }
-
-        // Update the element with the new value
-        element.innerHTML = `${escapeHtml(newValue)} <svg class="edit-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-left: 8px; opacity: 0.6;">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-        </svg>`;
-
-        // Reload the services list to reflect the change
-        await loadServices();
-
-        showNotification('Servicio actualizado correctamente', 'success');
-      } else {
-        element.innerHTML = originalHTML;
-        showNotification('Error al actualizar: ' + (result.error || 'Error desconocido'), 'error');
+      if (!result.success) {
+        throw new Error(result.error || 'Error desconocido');
       }
-    } catch (error) {
-      element.innerHTML = originalHTML;
-      console.error('Error updating service field:', error);
-      showNotification('Error al actualizar el campo: ' + error.message, 'error');
-    }
-  };
 
-  const cancelEdit = () => {
-    element.innerHTML = originalHTML;
-  };
-
-  input.addEventListener('blur', saveEdit);
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      saveEdit();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      cancelEdit();
+      // Update the service in the local array
+      const service = servicesData.find(s => s.id === serviceId);
+      if (service) {
+        service[field] = newValue;
+      }
+    },
+    onSuccess: async () => {
+      // Reload the services list to reflect the change
+      await loadServices();
     }
   });
 }

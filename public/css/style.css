@@ -5272,6 +5272,32 @@ h2 {
   line-height: 1.2;
 }
 
+/* Editable service name styling */
+.editable-service-field {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  padding: 8px;
+  border-radius: 6px;
+  margin-left: -8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.editable-service-field:hover {
+  background-color: #F9FAFB;
+}
+
+.editable-service-field .edit-icon {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.editable-service-field:hover .edit-icon {
+  opacity: 0.5;
+}
+
 .service-detail-meta {
   display: flex;
   gap: 0.5rem;
@@ -6253,6 +6279,22 @@ h2 {
   font-size: 14px;
   font-family: inherit;
   outline: none;
+}
+
+/* Loading spinner animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-spinner {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 8px;
 }
 
 .category-value {
