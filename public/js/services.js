@@ -825,8 +825,11 @@ async function editServiceField(serviceId, fieldName, element) {
       return;
     }
 
+    // Show loading state
+    element.innerHTML = '<span style="opacity: 0.6;">Guardando...</span>';
+
     try {
-      const headers = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
+      const headers = await getAuthHeaders();
       const response = await fetch(`/api/services/${serviceId}`, {
         method: 'PUT',
         headers: {
@@ -836,6 +839,10 @@ async function editServiceField(serviceId, fieldName, element) {
         body: JSON.stringify({ [fieldName]: newValue })
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const result = await response.json();
       if (result.success) {
         // Update the service in the local array
@@ -844,8 +851,11 @@ async function editServiceField(serviceId, fieldName, element) {
           service[fieldName] = newValue;
         }
 
-        // Reload the sidebar to show updated name
-        await showServiceDetailSidebar(serviceId);
+        // Update the element with the new value
+        element.innerHTML = `${escapeHtml(newValue)} <svg class="edit-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-left: 8px; opacity: 0.6;">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+        </svg>`;
 
         // Reload the services list to reflect the change
         await loadServices();
@@ -858,7 +868,7 @@ async function editServiceField(serviceId, fieldName, element) {
     } catch (error) {
       element.innerHTML = originalHTML;
       console.error('Error updating service field:', error);
-      showNotification('Error al actualizar el campo', 'error');
+      showNotification('Error al actualizar el campo: ' + error.message, 'error');
     }
   };
 
