@@ -534,6 +534,22 @@ app.get('/api/dashboard/stats', devAuth, async (req, res) => {
     const transactions = allTransactions;
     console.log(`[Dashboard Stats] Fetched ${transactions.length} total transactions in ${Math.ceil(transactions.length / BATCH_SIZE)} batches`);
 
+    // Fetch all categories for this user to map IDs to names/colors
+    let categoriesMap = {};
+    if (groupBy === 'category') {
+      const { data: categories, error: catError } = await supabaseAdmin
+        .from('categories')
+        .select('id, name, color')
+        .eq('user_id', userId);
+
+      if (!catError && categories) {
+        categoriesMap = categories.reduce((map, cat) => {
+          map[cat.id] = { name: cat.name, color: cat.color };
+          return map;
+        }, {});
+      }
+    }
+
     // Calculate summary
     let filteredTransactions = transactions;
     if (type === 'income') {
@@ -587,12 +603,28 @@ app.get('/api/dashboard/stats', devAuth, async (req, res) => {
       const groupedByField = {};
 
       filteredTransactions.forEach(t => {
-        const key = groupBy === 'category'
-          ? (t.category || 'Sin categoría')
-          : (t.description || 'Sin descripción');
+        let key, categoryColor;
+
+        if (groupBy === 'category') {
+          const categoryId = t.category;
+          if (categoryId && categoriesMap[categoryId]) {
+            key = categoryId; // Use ID as key to group properly
+            categoryColor = categoriesMap[categoryId].color;
+          } else {
+            key = 'Sin categoría';
+            categoryColor = '#9ca3af';
+          }
+        } else {
+          key = t.description || 'Sin descripción';
+        }
 
         if (!groupedByField[key]) {
-          groupedByField[key] = { count: 0, total: 0, amounts: [] };
+          groupedByField[key] = {
+            count: 0,
+            total: 0,
+            amounts: [],
+            color: categoryColor // Store color for categories
+          };
         }
         groupedByField[key].count += 1;
         groupedByField[key].total += Math.abs(t.amount);
@@ -601,12 +633,20 @@ app.get('/api/dashboard/stats', devAuth, async (req, res) => {
 
       // Convert to array and sort by total descending
       groupedData = Object.entries(groupedByField)
-        .map(([name, data]) => ({
-          name,
-          count: data.count,
-          total: data.total,
-          average: data.total / data.count
-        }))
+        .map(([key, data]) => {
+          // For categories, get the name from the map; for descriptions, use key as-is
+          const name = groupBy === 'category'
+            ? (categoriesMap[key]?.name || key)
+            : key;
+
+          return {
+            name,
+            count: data.count,
+            total: data.total,
+            average: data.total / data.count,
+            color: data.color // Include color in response
+          };
+        })
         .sort((a, b) => b.total - a.total);
     }
 

@@ -303,8 +303,13 @@ function renderGroupedDataTable(groupedData, groupBy) {
 
   // Render table rows
   bodyEl.innerHTML = groupedData.map(function(item) {
+    // Add color dot if color is available (for categories)
+    var nameCell = item.color
+      ? '<td><span class="category-color-dot" style="background-color: ' + item.color + '; display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; vertical-align: middle;"></span>' + escapeHtml(item.name) + '</td>'
+      : '<td>' + escapeHtml(item.name) + '</td>';
+
     return '<tr>' +
-      '<td>' + escapeHtml(item.name) + '</td>' +
+      nameCell +
       '<td>' + item.count.toLocaleString() + '</td>' +
       '<td>' + formatCurrency(item.total) + '</td>' +
       '<td>' + formatCurrency(item.average) + '</td>' +
