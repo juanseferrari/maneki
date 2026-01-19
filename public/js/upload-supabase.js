@@ -3142,8 +3142,13 @@ async function loadCategoriesIntoFilter() {
       optionsContainer.innerHTML = '';
       optionsContainer.appendChild(existingAll);
 
+      // Sort categories alphabetically by name
+      const sortedCategories = [...result.categories].sort((a, b) => {
+        return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+      });
+
       // Add each category
-      result.categories.forEach(category => {
+      sortedCategories.forEach(category => {
         const label = document.createElement('label');
         label.className = 'filter-dropdown-option';
 
