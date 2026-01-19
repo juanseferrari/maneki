@@ -645,16 +645,17 @@ async function loadAllTransactions(page = 1, limit = currentLimit) {
         <thead>
           <tr>
             <th data-col="fecha" style="width: 10%;">Fecha<span class="col-resize-handle"></span></th>
-            <th data-col="descripcion" style="width: 32%;">Descripción<span class="col-resize-handle"></span></th>
+            <th data-col="descripcion" style="width: 30%;">Descripción<span class="col-resize-handle"></span></th>
             <th data-col="monto" style="width: 12%;">Monto<span class="col-resize-handle"></span></th>
             <th data-col="categoria" style="width: 18%;">Categoría<span class="col-resize-handle"></span></th>
-            <th data-col="banco" style="width: 18%;">Banco<span class="col-resize-handle"></span></th>
+            <th data-col="banco" style="width: 16%;">Banco<span class="col-resize-handle"></span></th>
+            <th data-col="servicio" style="width: 4%;" title="Servicio asociado">🔗</th>
             <th data-col="acciones" style="width: 10%;">Acciones</th>
           </tr>
         </thead>
         <tbody id="transactions-tbody">
           <tr class="transactions-loading-row">
-            <td colspan="6">
+            <td colspan="7">
               <div class="table-loading">
                 <div class="spinner"></div>
                 <span>Cargando transacciones...</span>
@@ -813,7 +814,7 @@ function displayTransactions(transactions) {
     if (tbody) {
       tbody.innerHTML = `
         <tr class="transactions-empty-row">
-          <td colspan="6">
+          <td colspan="7">
             <div class="table-empty">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -870,6 +871,9 @@ function displayTransactions(transactions) {
             </div>
           </td>
           <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;">${t.bank_name || '-'}</td>
+          <td class="service-indicator-cell" onclick="showTransactionDetail('${t.id}')" style="cursor: pointer; text-align: center;">
+            ${t.has_service ? '<span class="service-linked-icon" title="Vinculado a servicio">🔗</span>' : ''}
+          </td>
           <td class="actions-cell">
             <button class="action-btn create-service-btn" onclick="event.stopPropagation(); createServiceFromTransaction('${t.id}')" title="Crear servicio recurrente">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1647,6 +1651,14 @@ async function showTransactionDetail(transactionId) {
             </div>
           </div>
 
+          <!-- Linked Service Section -->
+          <div class="detail-info-item" id="linked-service-section">
+            <div class="detail-info-label">SERVICIO ASOCIADO</div>
+            <div class="detail-info-value" id="linked-service-display">
+              <div class="loading-small-inline">Verificando...</div>
+            </div>
+          </div>
+
           ${sourceInfo}
 
           ${t.currency ? `
@@ -1684,12 +1696,6 @@ async function showTransactionDetail(transactionId) {
             </div>
           ` : ''}
 
-          ${t.balance ? `
-            <div class="detail-info-item">
-              <div class="detail-info-label">BALANCE</div>
-              <div class="detail-info-value">$${t.balance.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-            </div>
-          ` : ''}
         </div>
 
         <div class="notes-section">
@@ -1709,12 +1715,302 @@ async function showTransactionDetail(transactionId) {
           <div class="uuid-value">${t.id}</div>
         </div>
       `;
+
+      // Load linked service after rendering the detail
+      loadLinkedService(t.id);
     } else {
       sidebarContent.innerHTML = '<div class="detail-error">Error al cargar la transacción</div>';
     }
   } catch (error) {
     console.error('Error loading transaction:', error);
     sidebarContent.innerHTML = '<div class="detail-error">Error al cargar la transacción</div>';
+  }
+}
+
+// Load and display linked service for a transaction
+async function loadLinkedService(transactionId) {
+  const displayEl = document.getElementById('linked-service-display');
+  if (!displayEl) return;
+
+  try {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`/api/transactions/${transactionId}/service`, {
+      headers
+    });
+
+    const result = await response.json();
+
+    if (result.success && result.service) {
+      // Transaction is linked to a service
+      const service = result.service;
+      const payment = result.payment;
+      const matchedByAuto = payment.matched_by === 'auto';
+      const confidence = payment.match_confidence || 0;
+
+      displayEl.innerHTML = `
+        <div class="linked-service-info">
+          <div class="linked-service-name">
+            ${escapeHtml(service.name)}
+            <span class="payment-link-badge">
+              🔗 ${matchedByAuto ? `Auto (${confidence}%)` : 'Manual'}
+            </span>
+          </div>
+          <div class="linked-service-meta">
+            ${service.frequency ? `<span class="service-frequency">${formatFrequency(service.frequency)}</span>` : ''}
+            ${service.category ? `<span class="service-category">${escapeHtml(service.category)}</span>` : ''}
+          </div>
+          <div class="linked-service-actions">
+            <button class="btn-link-small" onclick="openServiceDetailFromTransaction('${service.id}')" title="Ver servicio">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              Ver servicio
+            </button>
+            <button class="btn-link-small danger" onclick="unlinkServiceFromTransaction('${payment.id}', '${transactionId}')" title="Desvincular">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+              Desvincular
+            </button>
+          </div>
+        </div>
+      `;
+    } else {
+      // No service linked - show "Asociar a servicio" button
+      displayEl.innerHTML = `
+        <div class="no-service-linked">
+          <span class="no-service-text">Sin servicio asociado</span>
+          <button class="btn-link-small" onclick="openAssociateServiceModal('${transactionId}')" title="Asociar a un servicio">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Asociar a servicio
+          </button>
+        </div>
+      `;
+    }
+  } catch (error) {
+    console.error('Error loading linked service:', error);
+    displayEl.innerHTML = `
+      <span class="error-text">Error al cargar servicio</span>
+    `;
+  }
+}
+
+// Helper function to format frequency
+function formatFrequency(freq) {
+  const freqMap = {
+    'weekly': 'Semanal',
+    'biweekly': 'Quincenal',
+    'monthly': 'Mensual',
+    'bimonthly': 'Bimestral',
+    'quarterly': 'Trimestral',
+    'semiannual': 'Semestral',
+    'annual': 'Anual'
+  };
+  return freqMap[freq] || freq;
+}
+
+// Open service detail from transaction
+function openServiceDetailFromTransaction(serviceId) {
+  // Navigate to services section and open the detail
+  // This assumes services.js has openServiceDetail function available globally
+  if (typeof openServiceDetail === 'function') {
+    openServiceDetail(serviceId);
+  } else {
+    // Fallback: redirect to services page with hash
+    window.location.href = `/dashboard#services/${serviceId}`;
+  }
+}
+
+// Unlink service from transaction
+async function unlinkServiceFromTransaction(paymentId, transactionId) {
+  if (!confirm('¿Estás seguro de que quieres desvincular esta transacción del servicio?')) {
+    return;
+  }
+
+  try {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`/api/services/payments/${paymentId}/unlink`, {
+      method: 'DELETE',
+      headers
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      showNotification('Transacción desvinculada correctamente', 'success');
+      // Reload the linked service section
+      loadLinkedService(transactionId);
+    } else {
+      showNotification('Error al desvincular: ' + (result.error || 'Error desconocido'), 'error');
+    }
+  } catch (error) {
+    console.error('Error unlinking service:', error);
+    showNotification('Error al desvincular la transacción', 'error');
+  }
+}
+
+// Open modal to associate transaction with a service
+async function openAssociateServiceModal(transactionId) {
+  // Get the transaction data
+  const transaction = allTransactions.find(t => t.id === transactionId);
+  if (!transaction) {
+    showNotification('No se encontró la transacción', 'error');
+    return;
+  }
+
+  // Fetch potential matches
+  const headers = await getAuthHeaders();
+  const response = await fetch(`/api/transactions/${transactionId}/matches`, {
+    headers
+  });
+
+  const result = await response.json();
+  const matches = result.success ? result.matches : [];
+
+  // Create modal
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Asociar transacción a servicio</h3>
+        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="transaction-summary">
+          <div class="tx-summary-item">
+            <span class="tx-summary-label">Descripción:</span>
+            <span class="tx-summary-value">${escapeHtml(transaction.description || '-')}</span>
+          </div>
+          <div class="tx-summary-item">
+            <span class="tx-summary-label">Monto:</span>
+            <span class="tx-summary-value">${formatCurrency(Math.abs(transaction.amount), transaction.currency)}</span>
+          </div>
+          <div class="tx-summary-item">
+            <span class="tx-summary-label">Fecha:</span>
+            <span class="tx-summary-value">${formatDate(transaction.transaction_date)}</span>
+          </div>
+        </div>
+
+        ${matches.length > 0 ? `
+          <div class="suggested-services">
+            <h4>Servicios sugeridos (auto-detectados)</h4>
+            <div class="services-list">
+              ${matches.map(match => `
+                <div class="service-match-item" onclick="linkTransactionToServiceFromTx('${transactionId}', '${match.id}', ${match.confidence})">
+                  <div class="service-match-info">
+                    <div class="service-match-name">${escapeHtml(match.name)}</div>
+                    <div class="service-match-meta">
+                      ${match.frequency ? `<span class="service-frequency">${formatFrequency(match.frequency)}</span>` : ''}
+                      ${match.estimated_amount ? `<span class="service-amount">~${formatCurrency(match.estimated_amount, match.currency)}</span>` : ''}
+                    </div>
+                  </div>
+                  <div class="service-match-confidence">
+                    <span class="confidence-badge ${match.confidence >= 75 ? 'high' : match.confidence >= 50 ? 'medium' : 'low'}">
+                      ${match.confidence}% match
+                    </span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="all-services">
+          <h4>Todos los servicios</h4>
+          <div id="all-services-list" class="services-list">
+            <div class="loading-small-inline">Cargando servicios...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Load all services
+  loadAllServicesForLinking(transactionId);
+}
+
+// Load all services for linking
+async function loadAllServicesForLinking(transactionId) {
+  const listEl = document.getElementById('all-services-list');
+  if (!listEl) return;
+
+  try {
+    const headers = await getAuthHeaders();
+    const response = await fetch('/api/services', {
+      headers
+    });
+
+    const result = await response.json();
+
+    if (result.success && result.services.length > 0) {
+      listEl.innerHTML = result.services.map(service => `
+        <div class="service-item" onclick="linkTransactionToServiceFromTx('${transactionId}', '${service.id}', 100)">
+          <div class="service-item-info">
+            <div class="service-item-name">${escapeHtml(service.name)}</div>
+            <div class="service-item-meta">
+              ${service.frequency ? `<span class="service-frequency">${formatFrequency(service.frequency)}</span>` : ''}
+              ${service.estimated_amount ? `<span class="service-amount">~${formatCurrency(service.estimated_amount, service.currency)}</span>` : ''}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    } else {
+      listEl.innerHTML = '<div class="empty-state">No hay servicios creados</div>';
+    }
+  } catch (error) {
+    console.error('Error loading services:', error);
+    listEl.innerHTML = '<div class="error-text">Error al cargar servicios</div>';
+  }
+}
+
+// Link transaction to service from transaction detail
+async function linkTransactionToServiceFromTx(transactionId, serviceId, confidence) {
+  try {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`/api/services/${serviceId}/payments`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        transaction_id: transactionId,
+        matched_by: 'manual',
+        match_confidence: confidence || 100
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      showNotification('Transacción vinculada correctamente', 'success');
+
+      // Close modal
+      const modal = document.querySelector('.modal-overlay');
+      if (modal) modal.remove();
+
+      // Reload linked service section
+      loadLinkedService(transactionId);
+    } else {
+      showNotification('Error al vincular: ' + (result.error || 'Error desconocido'), 'error');
+    }
+  } catch (error) {
+    console.error('Error linking transaction:', error);
+    showNotification('Error al vincular la transacción', 'error');
   }
 }
 

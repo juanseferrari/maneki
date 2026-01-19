@@ -309,6 +309,9 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
         files:file_id (
           original_name,
           stored_name
+        ),
+        service_payments!service_payments_transaction_id_fkey (
+          id
         )
       `)
       .eq('user_id', req.user.id);
@@ -389,9 +392,15 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
       throw error;
     }
 
+    // Add has_service flag to each transaction
+    const transactionsWithServiceInfo = transactions.map(t => ({
+      ...t,
+      has_service: t.service_payments && t.service_payments.length > 0
+    }));
+
     res.json({
       success: true,
-      transactions,
+      transactions: transactionsWithServiceInfo,
       pagination: {
         page,
         limit,
@@ -1988,6 +1997,150 @@ app.post('/api/services/:id/link', requireAuth, async (req, res) => {
       transactionId,
       paymentData
     );
+
+    res.json({
+      success: true,
+      payment
+    });
+  } catch (error) {
+    console.error('Link transaction error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to link transaction'
+    });
+  }
+});
+
+// Get service linked to a transaction
+app.get('/api/transactions/:id/service', requireAuth, async (req, res) => {
+  try {
+    const servicePayment = await recurringServicesService.getTransactionService(
+      req.user.id,
+      req.params.id
+    );
+
+    res.json({
+      success: true,
+      service: servicePayment ? servicePayment.recurring_services : null,
+      payment: servicePayment
+    });
+  } catch (error) {
+    console.error('Get transaction service error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get transaction service'
+    });
+  }
+});
+
+// Find potential service matches for a transaction
+app.get('/api/transactions/:id/matches', requireAuth, async (req, res) => {
+  try {
+    const matches = await recurringServicesService.findPotentialMatches(
+      req.user.id,
+      req.params.id
+    );
+
+    res.json({
+      success: true,
+      matches
+    });
+  } catch (error) {
+    console.error('Find matches error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to find matches'
+    });
+  }
+});
+
+// Unlink transaction from service (by payment ID)
+app.delete('/api/services/payments/:paymentId/unlink', requireAuth, async (req, res) => {
+  try {
+    await recurringServicesService.unlinkTransaction(req.user.id, req.params.paymentId);
+
+    res.json({
+      success: true
+    });
+  } catch (error) {
+    console.error('Unlink transaction error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to unlink transaction'
+    });
+  }
+});
+
+// Link transaction to service (create payment)
+app.post('/api/services/:serviceId/payments', requireAuth, async (req, res) => {
+  try {
+    const { transaction_id, matched_by, match_confidence } = req.body;
+
+    if (!transaction_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'transaction_id is required'
+      });
+    }
+
+    // Get transaction to extract payment details
+    const { data: transaction, error: txError } = await supabaseAdmin
+      .from('transactions')
+      .select('*')
+      .eq('id', transaction_id)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (txError || !transaction) {
+      return res.status(404).json({
+        success: false,
+        error: 'Transaction not found'
+      });
+    }
+
+    // Check if transaction is already linked to a service
+    const { data: existingPayment } = await supabaseAdmin
+      .from('service_payments')
+      .select('id')
+      .eq('transaction_id', transaction_id)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (existingPayment) {
+      return res.status(400).json({
+        success: false,
+        error: 'Transaction is already linked to a service'
+      });
+    }
+
+    // Create service payment
+    const { data: payment, error: paymentError } = await supabaseAdmin
+      .from('service_payments')
+      .insert({
+        service_id: req.params.serviceId,
+        transaction_id: transaction_id,
+        user_id: req.user.id,
+        payment_date: transaction.transaction_date,
+        amount: transaction.amount,
+        currency: transaction.currency || 'ARS',
+        status: 'paid',
+        is_predicted: false,
+        match_confidence: match_confidence || 100,
+        matched_by: matched_by || 'manual'
+      })
+      .select()
+      .single();
+
+    if (paymentError) {
+      throw paymentError;
+    }
+
+    // Update service's last_payment_date
+    await supabaseAdmin
+      .from('recurring_services')
+      .update({ last_payment_date: transaction.transaction_date })
+      .eq('id', req.params.serviceId)
+      .eq('user_id', req.user.id);
 
     res.json({
       success: true,

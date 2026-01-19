@@ -945,7 +945,7 @@ class RecurringServicesService {
       const confidence = this.calculateMatchConfidence(service, transaction);
       if (confidence >= 50) { // Only show matches with >50% confidence
         matches.push({
-          service,
+          ...service,  // Spread service properties at the top level
           confidence,
           reasons: this.getMatchReasons(service, transaction, confidence)
         });
