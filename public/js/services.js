@@ -260,13 +260,13 @@ function renderServicesList() {
   const tableBody = document.getElementById('services-table-body');
   const tableContainer = document.getElementById('services-table-container');
   const emptyEl = document.getElementById('services-empty');
-  const filterValue = document.getElementById('services-status-filter')?.value || 'active';
+  const filterValue = document.getElementById('services-status-filter')?.value || 'all';
 
   let filteredServices = servicesData;
-  if (filterValue === 'active') {
-    filteredServices = servicesData.filter(s => s.status === 'active');
-  } else if (filterValue === 'paused') {
-    filteredServices = servicesData.filter(s => s.status === 'paused');
+
+  // Filter by status (if not 'all', filter to matching status)
+  if (filterValue !== 'all') {
+    filteredServices = servicesData.filter(s => s.status === filterValue);
   }
 
   if (filteredServices.length === 0) {
@@ -564,9 +564,6 @@ async function openServiceDetail(serviceId) {
 
       <!-- Actions -->
       <div class="service-detail-actions">
-        <button class="btn-secondary" onclick="toggleServiceStatusFromSidebar()">
-          ${service.status === 'active' ? 'Pausar' : 'Activar'}
-        </button>
         <button class="btn-danger" onclick="deleteServiceFromSidebar()">
           Eliminar
         </button>

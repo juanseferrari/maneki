@@ -412,7 +412,7 @@ class RecurringServicesService {
    * Get all recurring services for a user
    */
   async getServices(userId, options = {}) {
-    const { status = 'active', includePayments = false } = options;
+    const { status = 'all', includePayments = false } = options;
 
     let query = this.supabase
       .from('recurring_services')

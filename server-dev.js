@@ -1761,7 +1761,7 @@ app.get('/api/services', devAuth, async (req, res) => {
   try {
     const { status, includePayments } = req.query;
     const services = await recurringServicesService.getServices(req.user.id, {
-      status: status || 'active',
+      status: status || 'all',
       includePayments: includePayments === 'true'
     });
 
