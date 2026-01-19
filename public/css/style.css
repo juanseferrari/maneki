@@ -2590,6 +2590,31 @@ h2 {
   transform: translateY(-1px);
 }
 
+/* Transaction UUID Section */
+.transaction-uuid {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.transaction-uuid .detail-info-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.transaction-uuid .uuid-value {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-family: 'Monaco', 'Courier New', monospace;
+  word-break: break-all;
+  line-height: 1.4;
+  opacity: 0.7;
+}
+
 /* File Preview Section */
 .file-preview-section {
   margin-top: 2rem;

@@ -763,13 +763,23 @@ async function loadUserCategories() {
 
 // Get categories (returns user categories if loaded, fallback otherwise)
 function getCategories() {
-  return userCategories.length > 0 ? userCategories : fallbackCategories;
+  const categories = userCategories.length > 0 ? userCategories : fallbackCategories;
+  // Sort categories alphabetically by name
+  return [...categories].sort((a, b) => {
+    return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+  });
 }
 
 function getCategoryById(categoryId) {
+  // If no category ID provided, return "Sin categoría" placeholder
+  if (!categoryId || categoryId === null || categoryId === undefined || categoryId === '') {
+    return { id: null, name: 'Sin categoría', color: '#9CA3AF' };
+  }
+
   const categories = getCategories();
   // Try to find by ID first
   let category = categories.find(c => c.id === categoryId);
+
   // If not found and categoryId looks like an old string ID, try to find by name match
   if (!category && typeof categoryId === 'string' && !categoryId.includes('-')) {
     const nameMap = {
@@ -790,7 +800,9 @@ function getCategoryById(categoryId) {
       category = categories.find(c => c.name === mappedName);
     }
   }
-  return category || categories[0] || { id: null, name: 'Sin categoría', color: '#9CA3AF' };
+
+  // If still not found, return "Sin categoría" placeholder
+  return category || { id: null, name: 'Sin categoría', color: '#9CA3AF' };
 }
 
 function displayTransactions(transactions) {
@@ -1561,9 +1573,9 @@ async function showTransactionDetail(transactionId) {
       const isPositive = t.amount > 0;
 
       // Get category info
-      const category = userCategories.find(c => c.id === t.category);
-      const categoryName = category?.name || 'Sin categoría';
-      const categoryColor = category?.color || '#9CA3AF';
+      const category = getCategoryById(t.category);
+      const categoryName = category.name;
+      const categoryColor = category.color;
 
       // Determine source
       let sourceInfo = '';
@@ -1691,6 +1703,11 @@ async function showTransactionDetail(transactionId) {
             Guardar Nota
           </button>
         </div>
+
+        <div class="transaction-uuid">
+          <div class="detail-info-label">ID DE TRANSACCIÓN</div>
+          <div class="uuid-value">${t.id}</div>
+        </div>
       `;
     } else {
       sidebarContent.innerHTML = '<div class="detail-error">Error al cargar la transacción</div>';
@@ -1768,6 +1785,11 @@ async function editTransactionCategory(transactionId, currentCategoryId) {
   const categoryDisplay = document.getElementById('category-display');
   if (!categoryDisplay) return;
 
+  // Sort categories alphabetically by name
+  const sortedCategories = [...userCategories].sort((a, b) => {
+    return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+  });
+
   // Create dropdown
   const dropdown = document.createElement('div');
   dropdown.className = 'category-edit-dropdown';
@@ -1776,7 +1798,7 @@ async function editTransactionCategory(transactionId, currentCategoryId) {
       <input type="text" placeholder="Buscar categoría..." class="category-search-input" />
     </div>
     <div class="category-edit-options">
-      ${userCategories.map(cat => `
+      ${sortedCategories.map(cat => `
         <div class="category-edit-option ${cat.id === currentCategoryId ? 'selected' : ''}" data-category-id="${cat.id}">
           <span class="category-dot" style="background: ${cat.color}"></span>
           <span>${cat.name}</span>
