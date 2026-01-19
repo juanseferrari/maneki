@@ -537,7 +537,16 @@ async function openServiceDetail(serviceId) {
 
       <!-- Payment History -->
       <div class="service-payments-section">
-        <h3 class="detail-section-title">Historial de Pagos</h3>
+        <div class="section-header-with-action">
+          <h3 class="detail-section-title">Historial de Pagos</h3>
+          <button class="btn-link-small" onclick="openLinkTransactionModal('${service.id}')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+            Vincular transacción
+          </button>
+        </div>
         <div class="service-payments-list" id="sidebar-payments-list">
           <div class="loading-small">Cargando historial...</div>
         </div>
@@ -568,7 +577,7 @@ async function loadServicePaymentsSidebar(serviceId) {
 
   try {
     const headers = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
-    const response = await fetch(`/api/services/${serviceId}/payments`, { headers });
+    const response = await fetch(`/api/services/${serviceId}/payments?includeTransactionDetails=true`, { headers });
     const data = await response.json();
 
     if (!response.ok) {
@@ -578,21 +587,54 @@ async function loadServicePaymentsSidebar(serviceId) {
     const payments = data.payments || [];
 
     if (payments.length === 0) {
-      listEl.innerHTML = '<p class="no-payments">No hay pagos registrados</p>';
+      listEl.innerHTML = '<p class="no-payments">No hay pagos registrados aún. Vincula transacciones para ver el historial.</p>';
       return;
     }
 
-    listEl.innerHTML = payments.map(payment => `
-      <div class="payment-history-item ${payment.is_predicted ? 'predicted' : ''}">
-        <div class="payment-info">
-          <div class="payment-date">${formatDate(payment.payment_date)}</div>
-          <div class="payment-status-text ${payment.status}">
-            ${payment.is_predicted ? 'Predicho' : payment.status === 'paid' ? 'Pagado' : 'Pendiente'}
+    listEl.innerHTML = payments.map(payment => {
+      const isLinked = !!payment.transaction_id;
+      const matchedByAuto = payment.matched_by === 'auto';
+      const confidence = payment.match_confidence || 0;
+
+      return `
+        <div class="payment-history-item ${payment.is_predicted ? 'predicted' : ''} ${isLinked ? 'linked' : ''}">
+          <div class="payment-main-info">
+            <div class="payment-info">
+              <div class="payment-date">${formatDate(payment.payment_date)}</div>
+              <div class="payment-meta">
+                <span class="payment-status-text ${payment.status}">
+                  ${payment.is_predicted ? '⏳ Predicho' : payment.status === 'paid' ? '✅ Pagado' : '⏳ Pendiente'}
+                </span>
+                ${isLinked ? `
+                  <span class="payment-link-badge">
+                    🔗 ${matchedByAuto ? `Auto (${confidence}%)` : 'Manual'}
+                  </span>
+                ` : ''}
+              </div>
+            </div>
+            <div class="payment-amount ${payment.amount < 0 ? 'negative' : ''}">${formatCurrency(Math.abs(payment.amount), payment.currency)}</div>
           </div>
+          ${isLinked ? `
+            <div class="payment-actions">
+              <button class="btn-link-tiny" onclick="showTransactionFromPayment('${payment.transaction_id}')" title="Ver transacción">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                Ver
+              </button>
+              <button class="btn-link-tiny danger" onclick="unlinkPayment('${payment.id}', '${serviceId}')" title="Desvincular">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                Desvincular
+              </button>
+            </div>
+          ` : ''}
         </div>
-        <div class="payment-amount ${payment.amount < 0 ? 'negative' : ''}">${formatCurrency(Math.abs(payment.amount), payment.currency)}</div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
 
   } catch (error) {
     console.error('Error loading payments:', error);
@@ -905,6 +947,217 @@ if (typeof window.showNotification !== 'function') {
 // =============================================
 
 // Initialize services when section is shown
+// =============================================
+// SERVICE-TRANSACTION LINKING FUNCTIONS
+// =============================================
+
+/**
+ * Show transaction detail from payment
+ */
+function showTransactionFromPayment(transactionId) {
+  // Close service sidebar
+  closeServiceDetailSidebar();
+
+  // Open transaction detail (from upload-supabase.js)
+  if (typeof showTransactionDetail === 'function') {
+    showTransactionDetail(transactionId);
+  }
+}
+
+/**
+ * Unlink a payment from service
+ */
+async function unlinkPayment(paymentId, serviceId) {
+  if (!confirm('¿Desvincular esta transacción del servicio?')) {
+    return;
+  }
+
+  try {
+    const headers = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
+    const response = await fetch(`/api/services/payments/${paymentId}/unlink`, {
+      method: 'DELETE',
+      headers
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Error al desvincular');
+    }
+
+    showNotification('Transacción desvinculada correctamente', 'success');
+
+    // Reload payment history
+    await loadServicePaymentsSidebar(serviceId);
+  } catch (error) {
+    console.error('Error unlinking payment:', error);
+    showNotification('Error al desvincular: ' + error.message, 'error');
+  }
+}
+
+/**
+ * Open modal to link transaction to service
+ */
+async function openLinkTransactionModal(serviceId) {
+  // Create modal HTML
+  const modalHTML = `
+    <div class="modal-overlay" id="link-transaction-modal">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h2>Vincular Transacción</h2>
+          <button class="modal-close" onclick="closeLinkTransactionModal()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>Busca y selecciona una transacción para vincular a este servicio:</p>
+
+          <div class="search-input-group">
+            <input type="text" id="link-tx-search" placeholder="Buscar por descripción..." class="search-input">
+            <input type="date" id="link-tx-date-from" class="date-input" placeholder="Desde">
+            <input type="date" id="link-tx-date-to" class="date-input" placeholder="Hasta">
+          </div>
+
+          <div id="link-tx-results" class="link-tx-results">
+            <div class="loading-small">Cargando transacciones...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Append to body
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+  // Load transactions
+  await loadTransactionsForLinking(serviceId);
+
+  // Add event listeners
+  document.getElementById('link-tx-search').addEventListener('input', () => filterLinkTransactions(serviceId));
+  document.getElementById('link-tx-date-from').addEventListener('change', () => filterLinkTransactions(serviceId));
+  document.getElementById('link-tx-date-to').addEventListener('change', () => filterLinkTransactions(serviceId));
+}
+
+/**
+ * Close link transaction modal
+ */
+function closeLinkTransactionModal() {
+  const modal = document.getElementById('link-transaction-modal');
+  if (modal) modal.remove();
+}
+
+/**
+ * Load transactions for linking
+ */
+async function loadTransactionsForLinking(serviceId) {
+  const resultsDiv = document.getElementById('link-tx-results');
+  if (!resultsDiv) return;
+
+  try {
+    const headers = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
+
+    // Get transactions (last 90 days, unlinked only)
+    const response = await fetch('/api/transactions?limit=100', { headers });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Error loading transactions');
+    }
+
+    window.linkTransactionsData = data.transactions || [];
+    await filterLinkTransactions(serviceId);
+
+  } catch (error) {
+    console.error('Error loading transactions:', error);
+    resultsDiv.innerHTML = '<p class="error">Error al cargar transacciones</p>';
+  }
+}
+
+/**
+ * Filter and render transactions for linking
+ */
+async function filterLinkTransactions(serviceId) {
+  const resultsDiv = document.getElementById('link-tx-results');
+  if (!resultsDiv || !window.linkTransactionsData) return;
+
+  const search = document.getElementById('link-tx-search')?.value.toLowerCase() || '';
+  const dateFrom = document.getElementById('link-tx-date-from')?.value || '';
+  const dateTo = document.getElementById('link-tx-date-to')?.value || '';
+
+  let filtered = window.linkTransactionsData.filter(tx => {
+    if (search && !tx.description.toLowerCase().includes(search)) return false;
+    if (dateFrom && tx.transaction_date < dateFrom) return false;
+    if (dateTo && tx.transaction_date > dateTo) return false;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    resultsDiv.innerHTML = '<p class="no-results">No se encontraron transacciones</p>';
+    return;
+  }
+
+  resultsDiv.innerHTML = filtered.slice(0, 20).map(tx => {
+    const isNegative = tx.amount < 0;
+    return `
+      <div class="link-tx-item" onclick="linkTransactionToService('${serviceId}', '${tx.id}', ${Math.abs(tx.amount)}, '${tx.transaction_date}')">
+        <div class="link-tx-info">
+          <div class="link-tx-desc">${escapeHtml(tx.description || 'Sin descripción')}</div>
+          <div class="link-tx-date">${formatDate(tx.transaction_date)}</div>
+        </div>
+        <div class="link-tx-amount ${isNegative ? 'negative' : 'positive'}">
+          ${isNegative ? '-' : '+'}${formatCurrency(Math.abs(tx.amount), tx.currency || 'ARS')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/**
+ * Link transaction to service
+ */
+async function linkTransactionToService(serviceId, transactionId, amount, date) {
+  try {
+    const headers = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
+    const response = await fetch(`/api/services/${serviceId}/link`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        transactionId,
+        paymentData: {
+          payment_date: date,
+          amount: amount,
+          currency: 'ARS',
+          status: 'paid',
+          matched_by: 'manual',
+          match_confidence: 100
+        }
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Error al vincular');
+    }
+
+    showNotification('Transacción vinculada correctamente', 'success');
+    closeLinkTransactionModal();
+
+    // Reload payment history
+    await loadServicePaymentsSidebar(serviceId);
+
+  } catch (error) {
+    console.error('Error linking transaction:', error);
+    showNotification('Error al vincular: ' + error.message, 'error');
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   const serviciosMenuItem = document.querySelector('[data-section="servicios"]');
   if (serviciosMenuItem) {
