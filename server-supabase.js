@@ -470,7 +470,8 @@ app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
       let batchQuery = supabaseAdmin
         .from('transactions')
         .select(selectFields)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .or('status.is.null,status.neq.deleted'); // Exclude deleted transactions
 
       if (dateFrom) {
         batchQuery = batchQuery.gte('transaction_date', dateFrom);
