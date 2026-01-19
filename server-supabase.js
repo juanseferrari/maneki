@@ -282,7 +282,18 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const offset = (page - 1) * limit;
-    const { dateFrom, dateTo, description, includeDeleted } = req.query;
+    const {
+      dateFrom,
+      dateTo,
+      description,
+      includeDeleted,
+      categories,        // New: array of category IDs
+      amountType,        // New: 'all', 'positive', 'negative', 'custom'
+      amountMin,         // New: minimum amount
+      amountMax          // New: maximum amount
+    } = req.query;
+
+    console.log('[Transactions API] Filters received:', { categories, amountType, amountMin, amountMax });
 
     // Build base query for count
     let countQuery = supabaseAdmin
@@ -322,6 +333,44 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
     if (description) {
       countQuery = countQuery.ilike('description', `%${description}%`);
       dataQuery = dataQuery.ilike('description', `%${description}%`);
+    }
+
+    // Apply category filter
+    if (categories) {
+      const categoryArray = Array.isArray(categories) ? categories : [categories];
+      if (categoryArray.length > 0) {
+        countQuery = countQuery.in('category', categoryArray);
+        dataQuery = dataQuery.in('category', categoryArray);
+      }
+    }
+
+    // Apply amount type filter
+    if (amountType && amountType !== 'all') {
+      if (amountType === 'positive') {
+        // Only incomes (amount > 0)
+        countQuery = countQuery.gt('amount', 0);
+        dataQuery = dataQuery.gt('amount', 0);
+      } else if (amountType === 'negative') {
+        // Only expenses (amount < 0)
+        countQuery = countQuery.lt('amount', 0);
+        dataQuery = dataQuery.lt('amount', 0);
+      } else if (amountType === 'custom') {
+        // Custom range
+        if (amountMin !== undefined && amountMin !== '') {
+          const min = parseFloat(amountMin);
+          if (!isNaN(min)) {
+            countQuery = countQuery.gte('amount', min);
+            dataQuery = dataQuery.gte('amount', min);
+          }
+        }
+        if (amountMax !== undefined && amountMax !== '') {
+          const max = parseFloat(amountMax);
+          if (!isNaN(max)) {
+            countQuery = countQuery.lte('amount', max);
+            dataQuery = dataQuery.lte('amount', max);
+          }
+        }
+      }
     }
 
     // Get total count with filters
