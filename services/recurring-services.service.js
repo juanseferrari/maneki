@@ -1176,7 +1176,7 @@ class RecurringServicesService {
   /**
    * Calculate service status based on next expected date
    * @param {string} nextExpectedDate - Next expected payment date (YYYY-MM-DD)
-   * @returns {string} Status: 'al_dia', 'proximo_vencer', 'vencido', 'active'
+   * @returns {string} Status: 'up_to_date', 'due_soon', 'overdue', 'active'
    */
   calculateServiceStatus(nextExpectedDate) {
     const today = new Date();
@@ -1185,19 +1185,19 @@ class RecurringServicesService {
     const nextDate = new Date(nextExpectedDate + 'T00:00:00');
     const diffDays = Math.floor((nextDate - today) / (1000 * 60 * 60 * 24));
 
-    // Vencido: próximo pago < HOY - 3 días
+    // Overdue: next payment < TODAY - 3 days
     if (diffDays < -3) {
-      return 'vencido';
+      return 'overdue';
     }
 
-    // Próximo a vencer: entre HOY y HOY + 7 días
+    // Due soon: between TODAY and TODAY + 7 days
     if (diffDays >= 0 && diffDays <= 7) {
-      return 'proximo_vencer';
+      return 'due_soon';
     }
 
-    // Al día: próximo pago > HOY + 7 días
+    // Up to date: next payment > TODAY + 7 days
     if (diffDays > 7) {
-      return 'al_dia';
+      return 'up_to_date';
     }
 
     // Default

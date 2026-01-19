@@ -29,9 +29,13 @@
       <h3>Mis Pagos</h3>
       <div class="services-filter">
         <select id="services-status-filter" onchange="filterServices()">
-          <option value="active">Activos</option>
-          <option value="paused">Pausados</option>
           <option value="all">Todos</option>
+          <option value="up_to_date">Al día</option>
+          <option value="due_soon">Próximos a vencer</option>
+          <option value="overdue">Vencidos</option>
+          <option value="active" selected>Activos</option>
+          <option value="paused">Pausados</option>
+          <option value="cancelled">Cancelados</option>
         </select>
       </div>
     </div>

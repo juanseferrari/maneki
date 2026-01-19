@@ -43,6 +43,16 @@ const frequencyLabels = {
   annual: 'Anual'
 };
 
+// Status labels and classes
+const statusLabels = {
+  active: 'Activo',
+  up_to_date: 'Al día',
+  due_soon: 'Próximo a vencer',
+  overdue: 'Vencido',
+  paused: 'Pausado',
+  cancelled: 'Cancelado'
+};
+
 // Service logos - preconfigurados para servicios populares
 const SERVICE_LOGOS = {
   // Streaming
@@ -271,8 +281,8 @@ function renderServicesList() {
 
   if (tableBody) {
     tableBody.innerHTML = filteredServices.map(service => {
-      const statusLabel = service.status === 'active' ? 'Activo' : service.status === 'paused' ? 'Pausado' : 'Cancelado';
-      const statusClass = service.status;
+      const statusLabel = statusLabels[service.status] || service.status || 'Activo';
+      const statusClass = service.status || 'active';
       const categoryColor = service.color || categoryColors[service.category] || '#607D8B';
 
       return `
@@ -455,8 +465,8 @@ async function openServiceDetail(serviceId) {
 
   // Render service detail
   const logoHtml = renderServiceLogo(service, 60);
-  const statusLabel = service.status === 'active' ? 'Activo' : service.status === 'paused' ? 'Pausado' : 'Cancelado';
-  const statusClass = service.status;
+  const statusLabel = statusLabels[service.status] || service.status || 'Activo';
+  const statusClass = service.status || 'active';
 
   sidebarContent.innerHTML = `
     <div class="service-detail-sidebar">
@@ -556,9 +566,6 @@ async function openServiceDetail(serviceId) {
       <div class="service-detail-actions">
         <button class="btn-secondary" onclick="toggleServiceStatusFromSidebar()">
           ${service.status === 'active' ? 'Pausar' : 'Activar'}
-        </button>
-        <button class="btn-primary" onclick="editServiceFromSidebar()">
-          Editar
         </button>
         <button class="btn-danger" onclick="deleteServiceFromSidebar()">
           Eliminar

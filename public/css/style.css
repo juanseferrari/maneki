@@ -729,7 +729,7 @@ h2 {
 }
 
 .transactions-table td {
-  padding: 1rem;
+  padding: 0.5rem;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -1792,7 +1792,7 @@ h2 {
 }
 
 .transactions-table td {
-  padding: 1rem;
+  padding: 0.5rem;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -4944,9 +4944,29 @@ h2 {
   color: #10b981;
 }
 
-.service-status-badge.paused {
+.service-status-badge.up_to_date {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.service-status-badge.due_soon {
   background: rgba(245, 158, 11, 0.1);
   color: #f59e0b;
+}
+
+.service-status-badge.overdue {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.service-status-badge.paused {
+  background: rgba(148, 163, 184, 0.1);
+  color: #64748b;
+}
+
+.service-status-badge.cancelled {
+  background: rgba(100, 116, 139, 0.1);
+  color: #475569;
 }
 
 /* ========================================
@@ -5576,14 +5596,29 @@ h2 {
   color: #10b981;
 }
 
-.status-badge.paused {
+.status-badge.up_to_date {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.status-badge.due_soon {
   background: rgba(245, 158, 11, 0.1);
   color: #f59e0b;
 }
 
-.status-badge.cancelled {
+.status-badge.overdue {
   background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
+}
+
+.status-badge.paused {
+  background: rgba(148, 163, 184, 0.1);
+  color: #64748b;
+}
+
+.status-badge.cancelled {
+  background: rgba(100, 116, 139, 0.1);
+  color: #475569;
 }
 
 .no-upcoming {
