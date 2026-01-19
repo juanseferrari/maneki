@@ -1891,6 +1891,66 @@ app.post('/api/services/:id/link', devAuth, async (req, res) => {
   }
 });
 
+// Get service linked to a transaction
+app.get('/api/transactions/:id/service', devAuth, async (req, res) => {
+  try {
+    const servicePayment = await recurringServicesService.getTransactionService(
+      req.user.id,
+      req.params.id
+    );
+
+    res.json({
+      success: true,
+      service: servicePayment ? servicePayment.recurring_services : null,
+      payment: servicePayment
+    });
+  } catch (error) {
+    console.error('Get transaction service error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get transaction service'
+    });
+  }
+});
+
+// Find potential service matches for a transaction
+app.get('/api/transactions/:id/matches', devAuth, async (req, res) => {
+  try {
+    const matches = await recurringServicesService.findPotentialMatches(
+      req.user.id,
+      req.params.id
+    );
+
+    res.json({
+      success: true,
+      matches
+    });
+  } catch (error) {
+    console.error('Find matches error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to find matches'
+    });
+  }
+});
+
+// Unlink transaction from service (by payment ID)
+app.delete('/api/services/payments/:paymentId/unlink', devAuth, async (req, res) => {
+  try {
+    await recurringServicesService.unlinkTransaction(req.user.id, req.params.paymentId);
+
+    res.json({
+      success: true
+    });
+  } catch (error) {
+    console.error('Unlink transaction error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to unlink transaction'
+    });
+  }
+});
+
 // =============================================
 // CATEGORIES API ENDPOINTS
 // =============================================

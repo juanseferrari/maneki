@@ -893,6 +893,145 @@ class RecurringServicesService {
 
     return null;
   }
+
+  /**
+   * Get service linked to a transaction
+   */
+  async getTransactionService(userId, transactionId) {
+    const { data, error } = await this.supabase
+      .from('service_payments')
+      .select('*, recurring_services(*)')
+      .eq('user_id', userId)
+      .eq('transaction_id', transactionId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // No service linked
+      }
+      throw error;
+    }
+
+    return data;
+  }
+
+  /**
+   * Find potential matches for a transaction
+   * Returns all services that could match with confidence score
+   */
+  async findPotentialMatches(userId, transactionId) {
+    // Get transaction
+    const { data: transaction, error: txError } = await this.supabase
+      .from('transactions')
+      .select('*')
+      .eq('id', transactionId)
+      .eq('user_id', userId)
+      .single();
+
+    if (txError) throw txError;
+
+    // Get all active services
+    const { data: services, error: svcError } = await this.supabase
+      .from('recurring_services')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'active');
+
+    if (svcError) throw svcError;
+
+    // Calculate confidence for each service
+    const matches = [];
+    for (const service of services) {
+      const confidence = this.calculateMatchConfidence(service, transaction);
+      if (confidence >= 50) { // Only show matches with >50% confidence
+        matches.push({
+          service,
+          confidence,
+          reasons: this.getMatchReasons(service, transaction, confidence)
+        });
+      }
+    }
+
+    // Sort by confidence
+    matches.sort((a, b) => b.confidence - a.confidence);
+    return matches;
+  }
+
+  /**
+   * Calculate match confidence between service and transaction
+   */
+  calculateMatchConfidence(service, transaction) {
+    let score = 0;
+
+    // 1. Keyword match in description (40 points)
+    const descLower = this.normalizeText(transaction.description || '');
+    const serviceName = this.normalizeText(service.name);
+    const patterns = service.merchant_patterns || [serviceName];
+
+    for (const pattern of patterns) {
+      if (descLower.includes(this.normalizeText(pattern))) {
+        score += 40;
+        break;
+      }
+    }
+
+    // 2. Amount similarity (30 points)
+    if (service.estimated_amount) {
+      const txAmount = Math.abs(transaction.amount);
+      const amountDiff = Math.abs(txAmount - service.estimated_amount);
+      const tolerance = service.estimated_amount * 0.10; // 10% tolerance
+
+      if (amountDiff <= tolerance) {
+        score += 30 * (1 - amountDiff / tolerance);
+      }
+    }
+
+    // 3. Day of month match (20 points)
+    if (service.typical_day_of_month) {
+      const txDay = new Date(transaction.transaction_date).getDate();
+      const dayDiff = Math.abs(txDay - service.typical_day_of_month);
+
+      if (dayDiff <= 3) { // Within 3 days
+        score += 20 * (1 - dayDiff / 3);
+      }
+    }
+
+    // 4. Category match (10 points)
+    if (transaction.category && service.category) {
+      const txCategoryName = transaction.category; // Assuming category ID or name
+      if (this.normalizeText(txCategoryName).includes(this.normalizeText(service.category))) {
+        score += 10;
+      }
+    }
+
+    return Math.round(score);
+  }
+
+  /**
+   * Get human-readable reasons for match
+   */
+  getMatchReasons(service, transaction, confidence) {
+    const reasons = [];
+
+    if (confidence >= 75) {
+      reasons.push('Alta coincidencia detectada');
+    }
+
+    const descLower = this.normalizeText(transaction.description || '');
+    const serviceName = this.normalizeText(service.name);
+    if (descLower.includes(serviceName)) {
+      reasons.push(`Nombre coincide: "${service.name}"`);
+    }
+
+    if (service.estimated_amount) {
+      const diff = Math.abs(Math.abs(transaction.amount) - service.estimated_amount);
+      if (diff / service.estimated_amount < 0.1) {
+        reasons.push(`Monto similar: $${service.estimated_amount.toFixed(2)}`);
+      }
+    }
+
+    return reasons;
+  }
 }
 
 module.exports = new RecurringServicesService();
