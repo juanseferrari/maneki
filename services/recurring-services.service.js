@@ -1032,6 +1032,223 @@ class RecurringServicesService {
 
     return reasons;
   }
+
+  /**
+   * Recalculate service status and next payment date based on payment history
+   * @param {string} userId - User ID
+   * @param {string} serviceId - Service ID
+   * @returns {Promise<Object>} Updated service data
+   */
+  async recalculateServiceStatus(userId, serviceId) {
+    try {
+      // Get service details
+      const { data: service, error: serviceError } = await this.supabase
+        .from('recurring_services')
+        .select('*')
+        .eq('id', serviceId)
+        .eq('user_id', userId)
+        .single();
+
+      if (serviceError) throw serviceError;
+      if (!service) throw new Error('Service not found');
+
+      // Get all payments for this service, ordered by date DESC
+      const { data: payments, error: paymentsError } = await this.supabase
+        .from('service_payments')
+        .select('*')
+        .eq('service_id', serviceId)
+        .eq('user_id', userId)
+        .eq('is_predicted', false)
+        .order('payment_date', { ascending: false });
+
+      if (paymentsError) throw paymentsError;
+
+      let updates = {};
+
+      // If there are payments, calculate based on the most recent one
+      if (payments && payments.length > 0) {
+        const lastPayment = payments[0];
+        updates.last_payment_date = lastPayment.payment_date;
+
+        // Calculate next expected payment date
+        const nextDate = this.calculateNextPaymentDate(
+          lastPayment.payment_date,
+          service.frequency,
+          service.typical_day_of_month
+        );
+        updates.next_expected_date = nextDate;
+
+        // Calculate status based on next_expected_date
+        updates.status = this.calculateServiceStatus(nextDate);
+
+      } else {
+        // No payments yet - set to pending or keep current status
+        updates.last_payment_date = null;
+        updates.next_expected_date = service.next_expected_date; // Keep current estimate
+        updates.status = 'active'; // Default to active
+      }
+
+      // Update the service
+      const { data: updatedService, error: updateError } = await this.supabase
+        .from('recurring_services')
+        .update(updates)
+        .eq('id', serviceId)
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      return {
+        success: true,
+        service: updatedService,
+        updates
+      };
+
+    } catch (error) {
+      console.error('Error recalculating service status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Calculate next payment date based on frequency
+   * @param {string} lastDate - Last payment date (YYYY-MM-DD)
+   * @param {string} frequency - Frequency (weekly, monthly, etc.)
+   * @param {number} typicalDay - Typical day of month (optional)
+   * @returns {string} Next payment date (YYYY-MM-DD)
+   */
+  calculateNextPaymentDate(lastDate, frequency, typicalDay = null) {
+    const date = new Date(lastDate + 'T00:00:00');
+
+    switch (frequency) {
+      case 'weekly':
+        date.setDate(date.getDate() + 7);
+        break;
+      case 'biweekly':
+        date.setDate(date.getDate() + 14);
+        break;
+      case 'monthly':
+        date.setMonth(date.getMonth() + 1);
+        if (typicalDay) {
+          date.setDate(Math.min(typicalDay, this.getDaysInMonth(date.getFullYear(), date.getMonth())));
+        }
+        break;
+      case 'bimonthly':
+        date.setMonth(date.getMonth() + 2);
+        if (typicalDay) {
+          date.setDate(Math.min(typicalDay, this.getDaysInMonth(date.getFullYear(), date.getMonth())));
+        }
+        break;
+      case 'quarterly':
+        date.setMonth(date.getMonth() + 3);
+        if (typicalDay) {
+          date.setDate(Math.min(typicalDay, this.getDaysInMonth(date.getFullYear(), date.getMonth())));
+        }
+        break;
+      case 'semiannual':
+        date.setMonth(date.getMonth() + 6);
+        if (typicalDay) {
+          date.setDate(Math.min(typicalDay, this.getDaysInMonth(date.getFullYear(), date.getMonth())));
+        }
+        break;
+      case 'annual':
+        date.setFullYear(date.getFullYear() + 1);
+        if (typicalDay) {
+          date.setDate(Math.min(typicalDay, this.getDaysInMonth(date.getFullYear(), date.getMonth())));
+        }
+        break;
+      default:
+        // Default to monthly
+        date.setMonth(date.getMonth() + 1);
+    }
+
+    return date.toISOString().split('T')[0];
+  }
+
+  /**
+   * Get days in a specific month
+   */
+  getDaysInMonth(year, month) {
+    return new Date(year, month + 1, 0).getDate();
+  }
+
+  /**
+   * Calculate service status based on next expected date
+   * @param {string} nextExpectedDate - Next expected payment date (YYYY-MM-DD)
+   * @returns {string} Status: 'al_dia', 'proximo_vencer', 'vencido', 'active'
+   */
+  calculateServiceStatus(nextExpectedDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const nextDate = new Date(nextExpectedDate + 'T00:00:00');
+    const diffDays = Math.floor((nextDate - today) / (1000 * 60 * 60 * 24));
+
+    // Vencido: próximo pago < HOY - 3 días
+    if (diffDays < -3) {
+      return 'vencido';
+    }
+
+    // Próximo a vencer: entre HOY y HOY + 7 días
+    if (diffDays >= 0 && diffDays <= 7) {
+      return 'proximo_vencer';
+    }
+
+    // Al día: próximo pago > HOY + 7 días
+    if (diffDays > 7) {
+      return 'al_dia';
+    }
+
+    // Default
+    return 'active';
+  }
+
+  /**
+   * Recalculate all services for a user
+   * @param {string} userId - User ID
+   * @returns {Promise<Object>} Summary of recalculated services
+   */
+  async recalculateAllServices(userId) {
+    try {
+      // Get all services for this user
+      const { data: services, error: servicesError } = await this.supabase
+        .from('recurring_services')
+        .select('id')
+        .eq('user_id', userId)
+        .neq('status', 'cancelled'); // Don't recalculate cancelled services
+
+      if (servicesError) throw servicesError;
+
+      const results = {
+        total: services.length,
+        updated: 0,
+        errors: 0,
+        details: []
+      };
+
+      // Recalculate each service
+      for (const service of services) {
+        try {
+          await this.recalculateServiceStatus(userId, service.id);
+          results.updated++;
+          results.details.push({ id: service.id, success: true });
+        } catch (error) {
+          results.errors++;
+          results.details.push({ id: service.id, success: false, error: error.message });
+        }
+      }
+
+      return {
+        success: true,
+        results
+      };
+
+    } catch (error) {
+      console.error('Error recalculating all services:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new RecurringServicesService();

@@ -1957,7 +1957,23 @@ app.get('/api/transactions/:id/matches', devAuth, async (req, res) => {
 // Unlink transaction from service (by payment ID)
 app.delete('/api/services/payments/:paymentId/unlink', devAuth, async (req, res) => {
   try {
+    // Get payment to extract service_id before deleting
+    const { data: payment } = await supabaseAdmin
+      .from('service_payments')
+      .select('service_id')
+      .eq('id', req.params.paymentId)
+      .eq('user_id', req.user.id)
+      .single();
+
+    const serviceId = payment?.service_id;
+
+    // Unlink the transaction
     await recurringServicesService.unlinkTransaction(req.user.id, req.params.paymentId);
+
+    // Recalculate service status if we have service_id
+    if (serviceId) {
+      await recurringServicesService.recalculateServiceStatus(req.user.id, serviceId);
+    }
 
     res.json({
       success: true
@@ -2035,12 +2051,8 @@ app.post('/api/services/:serviceId/payments', devAuth, async (req, res) => {
       throw paymentError;
     }
 
-    // Update service's last_payment_date
-    await supabaseAdmin
-      .from('recurring_services')
-      .update({ last_payment_date: transaction.transaction_date })
-      .eq('id', req.params.serviceId)
-      .eq('user_id', req.user.id);
+    // Recalculate service status and next payment date automatically
+    await recurringServicesService.recalculateServiceStatus(req.user.id, req.params.serviceId);
 
     res.json({
       success: true,
@@ -2051,6 +2063,21 @@ app.post('/api/services/:serviceId/payments', devAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to link transaction'
+    });
+  }
+});
+
+// Recalculate all services for a user
+app.post('/api/services/recalculate-all', devAuth, async (req, res) => {
+  try {
+    const result = await recurringServicesService.recalculateAllServices(req.user.id);
+
+    res.json(result);
+  } catch (error) {
+    console.error('Recalculate all services error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to recalculate services'
     });
   }
 });
