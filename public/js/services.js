@@ -464,7 +464,13 @@ async function openServiceDetail(serviceId) {
       <div class="service-detail-header">
         ${logoHtml}
         <div class="service-detail-info">
-          <h2 class="service-detail-name">${escapeHtml(service.name)}</h2>
+          <h2 class="service-detail-name editable-service-field" onclick="editServiceField('${service.id}', 'name', this)">
+            ${escapeHtml(service.name)}
+            <svg class="edit-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-left: 8px; opacity: 0.6;">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </h2>
           <div class="service-detail-meta">
             <span class="service-category-badge" style="background: ${categoryColors[service.category] || categoryColors.other}20; color: ${categoryColors[service.category] || categoryColors.other}">
               ${categoryLabels[service.category] || service.category || 'Otro'}
@@ -788,6 +794,88 @@ async function loadUpcomingPayments() {
   } catch (error) {
     console.error('Error loading upcoming payments:', error);
   }
+}
+
+// =============================================
+// INLINE EDITING
+// =============================================
+
+async function editServiceField(serviceId, fieldName, element) {
+  // Remove the edit icon from the current value
+  const iconEl = element.querySelector('.edit-icon');
+  if (iconEl) iconEl.remove();
+
+  const currentValue = element.textContent.trim();
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = currentValue;
+  input.className = 'edit-input';
+  input.style.cssText = 'width: 100%; padding: 8px; font-size: inherit; font-weight: inherit; border: 2px solid #667eea; border-radius: 4px; background: white;';
+
+  const originalHTML = element.innerHTML;
+  element.innerHTML = '';
+  element.appendChild(input);
+  input.focus();
+  input.select();
+
+  const saveEdit = async () => {
+    const newValue = input.value.trim();
+    if (newValue === currentValue || newValue === '') {
+      element.innerHTML = originalHTML;
+      return;
+    }
+
+    try {
+      const headers = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
+      const response = await fetch(`/api/services/${serviceId}`, {
+        method: 'PUT',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ [fieldName]: newValue })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        // Update the service in the local array
+        const service = servicesData.find(s => s.id === serviceId);
+        if (service) {
+          service[fieldName] = newValue;
+        }
+
+        // Reload the sidebar to show updated name
+        await showServiceDetailSidebar(serviceId);
+
+        // Reload the services list to reflect the change
+        await loadServices();
+
+        showNotification('Servicio actualizado correctamente', 'success');
+      } else {
+        element.innerHTML = originalHTML;
+        showNotification('Error al actualizar: ' + (result.error || 'Error desconocido'), 'error');
+      }
+    } catch (error) {
+      element.innerHTML = originalHTML;
+      console.error('Error updating service field:', error);
+      showNotification('Error al actualizar el campo', 'error');
+    }
+  };
+
+  const cancelEdit = () => {
+    element.innerHTML = originalHTML;
+  };
+
+  input.addEventListener('blur', saveEdit);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveEdit();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelEdit();
+    }
+  });
 }
 
 // =============================================
