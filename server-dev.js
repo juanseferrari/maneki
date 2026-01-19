@@ -1922,7 +1922,7 @@ app.get('/api/categories', devAuth, async (req, res) => {
 // Create a new category
 app.post('/api/categories', devAuth, async (req, res) => {
   try {
-    const { name, color, description } = req.body;
+    const { name, color, description, sort_order } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({
@@ -1946,16 +1946,21 @@ app.post('/api/categories', devAuth, async (req, res) => {
       });
     }
 
-    // Get max sort_order
-    const { data: maxOrder } = await supabaseAdmin
-      .from('categories')
-      .select('sort_order')
-      .eq('user_id', req.user.id)
-      .order('sort_order', { ascending: false })
-      .limit(1)
-      .single();
+    // Determine sort_order: use provided value or get next available
+    let finalSortOrder;
+    if (sort_order !== undefined && sort_order !== null) {
+      finalSortOrder = parseInt(sort_order, 10);
+    } else {
+      const { data: maxOrder } = await supabaseAdmin
+        .from('categories')
+        .select('sort_order')
+        .eq('user_id', req.user.id)
+        .order('sort_order', { ascending: false })
+        .limit(1)
+        .single();
 
-    const newSortOrder = (maxOrder?.sort_order || 0) + 1;
+      finalSortOrder = (maxOrder?.sort_order || 0) + 1;
+    }
 
     const { data: category, error } = await supabaseAdmin
       .from('categories')
@@ -1964,7 +1969,7 @@ app.post('/api/categories', devAuth, async (req, res) => {
         name: name.trim(),
         color: color || '#9CA3AF',
         description: description?.trim() || null,
-        sort_order: newSortOrder,
+        sort_order: finalSortOrder,
         is_system: false
       })
       .select()
@@ -1997,7 +2002,7 @@ app.post('/api/categories', devAuth, async (req, res) => {
 app.put('/api/categories/:id', devAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, color, description } = req.body;
+    const { name, color, description, sort_order } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({
@@ -2006,13 +2011,20 @@ app.put('/api/categories/:id', devAuth, async (req, res) => {
       });
     }
 
+    const updateData = {
+      name: name.trim(),
+      color: color || '#9CA3AF',
+      description: description?.trim() || null
+    };
+
+    // Only update sort_order if provided
+    if (sort_order !== undefined && sort_order !== null) {
+      updateData.sort_order = parseInt(sort_order, 10);
+    }
+
     const { data: category, error } = await supabaseAdmin
       .from('categories')
-      .update({
-        name: name.trim(),
-        color: color || '#9CA3AF',
-        description: description?.trim() || null
-      })
+      .update(updateData)
       .eq('id', id)
       .eq('user_id', req.user.id)
       .select()

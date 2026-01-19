@@ -153,6 +153,12 @@
         <input type="text" id="category-description" placeholder="Descripción breve de la categoría" maxlength="100">
       </div>
 
+      <div class="form-group">
+        <label for="category-sort-order">Orden de visualización</label>
+        <input type="number" id="category-sort-order" placeholder="0" min="0" max="999" value="0">
+        <small class="form-help-text">Orden en que aparecerá la categoría (menor número = más arriba)</small>
+      </div>
+
       <div class="custom-modal-actions">
         <button type="button" class="custom-modal-btn btn-cancel" onclick="closeCategoryModal()">Cancelar</button>
         <button type="submit" class="custom-modal-btn btn-confirm">Guardar</button>

@@ -82,10 +82,18 @@ function renderCategoriesList() {
   if (emptyEl) emptyEl.style.display = 'none';
   listEl.style.display = 'block';
 
+  // Sort categories by sort_order
+  const sortedCategories = [...categoriesData].sort((a, b) => {
+    const orderA = a.sort_order !== undefined ? a.sort_order : 999;
+    const orderB = b.sort_order !== undefined ? b.sort_order : 999;
+    return orderA - orderB;
+  });
+
   listEl.innerHTML = `
     <table class="categories-table">
       <thead>
         <tr>
+          <th>Orden</th>
           <th>Color</th>
           <th>Nombre</th>
           <th>Descripción</th>
@@ -93,8 +101,11 @@ function renderCategoriesList() {
         </tr>
       </thead>
       <tbody>
-        ${categoriesData.map(category => `
+        ${sortedCategories.map(category => `
           <tr data-id="${category.id}">
+            <td class="category-order-cell">
+              ${category.sort_order !== undefined ? category.sort_order : '-'}
+            </td>
             <td class="category-color-cell">
               <span class="category-color-dot" style="background-color: ${escapeHtml(category.color || '#9CA3AF')}"></span>
             </td>
@@ -164,11 +175,13 @@ function openEditCategoryModal(categoryId) {
   const nameInput = document.getElementById('category-name');
   const colorInput = document.getElementById('category-color');
   const descInput = document.getElementById('category-description');
+  const sortOrderInput = document.getElementById('category-sort-order');
 
   if (idInput) idInput.value = category.id;
   if (nameInput) nameInput.value = category.name;
   if (colorInput) colorInput.value = category.color || '#9CA3AF';
   if (descInput) descInput.value = category.description || '';
+  if (sortOrderInput) sortOrderInput.value = category.sort_order !== undefined ? category.sort_order : 0;
 
   if (modal) modal.classList.add('active');
 }
@@ -194,11 +207,13 @@ async function saveCategory(event) {
   const nameInput = document.getElementById('category-name');
   const colorInput = document.getElementById('category-color');
   const descInput = document.getElementById('category-description');
+  const sortOrderInput = document.getElementById('category-sort-order');
 
   const categoryId = idInput?.value;
   const name = nameInput?.value?.trim();
   const color = colorInput?.value || '#9CA3AF';
   const description = descInput?.value?.trim() || null;
+  const sort_order = sortOrderInput?.value ? parseInt(sortOrderInput.value, 10) : 0;
 
   if (!name) {
     showNotification('El nombre es requerido', 'error');
@@ -215,7 +230,7 @@ async function saveCategory(event) {
     const response = await fetch(url, {
       method,
       headers,
-      body: JSON.stringify({ name, color, description })
+      body: JSON.stringify({ name, color, description, sort_order })
     });
 
     const data = await response.json();

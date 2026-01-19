@@ -2052,7 +2052,7 @@ app.get('/api/categories', requireAuth, async (req, res) => {
 // Create category
 app.post('/api/categories', requireAuth, async (req, res) => {
   try {
-    const { name, color, icon, description, parent_id } = req.body;
+    const { name, color, icon, description, parent_id, sort_order } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, error: 'Category name is required' });
@@ -2073,16 +2073,21 @@ app.post('/api/categories', requireAuth, async (req, res) => {
       });
     }
 
-    // Get max sort_order
-    const { data: maxOrderResult } = await supabaseAdmin
-      .from('categories')
-      .select('sort_order')
-      .eq('user_id', req.user.id)
-      .order('sort_order', { ascending: false })
-      .limit(1)
-      .single();
+    // Determine sort_order: use provided value or get next available
+    let finalSortOrder;
+    if (sort_order !== undefined && sort_order !== null) {
+      finalSortOrder = parseInt(sort_order, 10);
+    } else {
+      const { data: maxOrderResult } = await supabaseAdmin
+        .from('categories')
+        .select('sort_order')
+        .eq('user_id', req.user.id)
+        .order('sort_order', { ascending: false })
+        .limit(1)
+        .single();
 
-    const newSortOrder = (maxOrderResult?.sort_order || 0) + 1;
+      finalSortOrder = (maxOrderResult?.sort_order || 0) + 1;
+    }
 
     const { data: category, error } = await supabaseAdmin
       .from('categories')
@@ -2093,7 +2098,7 @@ app.post('/api/categories', requireAuth, async (req, res) => {
         icon: icon || null,
         description: description || null,
         parent_id: parent_id || null,
-        sort_order: newSortOrder,
+        sort_order: finalSortOrder,
         is_system: false
       })
       .select()
