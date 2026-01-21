@@ -22,7 +22,8 @@ let currentFilters = {
   categories: [],      // Array of selected category IDs
   amountType: 'all',   // 'all', 'positive', 'negative', 'custom'
   amountMin: '',
-  amountMax: ''
+  amountMax: '',
+  files: []            // Array of selected file IDs
 };
 
 // Helper function to format date without timezone issues
@@ -342,15 +343,28 @@ fileInput.addEventListener('change', (e) => {
 
 // Direct upload function
 async function uploadFile(file) {
-  // Check if file already exists
-  const duplicateFile = existingFiles.find(f => f.original_name === file.name);
+  // Check if file already exists (same name, size, and type)
+  const duplicateFile = existingFiles.find(f =>
+    f.original_name === file.name &&
+    f.file_size === file.size &&
+    f.mime_type === file.type
+  );
 
   if (duplicateFile) {
+    const fileSizeText = formatFileSize(file.size);
+
     const confirmed = await showCustomModal({
       icon: 'warning',
       title: 'Archivo Duplicado',
-      message: `El archivo "${file.name}" ya existe en el sistema.`,
-      hint: '¿Deseas cargar el archivo de todas formas? Esto creará una segunda copia del archivo.',
+      message: `Ya cargaste este archivo anteriormente:`,
+      hint: `
+        <div style="margin: 12px 0; padding: 12px; background: rgba(0,0,0,0.05); border-radius: 6px;">
+          <strong>Nombre:</strong> ${file.name}<br>
+          <strong>Tamaño:</strong> ${fileSizeText}<br>
+          <strong>Tipo:</strong> ${file.type}
+        </div>
+        ¿Deseas cargar el archivo de todas formas?
+      `,
       confirmText: 'Cargar de todas formas',
       cancelText: 'Cancelar'
     });
@@ -564,7 +578,34 @@ function displayFiles(files) {
 }
 
 async function deleteFile(fileId) {
-  if (!confirm('¿Estás seguro de que quieres eliminar este archivo?')) {
+  // Find the file in existingFiles to get transaction count
+  const file = existingFiles.find(f => f.id === fileId);
+  const transactionCount = file?.transaction_count || 0;
+
+  // Build warning message
+  let message = '¿Estás seguro de que quieres eliminar este archivo?';
+  let hint = '';
+
+  if (transactionCount > 0) {
+    message = `Al eliminar este archivo se eliminarán también ${transactionCount} ${transactionCount === 1 ? 'transacción asociada' : 'transacciones asociadas'}.`;
+    hint = `
+      <div style="margin: 12px 0; padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 6px; border-left: 3px solid #EF4444;">
+        <strong style="color: #DC2626;">⚠️ Esta acción no se puede deshacer</strong><br>
+        <span style="color: #7F1D1D;">Se eliminarán permanentemente ${transactionCount} ${transactionCount === 1 ? 'transacción' : 'transacciones'} de tu historial.</span>
+      </div>
+    `;
+  }
+
+  const confirmed = await showCustomModal({
+    icon: 'danger',
+    title: 'Eliminar Archivo',
+    message: message,
+    hint: hint || 'Esta acción no se puede deshacer.',
+    confirmText: 'Eliminar',
+    cancelText: 'Cancelar'
+  });
+
+  if (!confirmed) {
     return;
   }
 
@@ -582,14 +623,17 @@ async function deleteFile(fileId) {
     const result = await response.json();
 
     if (result.success) {
-      showMessage('File deleted successfully', 'success');
+      const deletedMsg = transactionCount > 0
+        ? `Archivo eliminado junto con ${transactionCount} ${transactionCount === 1 ? 'transacción' : 'transacciones'}`
+        : 'Archivo eliminado correctamente';
+      showMessage(deletedMsg, 'success');
       loadDashboardData();
     } else {
-      showMessage(result.error || 'Delete failed', 'error');
+      showMessage(result.error || 'Error al eliminar archivo', 'error');
     }
   } catch (error) {
     console.error('Delete error:', error);
-    showMessage('Delete failed: ' + error.message, 'error');
+    showMessage('Error al eliminar: ' + error.message, 'error');
   }
 }
 
@@ -699,6 +743,13 @@ async function loadAllTransactions(page = 1, limit = currentLimit) {
         if (currentFilters.amountMin) params.append('amountMin', currentFilters.amountMin);
         if (currentFilters.amountMax) params.append('amountMax', currentFilters.amountMax);
       }
+    }
+
+    // Add file filters
+    if (currentFilters.files && currentFilters.files.length > 0) {
+      currentFilters.files.forEach(fileId => {
+        params.append('files', fileId);
+      });
     }
 
     const response = await fetch(`/api/transactions?${params.toString()}`, { headers });
@@ -1264,6 +1315,10 @@ function filterTransactions() {
     currentFilters.amountMax = '';
   }
 
+  // Get selected files
+  const fileCheckboxes = document.querySelectorAll('#filter-file-options input[type="checkbox"]:not([data-file-all]):checked');
+  currentFilters.files = Array.from(fileCheckboxes).map(cb => cb.value);
+
   // Update active filters pills
   updateActiveFiltersPills();
 
@@ -1293,9 +1348,16 @@ function clearFilters() {
   const amountRange = document.getElementById('filter-amount-range');
   if (amountRange) amountRange.style.display = 'none';
 
+  // Reset file filter checkboxes
+  const fileCheckboxes = document.querySelectorAll('#filter-file-options input[type="checkbox"]');
+  fileCheckboxes.forEach(cb => cb.checked = false);
+  const allFilesCheckbox = document.querySelector('#filter-file-options input[data-file-all]');
+  if (allFilesCheckbox) allFilesCheckbox.checked = true;
+
   // Reset dropdown labels
   document.getElementById('filter-category-label').textContent = 'Categoría';
   document.getElementById('filter-amount-label').textContent = 'Monto';
+  document.getElementById('filter-file-label').textContent = 'Archivo';
 
   // Clear filter state
   currentFilters.dateFrom = '';
@@ -1307,6 +1369,7 @@ function clearFilters() {
   currentFilters.amountType = 'all';
   currentFilters.amountMin = '';
   currentFilters.amountMax = '';
+  currentFilters.files = [];
 
   // Hide active filters pills
   const activeFiltersDiv = document.getElementById('active-filters');
@@ -3387,6 +3450,24 @@ function initializeAdvancedFilters() {
     });
   }
 
+  // File dropdown toggle
+  const fileBtn = document.getElementById('filter-file-btn');
+  const fileMenu = document.getElementById('filter-file-menu');
+
+  if (fileBtn && fileMenu) {
+    fileBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = fileMenu.style.display === 'block';
+      closeAllFilterDropdowns();
+      if (!isOpen) {
+        fileMenu.style.display = 'block';
+        fileBtn.classList.add('active');
+        // Load files on first open
+        loadFilterFiles();
+      }
+    });
+  }
+
   // Close dropdowns when clicking outside
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.filter-dropdown-group')) {
@@ -3475,6 +3556,47 @@ function initializeAdvancedFilters() {
     });
   }
 
+  // File search functionality
+  const fileSearch = document.getElementById('filter-file-search');
+  if (fileSearch) {
+    fileSearch.addEventListener('input', (e) => {
+      const searchTerm = e.target.value.toLowerCase();
+      const options = document.querySelectorAll('#filter-file-options label:not(:first-child)');
+
+      options.forEach(option => {
+        const text = option.textContent.toLowerCase();
+        option.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+      });
+    });
+
+    // Prevent dropdown from closing when clicking search input
+    fileSearch.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+  }
+
+  // Handle "All files" checkbox
+  const allFilesCheckbox = document.querySelector('#filter-file-options input[data-file-all]');
+  if (allFilesCheckbox) {
+    allFilesCheckbox.addEventListener('change', (e) => {
+      const fileCheckboxes = document.querySelectorAll('#filter-file-options input[type="checkbox"]:not([data-file-all])');
+      fileCheckboxes.forEach(cb => cb.checked = false);
+
+      updateFileLabel();
+    });
+  }
+
+  // Handle individual file checkboxes
+  const fileCheckboxes = document.querySelectorAll('#filter-file-options input[type="checkbox"]:not([data-file-all])');
+  fileCheckboxes.forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (allFilesCheckbox) {
+        allFilesCheckbox.checked = false;
+      }
+      updateFileLabel();
+    });
+  });
+
   // Load categories into filter
   loadCategoriesIntoFilter();
 }
@@ -3483,12 +3605,16 @@ function initializeAdvancedFilters() {
 function closeAllFilterDropdowns() {
   const categoryMenu = document.getElementById('filter-category-menu');
   const amountMenu = document.getElementById('filter-amount-menu');
+  const fileMenu = document.getElementById('filter-file-menu');
   const categoryBtn = document.getElementById('filter-category-btn');
   const amountBtn = document.getElementById('filter-amount-btn');
+  const fileBtn = document.getElementById('filter-file-btn');
 
   if (categoryMenu) categoryMenu.style.display = 'none';
   if (amountMenu) amountMenu.style.display = 'none';
+  if (fileMenu) fileMenu.style.display = 'none';
   if (categoryBtn) categoryBtn.classList.remove('active');
+  if (fileBtn) fileBtn.classList.remove('active');
   if (amountBtn) amountBtn.classList.remove('active');
 }
 
@@ -3539,6 +3665,24 @@ function updateAmountLabel() {
       'negative': 'Solo egresos'
     };
     label.textContent = labelTexts[selectedAmount.value] || 'Monto';
+  }
+}
+
+// Update file dropdown label
+function updateFileLabel() {
+  const selectedFiles = document.querySelectorAll('#filter-file-options input[type="checkbox"]:not([data-file-all]):checked');
+  const label = document.getElementById('filter-file-label');
+
+  if (!label) return;
+
+  const totalSelected = selectedFiles.length;
+
+  if (totalSelected === 0) {
+    label.textContent = 'Archivo';
+  } else if (totalSelected === 1) {
+    label.textContent = '1 archivo';
+  } else {
+    label.textContent = `${totalSelected} archivos`;
   }
 }
 
@@ -3626,6 +3770,60 @@ async function loadCategoriesIntoFilter() {
   }
 }
 
+// Load files into filter dropdown
+async function loadFilterFiles() {
+  try {
+    const headers = await getAuthHeaders();
+    const response = await fetch('/api/files', { headers });
+
+    const result = await response.json();
+
+    if (result.success && result.files) {
+      const optionsContainer = document.getElementById('filter-file-options');
+      if (!optionsContainer) return;
+
+      // Keep the "All files" option and append the rest
+      const existingAll = optionsContainer.querySelector('[data-file-all]').parentElement;
+
+      // Clear all except the "All" option
+      optionsContainer.innerHTML = '';
+      optionsContainer.appendChild(existingAll);
+
+      // Sort files by date (most recent first)
+      const sortedFiles = [...result.files].sort((a, b) => {
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+
+      // Add each file
+      sortedFiles.forEach(file => {
+        const label = document.createElement('label');
+        label.className = 'filter-dropdown-option';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = file.id;
+        checkbox.setAttribute('data-file-name', file.original_name || file.file_name || 'Archivo sin nombre');
+
+        const span = document.createElement('span');
+        span.textContent = file.original_name || file.file_name || 'Archivo sin nombre';
+
+        label.appendChild(checkbox);
+        label.appendChild(span);
+        optionsContainer.appendChild(label);
+
+        // Add event listener
+        checkbox.addEventListener('change', () => {
+          const allCheckbox = document.querySelector('#filter-file-options input[data-file-all]');
+          if (allCheckbox) allCheckbox.checked = false;
+          updateFileLabel();
+        });
+      });
+    }
+  } catch (error) {
+    console.error('Error loading files for filter:', error);
+  }
+}
+
 // Update active filters pills
 function updateActiveFiltersPills() {
   const pillsContainer = document.getElementById('active-filters-pills');
@@ -3682,6 +3880,17 @@ function updateActiveFiltersPills() {
     }
 
     pillsContainer.innerHTML += createFilterPill(amountText, 'amount');
+    hasActiveFilters = true;
+  }
+
+  // Files pill
+  if (currentFilters.files && currentFilters.files.length > 0) {
+    const fileCheckboxes = document.querySelectorAll('#filter-file-options input[type="checkbox"]:not([data-file-all]):checked');
+    const fileCount = fileCheckboxes.length;
+
+    const pillText = fileCount === 1 ? '1 archivo' : `${fileCount} archivos`;
+
+    pillsContainer.innerHTML += createFilterPill(pillText, 'files');
     hasActiveFilters = true;
   }
 
@@ -3754,6 +3963,15 @@ function removeFilterByType(filterType) {
       currentFilters.amountMin = '';
       currentFilters.amountMax = '';
       updateAmountLabel();
+      break;
+
+    case 'files':
+      const fileCheckboxes = document.querySelectorAll('#filter-file-options input[type="checkbox"]:not([data-file-all])');
+      fileCheckboxes.forEach(cb => cb.checked = false);
+      const allFilesCheckbox = document.querySelector('#filter-file-options input[data-file-all]');
+      if (allFilesCheckbox) allFilesCheckbox.checked = true;
+      currentFilters.files = [];
+      updateFileLabel();
       break;
   }
 

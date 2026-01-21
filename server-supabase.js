@@ -291,10 +291,11 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
       includeNoCategory, // New: include transactions with null category
       amountType,        // New: 'all', 'positive', 'negative', 'custom'
       amountMin,         // New: minimum amount
-      amountMax          // New: maximum amount
+      amountMax,         // New: maximum amount
+      files              // New: array of file IDs
     } = req.query;
 
-    console.log('[Transactions API] Filters received:', { categories, amountType, amountMin, amountMax });
+    console.log('[Transactions API] Filters received:', { categories, amountType, amountMin, amountMax, files });
 
     // Build base query for count
     let countQuery = supabaseAdmin
@@ -384,6 +385,15 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
             dataQuery = dataQuery.lte('amount', max);
           }
         }
+      }
+    }
+
+    // Apply file filter
+    if (files) {
+      const fileArray = Array.isArray(files) ? files : [files];
+      if (fileArray.length > 0) {
+        countQuery = countQuery.in('file_id', fileArray);
+        dataQuery = dataQuery.in('file_id', fileArray);
       }
     }
 
@@ -815,6 +825,18 @@ app.delete('/api/files/:fileId', requireAuth, async (req, res) => {
       throw fileError;
     }
 
+    // Delete all associated transactions first (cascade delete)
+    const { error: transactionsError } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('file_id', req.params.fileId)
+      .eq('user_id', req.user.id);
+
+    if (transactionsError) {
+      console.error('Error deleting associated transactions:', transactionsError);
+      throw transactionsError;
+    }
+
     // Delete from storage
     const { error: storageError } = await supabaseAdmin.storage
       .from(process.env.SUPABASE_BUCKET_NAME || 'uploads')
@@ -824,7 +846,7 @@ app.delete('/api/files/:fileId', requireAuth, async (req, res) => {
       console.error('Storage deletion error:', storageError);
     }
 
-    // Delete from database (will cascade delete transactions and veps)
+    // Delete from database
     const { error: deleteError } = await supabase
       .from('files')
       .delete()
