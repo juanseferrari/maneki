@@ -649,13 +649,12 @@ async function loadAllTransactions(page = 1, limit = currentLimit) {
             <th data-col="monto" style="width: 12%;">Monto<span class="col-resize-handle"></span></th>
             <th data-col="categoria" style="width: 18%;">Categoría<span class="col-resize-handle"></span></th>
             <th data-col="banco" style="width: 16%;">Banco<span class="col-resize-handle"></span></th>
-            <th data-col="servicio" style="width: 4%;" title="Servicio asociado">🔗</th>
-            <th data-col="acciones" style="width: 10%;">Acciones</th>
+            <th data-col="acciones" style="width: 14%;">Acciones</th>
           </tr>
         </thead>
         <tbody id="transactions-tbody">
           <tr class="transactions-loading-row">
-            <td colspan="7">
+            <td colspan="6">
               <div class="table-loading">
                 <div class="spinner"></div>
                 <span>Cargando transacciones...</span>
@@ -819,7 +818,7 @@ function displayTransactions(transactions) {
     if (tbody) {
       tbody.innerHTML = `
         <tr class="transactions-empty-row">
-          <td colspan="7">
+          <td colspan="6">
             <div class="table-empty">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -876,18 +875,24 @@ function displayTransactions(transactions) {
             </div>
           </td>
           <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;">${t.bank_name || '-'}</td>
-          <td class="service-indicator-cell" onclick="showTransactionDetail('${t.id}')" style="cursor: pointer; text-align: center;">
-            ${t.has_service ? '<span class="service-linked-icon" title="Vinculado a servicio">🔗</span>' : ''}
-          </td>
           <td class="actions-cell">
-            <button class="action-btn create-service-btn" onclick="event.stopPropagation(); createServiceFromTransaction('${t.id}')" title="Crear servicio recurrente">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                <path d="M21 3v5h-5"></path>
-                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-                <path d="M8 16H3v5"></path>
-              </svg>
-            </button>
+            ${t.has_service ? `
+              <button class="action-btn service-linked-btn" onclick="event.stopPropagation(); showTransactionDetail('${t.id}')" title="Vinculado a servicio">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                </svg>
+              </button>
+            ` : `
+              <button class="action-btn create-service-btn" onclick="event.stopPropagation(); openAssociateServiceModal('${t.id}')" title="Asociar a servicio">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                  <path d="M21 3v5h-5"></path>
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                  <path d="M8 16H3v5"></path>
+                </svg>
+              </button>
+            `}
             <button class="action-btn delete-transaction-btn" onclick="event.stopPropagation(); confirmDeleteTransaction('${t.id}')" title="Eliminar transaccion">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="3 6 5 6 21 6"></polyline>
@@ -1886,7 +1891,7 @@ async function openAssociateServiceModal(transactionId) {
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.innerHTML = `
-    <div class="modal-container">
+    <div class="modal-container associate-service-modal">
       <div class="modal-header">
         <h3>Asociar transacción a servicio</h3>
         <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
@@ -1898,38 +1903,47 @@ async function openAssociateServiceModal(transactionId) {
       </div>
 
       <div class="modal-body">
-        <div class="transaction-summary">
-          <div class="tx-summary-item">
-            <span class="tx-summary-label">Descripción:</span>
-            <span class="tx-summary-value">${escapeHtml(transaction.description || '-')}</span>
-          </div>
-          <div class="tx-summary-item">
-            <span class="tx-summary-label">Monto:</span>
-            <span class="tx-summary-value">${formatCurrency(Math.abs(transaction.amount), transaction.currency)}</span>
-          </div>
-          <div class="tx-summary-item">
-            <span class="tx-summary-label">Fecha:</span>
-            <span class="tx-summary-value">${formatDate(transaction.transaction_date)}</span>
+        <!-- Transaction Summary Card -->
+        <div class="transaction-summary-card">
+          <div class="tx-card-row">
+            <div class="tx-card-col">
+              <span class="tx-card-label">Descripción</span>
+              <span class="tx-card-value tx-card-value-primary">${escapeHtml(transaction.description || '-')}</span>
+            </div>
+            <div class="tx-card-col">
+              <span class="tx-card-label">Monto</span>
+              <span class="tx-card-value tx-card-value-amount">${formatCurrency(Math.abs(transaction.amount), transaction.currency)}</span>
+            </div>
+            <div class="tx-card-col">
+              <span class="tx-card-label">Fecha</span>
+              <span class="tx-card-value">${formatDate(transaction.transaction_date)}</span>
+            </div>
           </div>
         </div>
 
         ${matches.length > 0 ? `
-          <div class="suggested-services">
-            <h4>Servicios sugeridos (auto-detectados)</h4>
-            <div class="services-list">
+          <div class="services-section">
+            <div class="services-section-header">
+              <h4 class="services-section-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                Sugeridos
+              </h4>
+              <span class="services-section-count">${matches.length}</span>
+            </div>
+            <div class="services-grid">
               ${matches.map(match => `
-                <div class="service-match-item" onclick="linkTransactionToServiceFromTx('${transactionId}', '${match.id}', ${match.confidence})">
-                  <div class="service-match-info">
-                    <div class="service-match-name">${escapeHtml(match.name)}</div>
-                    <div class="service-match-meta">
-                      ${match.frequency ? `<span class="service-frequency">${formatFrequency(match.frequency)}</span>` : ''}
-                      ${match.estimated_amount ? `<span class="service-amount">~${formatCurrency(match.estimated_amount, match.currency)}</span>` : ''}
-                    </div>
-                  </div>
-                  <div class="service-match-confidence">
+                <div class="service-card service-card-suggested" onclick="linkTransactionToServiceFromTx('${transactionId}', '${match.id}', ${match.confidence})">
+                  <div class="service-card-header">
+                    <div class="service-card-name">${escapeHtml(match.name)}</div>
                     <span class="confidence-badge ${match.confidence >= 75 ? 'high' : match.confidence >= 50 ? 'medium' : 'low'}">
-                      ${match.confidence}% match
+                      ${match.confidence}%
                     </span>
+                  </div>
+                  <div class="service-card-meta">
+                    ${match.frequency ? `<span class="service-meta-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>${formatFrequency(match.frequency)}</span>` : ''}
+                    ${match.estimated_amount ? `<span class="service-meta-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>~${formatCurrency(match.estimated_amount, match.currency)}</span>` : ''}
                   </div>
                 </div>
               `).join('')}
@@ -1937,10 +1951,30 @@ async function openAssociateServiceModal(transactionId) {
           </div>
         ` : ''}
 
-        <div class="all-services">
-          <h4>Todos los servicios</h4>
-          <div id="all-services-list" class="services-list">
-            <div class="loading-small-inline">Cargando servicios...</div>
+        <div class="services-section">
+          <div class="services-section-header">
+            <h4 class="services-section-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              Todos los servicios
+            </h4>
+            <button class="btn-create-service" onclick="openCreateServiceFromTransaction('${transactionId}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Crear nuevo
+            </button>
+          </div>
+          <div id="all-services-list" class="services-grid">
+            <div class="loading-services">
+              <div class="spinner-small"></div>
+              <span>Cargando servicios...</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1968,22 +2002,49 @@ async function loadAllServicesForLinking(transactionId) {
 
     if (result.success && result.services.length > 0) {
       listEl.innerHTML = result.services.map(service => `
-        <div class="service-item" onclick="linkTransactionToServiceFromTx('${transactionId}', '${service.id}', 100)">
-          <div class="service-item-info">
-            <div class="service-item-name">${escapeHtml(service.name)}</div>
-            <div class="service-item-meta">
-              ${service.frequency ? `<span class="service-frequency">${formatFrequency(service.frequency)}</span>` : ''}
-              ${service.estimated_amount ? `<span class="service-amount">~${formatCurrency(service.estimated_amount, service.currency)}</span>` : ''}
-            </div>
+        <div class="service-card" onclick="linkTransactionToServiceFromTx('${transactionId}', '${service.id}', 100)">
+          <div class="service-card-header">
+            <div class="service-card-name">${escapeHtml(service.name)}</div>
+          </div>
+          <div class="service-card-meta">
+            ${service.frequency ? `<span class="service-meta-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>${formatFrequency(service.frequency)}</span>` : ''}
+            ${service.estimated_amount ? `<span class="service-meta-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>~${formatCurrency(service.estimated_amount, service.currency)}</span>` : ''}
           </div>
         </div>
       `).join('');
     } else {
-      listEl.innerHTML = '<div class="empty-state">No hay servicios creados</div>';
+      listEl.innerHTML = `
+        <div class="empty-state-services">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <p>No hay servicios creados</p>
+          <button class="btn-primary btn-sm" onclick="openCreateServiceFromTransaction('${transactionId}')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Crear primer servicio
+          </button>
+        </div>
+      `;
     }
   } catch (error) {
     console.error('Error loading services:', error);
-    listEl.innerHTML = '<div class="error-text">Error al cargar servicios</div>';
+    listEl.innerHTML = `
+      <div class="empty-state-services error">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="15" y1="9" x2="9" y2="15"></line>
+          <line x1="9" y1="9" x2="15" y2="15"></line>
+        </svg>
+        <p>Error al cargar servicios</p>
+        <button class="btn-secondary btn-sm" onclick="loadAllServicesForLinking('${transactionId}')">Reintentar</button>
+      </div>
+    `;
   }
 }
 
@@ -2021,6 +2082,32 @@ async function linkTransactionToServiceFromTx(transactionId, serviceId, confiden
   } catch (error) {
     console.error('Error linking transaction:', error);
     showNotification('Error al vincular la transacción', 'error');
+  }
+}
+
+// Global variable to store pending transaction to link after service creation
+window.pendingTransactionToLink = null;
+
+// Open create service modal from transaction association
+function openCreateServiceFromTransaction(transactionId) {
+  // Store the transaction ID to link after service creation
+  window.pendingTransactionToLink = transactionId;
+
+  // Close the association modal
+  const modal = document.querySelector('.modal-overlay');
+  if (modal) modal.remove();
+
+  // Open the create service modal
+  if (typeof openAddServiceModal === 'function') {
+    openAddServiceModal();
+  } else {
+    // If services.js is not loaded, navigate to services section
+    window.location.hash = '#servicios';
+    setTimeout(() => {
+      if (typeof openAddServiceModal === 'function') {
+        openAddServiceModal();
+      }
+    }, 500);
   }
 }
 

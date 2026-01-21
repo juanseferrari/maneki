@@ -3786,6 +3786,60 @@ h2 {
   box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.1);
 }
 
+/* Modern Date Picker Styles */
+input[type="date"] {
+  position: relative;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+  margin-left: 0.5rem;
+}
+
+input[type="date"]:hover::-webkit-calendar-picker-indicator {
+  opacity: 1;
+}
+
+input[type="date"]::-webkit-datetime-edit {
+  padding: 0;
+}
+
+input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+
+input[type="date"]::-webkit-datetime-edit-text {
+  color: var(--text-secondary);
+  padding: 0 0.25rem;
+}
+
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-year-field {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+input[type="date"]::-webkit-datetime-edit-month-field:focus,
+input[type="date"]::-webkit-datetime-edit-day-field:focus,
+input[type="date"]::-webkit-datetime-edit-year-field:focus {
+  background: rgba(99, 91, 255, 0.1);
+  color: var(--primary-color);
+  border-radius: 4px;
+  outline: none;
+}
+
+/* Placeholder styling for empty dates */
+input[type="date"]:invalid {
+  color: var(--text-tertiary);
+}
+
 .filter-actions {
   margin-left: auto;
 }
@@ -4096,6 +4150,15 @@ h2 {
 .action-btn.create-service-btn:hover {
   background: rgba(139, 92, 246, 0.1);
   color: #8B5CF6;
+}
+
+.action-btn.service-linked-btn {
+  color: #10B981;
+}
+
+.action-btn.service-linked-btn:hover {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
 }
 
 .action-btn.delete-transaction-btn {
@@ -6928,4 +6991,383 @@ h2 {
 .error-text {
   color: #DC2626;
   font-size: 12px;
+}
+
+/* ========================================
+   ASSOCIATION MODAL - IMPROVED DESIGN
+   ======================================== */
+
+/* Association Modal Container */
+.associate-service-modal {
+  max-width: 700px;
+  width: 95%;
+}
+
+/* Transaction Summary Card */
+.transaction-summary-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.tx-card-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+}
+
+.tx-card-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tx-card-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+}
+
+.tx-card-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.tx-card-value-primary {
+  font-weight: 600;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tx-card-value-amount {
+  font-size: 16px;
+  font-weight: 700;
+  color: #3b82f6;
+}
+
+/* Services Section */
+.services-section {
+  margin-bottom: 28px;
+}
+
+.services-section:last-child {
+  margin-bottom: 0;
+}
+
+.services-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.services-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.services-section-title svg {
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.services-section-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  background: #3b82f6;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 12px;
+}
+
+/* Create Service Button */
+.btn-create-service {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.btn-create-service:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-create-service:active {
+  transform: translateY(0);
+}
+
+.btn-create-service svg {
+  flex-shrink: 0;
+}
+
+/* Services Grid */
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+/* Service Card */
+.service-card {
+  background: white;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.service-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.service-card:hover {
+  border-color: #3b82f6;
+  background: #f8fafc;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.service-card:hover::before {
+  opacity: 1;
+}
+
+.service-card-suggested {
+  border-color: #22c55e;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+}
+
+.service-card-suggested::before {
+  background: linear-gradient(90deg, #22c55e, #10b981);
+}
+
+.service-card-suggested:hover {
+  border-color: #16a34a;
+  background: #ecfdf5;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+}
+
+.service-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.service-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.service-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.service-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #6b7280;
+  padding: 4px 8px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.service-card-suggested .service-meta-item {
+  background: white;
+  border-color: #d1fae5;
+}
+
+.service-meta-item svg {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+}
+
+/* Confidence Badge */
+.confidence-badge {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.3px;
+}
+
+.confidence-badge.high {
+  background: #22c55e;
+  color: white;
+}
+
+.confidence-badge.medium {
+  background: #f59e0b;
+  color: white;
+}
+
+.confidence-badge.low {
+  background: #6b7280;
+  color: white;
+}
+
+/* Empty State for Services */
+.empty-state-services {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  background: #f9fafb;
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  gap: 16px;
+}
+
+.empty-state-services svg {
+  color: #9ca3af;
+  opacity: 0.5;
+}
+
+.empty-state-services p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.empty-state-services .btn-primary {
+  margin-top: 8px;
+}
+
+/* Loading Services State */
+.loading-services {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  gap: 12px;
+}
+
+.loading-services span {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.spinner-small {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Error State for Services */
+.error-state-services {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  text-align: center;
+  gap: 16px;
+}
+
+.error-state-services svg {
+  color: #ef4444;
+}
+
+.error-state-services p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #dc2626;
+}
+
+.error-state-services .btn-secondary {
+  margin-top: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .tx-card-row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .services-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .associate-service-modal {
+    width: 98%;
+    max-height: 90vh;
+  }
+
+  .modal-body {
+    padding: 16px;
+  }
+
+  .services-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .btn-create-service {
+    width: 100%;
+    justify-content: center;
+  }
 }
