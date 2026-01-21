@@ -416,7 +416,10 @@ class RecurringServicesService {
 
     let query = this.supabase
       .from('recurring_services')
-      .select('*')
+      .select(`
+        *,
+        category_data:categories(id, name, color, icon)
+      `)
       .eq('user_id', userId)
       .order('next_expected_date', { ascending: true });
 
@@ -427,6 +430,17 @@ class RecurringServicesService {
     const { data: services, error } = await query;
 
     if (error) throw error;
+
+    // Flatten category data for easier frontend use
+    if (services) {
+      services.forEach(service => {
+        if (service.category_data) {
+          service.category_name = service.category_data.name;
+          service.category_color = service.category_data.color;
+          service.category_icon = service.category_data.icon;
+        }
+      });
+    }
 
     // Optionally include recent payments
     if (includePayments && services.length > 0) {
@@ -471,7 +485,8 @@ class RecurringServicesService {
       name: serviceData.name,
       normalized_name: this.normalizeText(serviceData.name),
       description: serviceData.description,
-      category: serviceData.category || 'other',
+      category_id: serviceData.category_id || null, // Use category_id (UUID) instead of category text
+      category: serviceData.category || 'other', // Keep old field for backward compatibility
       frequency: serviceData.frequency || 'monthly',
       typical_day_of_month: serviceData.typical_day_of_month,
       estimated_amount: serviceData.estimated_amount,
@@ -519,8 +534,12 @@ class RecurringServicesService {
       updates.normalized_name = this.normalizeText(updates.name);
     }
 
-    // Update color if category changed
-    if (updates.category && !updates.color) {
+    // Allow updating category_id (preferred) or old category field
+    if (updates.category_id !== undefined) {
+      // User provided category_id, use it
+      // color will be handled by frontend or set to null to inherit from category
+    } else if (updates.category && !updates.color) {
+      // Old field provided, update color for backward compatibility
       updates.color = this.categoryColors[updates.category] || this.categoryColors.other;
     }
 

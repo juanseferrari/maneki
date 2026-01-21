@@ -2,18 +2,40 @@
 // CATEGORIES MODULE - Frontend JS
 // =============================================
 
-// State
-let categoriesData = [];
+// Shared global state (can be accessed by other modules)
+if (!window.categoriesGlobalData) {
+  window.categoriesGlobalData = [];
+}
+let categoriesData = window.categoriesGlobalData;
 let currentCategoryId = null;
 const MAX_CATEGORIES = 30;
+let isCategoriesLoading = false; // Prevent duplicate calls
 
 // Initialize categories when section becomes visible
 function initializeCategories() {
-  loadCategories();
+  // Only load if not already loading or loaded
+  if (!isCategoriesLoading && categoriesData.length === 0) {
+    loadCategories();
+  } else if (categoriesData.length > 0) {
+    // Just render if already loaded
+    renderCategoriesList();
+    const countEl = document.getElementById('categories-count');
+    if (countEl) {
+      countEl.textContent = `${categoriesData.length} / ${MAX_CATEGORIES} categorías`;
+    }
+  }
 }
 
 // Load all categories from API
 async function loadCategories() {
+  // Prevent duplicate calls
+  if (isCategoriesLoading) {
+    console.log('[Categories] Already loading, skipping...');
+    return;
+  }
+
+  isCategoriesLoading = true;
+
   const loadingEl = document.getElementById('categories-loading');
   const emptyEl = document.getElementById('categories-empty');
   const listEl = document.getElementById('categories-list');
@@ -27,6 +49,7 @@ async function loadCategories() {
   }
 
   try {
+    console.log('[Categories] Fetching from API...');
     const headers = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
 
     const response = await fetch('/api/categories', { headers });
@@ -42,7 +65,10 @@ async function loadCategories() {
       throw new Error(data.error || 'Error loading categories');
     }
 
-    categoriesData = data.categories || [];
+    // Update global array while maintaining reference
+    window.categoriesGlobalData.length = 0; // Clear existing
+    window.categoriesGlobalData.push(...(data.categories || [])); // Add new categories
+    console.log('[Categories] Loaded', categoriesData.length, 'categories');
 
     // Update count
     if (countEl) {
@@ -63,6 +89,7 @@ async function loadCategories() {
     }
   } finally {
     if (loadingEl) loadingEl.style.display = 'none';
+    isCategoriesLoading = false; // Reset flag to allow future loads
   }
 }
 

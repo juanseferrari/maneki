@@ -6,6 +6,14 @@
 let servicesData = [];
 let currentServiceId = null;
 
+// Use shared global categories array (defined in categories.js)
+// Ensure the global array exists
+if (!window.categoriesGlobalData) {
+  window.categoriesGlobalData = [];
+}
+// Note: categoriesData is declared in categories.js as window.categoriesGlobalData
+// We access it directly via window.categoriesGlobalData to avoid redeclaration
+
 // Category colors mapping
 const categoryColors = {
   streaming: '#E91E63',
@@ -177,7 +185,8 @@ function renderServiceLogo(service, size = 60) {
 // =============================================
 
 async function initServicesModule() {
-  // Load services when section becomes visible
+  // Load categories first, then services
+  await loadCategories();
   await loadServices();
 
   // Add click-outside-to-close for detected modal
@@ -198,6 +207,62 @@ async function initServicesModule() {
         closeServiceModal();
       }
     });
+  }
+}
+
+/**
+ * Load categories from API
+ */
+async function loadCategories() {
+  try {
+    const headers = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
+    const response = await fetch('/api/categories', { headers });
+
+    if (!response.ok) {
+      throw new Error('Error loading categories');
+    }
+
+    const data = await response.json();
+
+    // Update global array while maintaining reference
+    window.categoriesGlobalData.length = 0; // Clear existing
+    window.categoriesGlobalData.push(...(data.categories || [])); // Add new categories
+
+    // Populate category dropdown in the modal
+    populateCategoryDropdown();
+
+  } catch (error) {
+    console.error('Error loading categories:', error);
+    // Clear array on error
+    window.categoriesGlobalData.length = 0;
+  }
+}
+
+/**
+ * Populate the category dropdown in the service modal
+ */
+function populateCategoryDropdown() {
+  const dropdown = document.getElementById('service-category');
+  if (!dropdown) return;
+
+  // Clear existing options
+  dropdown.innerHTML = '';
+
+  // Add categories from database
+  window.categoriesGlobalData.forEach(category => {
+    const option = document.createElement('option');
+    option.value = category.id; // Use UUID instead of text
+    option.textContent = category.name;
+    option.setAttribute('data-color', category.color);
+    dropdown.appendChild(option);
+  });
+
+  // If no categories, add a default option
+  if (window.categoriesGlobalData.length === 0) {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = 'Sin categoría';
+    dropdown.appendChild(option);
   }
 }
 
@@ -283,7 +348,10 @@ function renderServicesList() {
     tableBody.innerHTML = filteredServices.map(service => {
       const statusLabel = statusLabels[service.status] || service.status || 'Activo';
       const statusClass = service.status || 'active';
-      const categoryColor = service.color || categoryColors[service.category] || '#607D8B';
+
+      // Use category data from JOIN (category_name, category_color) or fallback to old fields
+      const categoryName = service.category_name || categoryLabels[service.category] || service.category || 'Otro';
+      const categoryColor = service.category_color || service.color || categoryColors[service.category] || '#607D8B';
 
       return `
         <tr class="service-row ${statusClass}" onclick="openServiceDetail('${service.id}')">
@@ -295,7 +363,7 @@ function renderServicesList() {
           </td>
           <td>
             <span class="service-category-badge" style="background: ${categoryColor}20; color: ${categoryColor}">
-              ${categoryLabels[service.category] || service.category || 'Otro'}
+              ${categoryName}
             </span>
           </td>
           <td>${frequencyLabels[service.frequency] || service.frequency}</td>
@@ -354,6 +422,10 @@ function openAddServiceModal() {
   document.getElementById('service-form').reset();
   document.getElementById('service-id').value = '';
   document.getElementById('service-color').value = '#607D8B';
+
+  // Populate category dropdown
+  populateCategoryDropdown();
+
   document.getElementById('service-modal').classList.add('active');
 }
 
@@ -365,7 +437,14 @@ function openEditServiceModal(serviceId) {
   document.getElementById('service-modal-title').textContent = 'Editar Servicio';
   document.getElementById('service-id').value = service.id;
   document.getElementById('service-name').value = service.name || '';
-  document.getElementById('service-category').value = service.category || 'other';
+
+  // Populate category dropdown before setting value
+  populateCategoryDropdown();
+
+  // Use category_id if available, otherwise fall back to category text
+  const categoryValue = service.category_id || service.category || '';
+  document.getElementById('service-category').value = categoryValue;
+
   document.getElementById('service-frequency').value = service.frequency || 'monthly';
   document.getElementById('service-day').value = service.typical_day_of_month || '';
   document.getElementById('service-amount').value = service.estimated_amount || '';
@@ -385,9 +464,11 @@ function closeServiceModal() {
 async function saveService(event) {
   event.preventDefault();
 
+  const categoryValue = document.getElementById('service-category').value;
+
   const serviceData = {
     name: document.getElementById('service-name').value,
-    category: document.getElementById('service-category').value,
+    category_id: categoryValue || null, // Use category_id (UUID)
     frequency: document.getElementById('service-frequency').value,
     typical_day_of_month: parseInt(document.getElementById('service-day').value) || null,
     estimated_amount: parseFloat(document.getElementById('service-amount').value) || null,
@@ -424,9 +505,50 @@ async function saveService(event) {
       throw new Error(data.error || 'Error saving service');
     }
 
+    const result = await response.json();
+    const createdServiceId = serviceId || result.service?.id;
+
     closeServiceModal();
     await loadServices();
-    showNotification(serviceId ? 'Servicio actualizado' : 'Servicio creado', 'success');
+
+    // If there's a pending transaction to link (from transaction detail)
+    if (!serviceId && window.pendingTransactionToLink && createdServiceId) {
+      try {
+        // Automatically link the transaction to the newly created service
+        const linkResponse = await fetch(`/api/services/${createdServiceId}/payments`, {
+          method: 'POST',
+          headers: { ...authHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            transaction_id: window.pendingTransactionToLink,
+            matched_by: 'manual',
+            match_confidence: 100
+          })
+        });
+
+        const linkResult = await linkResponse.json();
+
+        if (linkResult.success) {
+          showNotification('Servicio creado y transacción vinculada correctamente', 'success');
+
+          // Reload the transaction detail if the function exists
+          if (typeof showTransactionDetail === 'function') {
+            showTransactionDetail(window.pendingTransactionToLink);
+          }
+        } else {
+          showNotification('Servicio creado, pero error al vincular transacción', 'warning');
+        }
+
+        // Clear pending transaction
+        window.pendingTransactionToLink = null;
+
+      } catch (linkError) {
+        console.error('Error linking transaction to new service:', linkError);
+        showNotification('Servicio creado, pero error al vincular transacción', 'warning');
+        window.pendingTransactionToLink = null;
+      }
+    } else {
+      showNotification(serviceId ? 'Servicio actualizado' : 'Servicio creado', 'success');
+    }
 
   } catch (error) {
     console.error('Error saving service:', error);
@@ -468,6 +590,10 @@ async function openServiceDetail(serviceId) {
   const statusLabel = statusLabels[service.status] || service.status || 'Activo';
   const statusClass = service.status || 'active';
 
+  // Use category data from JOIN or fallback
+  const categoryName = service.category_name || categoryLabels[service.category] || service.category || 'Otro';
+  const categoryColor = service.category_color || service.color || categoryColors[service.category] || '#607D8B';
+
   sidebarContent.innerHTML = `
     <div class="service-detail-sidebar">
       <!-- Header with logo -->
@@ -482,8 +608,16 @@ async function openServiceDetail(serviceId) {
             </svg>
           </h2>
           <div class="service-detail-meta">
-            <span class="service-category-badge" style="background: ${categoryColors[service.category] || categoryColors.other}20; color: ${categoryColors[service.category] || categoryColors.other}">
-              ${categoryLabels[service.category] || service.category || 'Otro'}
+            <span class="service-category-badge editable-service-field"
+                  style="background: ${categoryColor}20; color: ${categoryColor}; cursor: pointer;"
+                  onclick="editServiceCategory('${service.id}', this)"
+                  data-category-id="${service.category_id || ''}"
+                  data-category-name="${categoryName}">
+              ${categoryName}
+              <svg class="edit-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-left: 6px; opacity: 0.7;">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
             </span>
             <span class="service-frequency-badge">${frequencyLabels[service.frequency] || service.frequency}</span>
           </div>
@@ -885,6 +1019,128 @@ async function editServiceField(serviceId, fieldName, element) {
       await loadServices();
     }
   });
+}
+
+/**
+ * Edit service category with custom dropdown selector
+ */
+async function editServiceCategory(serviceId, element) {
+  const currentCategoryId = element.getAttribute('data-category-id') || '';
+
+  // Use the badge element itself as the container
+  const categoryDisplay = element;
+
+  // Sort categories alphabetically
+  const sortedCategories = [...window.categoriesGlobalData].sort((a, b) => {
+    return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+  });
+
+  // Create custom dropdown
+  const dropdown = document.createElement('div');
+  dropdown.className = 'category-edit-dropdown';
+  dropdown.innerHTML = `
+    <div class="category-edit-search">
+      <input type="text" placeholder="Buscar categoría..." class="category-search-input" />
+    </div>
+    <div class="category-edit-options">
+      ${sortedCategories.map(cat => `
+        <div class="category-edit-option ${cat.id === currentCategoryId ? 'selected' : ''}" data-category-id="${cat.id}">
+          <span class="category-dot" style="background: ${cat.color}"></span>
+          <span>${cat.name}</span>
+        </div>
+      `).join('')}
+      <div class="category-edit-option ${!currentCategoryId ? 'selected' : ''}" data-category-id="">
+        <span class="category-dot" style="background: #9CA3AF"></span>
+        <span>Sin categoría</span>
+      </div>
+    </div>
+  `;
+
+  const originalHTML = categoryDisplay.innerHTML;
+  categoryDisplay.innerHTML = '';
+  categoryDisplay.appendChild(dropdown);
+
+  const searchInput = dropdown.querySelector('.category-search-input');
+  const options = dropdown.querySelectorAll('.category-edit-option');
+
+  // Focus search input
+  setTimeout(() => searchInput.focus(), 10);
+
+  // Search functionality
+  searchInput.addEventListener('input', (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    options.forEach(option => {
+      const text = option.textContent.toLowerCase();
+      option.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+    });
+  });
+
+  // Click outside to close
+  const closeDropdown = (e) => {
+    if (!categoryDisplay.contains(e.target)) {
+      categoryDisplay.innerHTML = originalHTML;
+      document.removeEventListener('click', closeDropdown);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', closeDropdown), 10);
+
+  // Category selection
+  options.forEach(option => {
+    option.addEventListener('click', async () => {
+      const newCategoryId = option.getAttribute('data-category-id');
+
+      // If unchanged, just close
+      if (newCategoryId === currentCategoryId) {
+        categoryDisplay.innerHTML = originalHTML;
+        document.removeEventListener('click', closeDropdown);
+        return;
+      }
+
+      // Show loading
+      categoryDisplay.innerHTML = '<div class="spinner"></div>';
+      document.removeEventListener('click', closeDropdown);
+
+      try {
+        const headers = await getAuthHeaders();
+        const response = await fetch(`/api/services/${serviceId}`, {
+          method: 'PUT',
+          headers: {
+            ...headers,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ category_id: newCategoryId || null })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || 'Error desconocido');
+        }
+
+        // Reload service detail
+        await openServiceDetail(serviceId);
+        showNotification('Categoría actualizada correctamente', 'success');
+
+      } catch (error) {
+        categoryDisplay.innerHTML = originalHTML;
+        console.error('Error updating category:', error);
+        showNotification('Error al actualizar categoría: ' + error.message, 'error');
+      }
+    });
+  });
+
+  // Escape key to cancel
+  const handleEscape = (e) => {
+    if (e.key === 'Escape') {
+      categoryDisplay.innerHTML = originalHTML;
+      document.removeEventListener('click', closeDropdown);
+      document.removeEventListener('keydown', handleEscape);
+    }
+  };
+  document.addEventListener('keydown', handleEscape);
 }
 
 // =============================================

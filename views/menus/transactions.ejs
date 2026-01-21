@@ -106,6 +106,32 @@
           </div>
         </div>
       </div>
+
+      <!-- File Filter -->
+      <div class="filter-group filter-dropdown-group">
+        <button type="button" class="filter-dropdown-btn" id="filter-file-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>
+          <span id="filter-file-label">Archivo</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-arrow">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+        <div class="filter-dropdown-menu" id="filter-file-menu" style="display: none;">
+          <div class="filter-dropdown-search">
+            <input type="text" id="filter-file-search" placeholder="Buscar archivo..." />
+          </div>
+          <div class="filter-dropdown-options" id="filter-file-options">
+            <label class="filter-dropdown-option">
+              <input type="checkbox" value="" data-file-all>
+              <span>Todos los archivos</span>
+            </label>
+            <!-- Files will be loaded dynamically -->
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Active Filters Pills -->
