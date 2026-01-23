@@ -76,12 +76,18 @@ class ProcessorService {
       console.log('[Processor] Step 4: Saving transactions to database...');
       // Use bank name from extraction result, or fall back to classifier detection
       const bankName = extractionResult.bankName || classification.bank.name;
-      await supabaseService.saveTransactions(
+      const saveResult = await supabaseService.saveTransactions(
         fileId,
         extractionResult.transactions,
         fileMetadata.user_id, // Pass user_id from file metadata
         bankName // Pass bank name to save with each transaction
       );
+
+      // Log duplicate statistics
+      if (saveResult.duplicatesSkipped > 0) {
+        console.log(`[Processor] Duplicates detected: ${saveResult.duplicatesSkipped} transactions were skipped`);
+        console.log(`[Processor] Inserted: ${saveResult.inserted.length} new transactions`);
+      }
 
       // Step 5: Update file metadata
       console.log('[Processor] Step 5: Updating file metadata...');
@@ -93,12 +99,21 @@ class ProcessorService {
         processing_completed_at: new Date().toISOString()
       });
 
+      // Log duplicate statistics for visibility
+      console.log(`[Processor] Final statistics:`, {
+        total_extracted: extractionResult.totalTransactions,
+        transactions_inserted: saveResult.inserted.length,
+        duplicates_skipped: saveResult.duplicatesSkipped
+      });
+
       console.log(`[Processor] Successfully processed file: ${fileMetadata.original_name}`);
 
       return {
         success: true,
         fileId,
         totalTransactions: extractionResult.totalTransactions,
+        transactionsInserted: saveResult.inserted.length,
+        duplicatesSkipped: saveResult.duplicatesSkipped,
         confidenceScore: extractionResult.confidenceScore,
         bankName: extractionResult.bankName
       };

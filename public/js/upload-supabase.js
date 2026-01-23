@@ -400,8 +400,13 @@ async function uploadFile(file) {
       showMessage('Archivo subido correctamente. Procesando...', 'success');
       fileInput.value = '';
 
+      // Store the file ID to check for duplicates later
+      const uploadedFileId = result.file.id;
+
       setTimeout(() => {
         loadDashboardData();
+        // Check processing status after a delay to show duplicate notification
+        checkForDuplicatesNotification(uploadedFileId);
       }, 1000);
     } else {
       showMessage(result.error || 'Error al subir archivo', 'error');
@@ -2592,7 +2597,7 @@ async function showFileDetail(fileId) {
           ` : ''}
 
           ${file.document_type !== 'vep' && transactionCount > 0 ? `
-            <button class="file-action-btn" onclick="viewFileTransactions('${file.id}')">
+            <button class="file-action-btn" onclick="viewFileTransactions('${file.id}', '${escapeHtml(file.original_name)}')">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="1" x2="12" y2="23"></line>
                 <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
@@ -2662,10 +2667,35 @@ function downloadFile(fileId, fileName) {
   window.location.href = `/api/files/${fileId}/download`;
 }
 
-function viewFileTransactions(fileId) {
+function viewFileTransactions(fileId, fileName) {
   closeRightSidebar();
   showSection('transacciones');
-  // TODO: Add filter for specific file
+
+  // Wait for section to be visible, then apply file filter
+  setTimeout(() => {
+    // Uncheck "all files" checkbox
+    const allFilesCheckbox = document.querySelector('#filter-file-options input[data-file-all]');
+    if (allFilesCheckbox) {
+      allFilesCheckbox.checked = false;
+    }
+
+    // Uncheck all file checkboxes first
+    const fileCheckboxes = document.querySelectorAll('#filter-file-options input[type="checkbox"]:not([data-file-all])');
+    fileCheckboxes.forEach(cb => cb.checked = false);
+
+    // Find and check the specific file checkbox
+    fileCheckboxes.forEach(cb => {
+      if (cb.value === fileId) {
+        cb.checked = true;
+      }
+    });
+
+    // Update the file filter label
+    updateFileLabel();
+
+    // Apply the filters
+    filterTransactions();
+  }, 300);
 }
 
 // ========================================
@@ -4156,4 +4186,58 @@ function removeFilterByType(filterType) {
   // Reload transactions with updated filters
   filterTransactions();
 }
+
+// ========================================
+// DUPLICATE DETECTION NOTIFICATION
+// ========================================
+
+/**
+ * Check if file processing completed with duplicates and show notification
+ * @param {string} fileId - The file ID to check
+ */
+async function checkForDuplicatesNotification(fileId) {
+  let attempts = 0;
+  const maxAttempts = 20; // Check for up to 20 seconds
+  const checkInterval = 1000; // Check every second
+
+  const intervalId = setInterval(async () => {
+    attempts++;
+
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(`/api/files/${fileId}`, { headers });
+      const result = await response.json();
+
+      if (result.success && result.file) {
+        const file = result.file;
+
+        // If processing is complete
+        if (file.processing_status === 'completed') {
+          clearInterval(intervalId);
+
+          // Show success notification
+          const transactionCount = file.transaction_count || 0;
+          if (transactionCount > 0) {
+            showNotification(
+              `Archivo procesado exitosamente: ${transactionCount} transacciones importadas.`,
+              'success'
+            );
+          }
+        } else if (file.processing_status === 'failed') {
+          clearInterval(intervalId);
+          showNotification('Error al procesar el archivo.', 'error');
+        }
+      }
+
+      // Stop checking after max attempts
+      if (attempts >= maxAttempts) {
+        clearInterval(intervalId);
+      }
+    } catch (error) {
+      console.error('Error checking file status:', error);
+      // Don't stop on error, keep trying
+    }
+  }, checkInterval);
+}
+
 // ========================================

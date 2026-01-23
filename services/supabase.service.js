@@ -212,7 +212,60 @@ class SupabaseService {
    */
   async saveTransactions(fileId, transactions, userId = null, bankName = null) {
     try {
-      const transactionsData = transactions.map(t => ({
+      // Step 1: Collect all reference_numbers that are not null/empty
+      const referenceNumbers = transactions
+        .map(t => t.reference_number)
+        .filter(ref => ref && ref.trim() !== '');
+
+      let existingReferenceNumbers = new Set();
+      let duplicateCount = 0;
+
+      // Step 2: If there are reference numbers, check for duplicates in DB
+      if (referenceNumbers.length > 0 && userId) {
+        console.log(`[Supabase] Checking for duplicate reference numbers (${referenceNumbers.length} to check)...`);
+
+        const { data: existingTransactions, error: checkError } = await this.supabase
+          .from('transactions')
+          .select('reference_number')
+          .eq('user_id', userId)
+          .in('reference_number', referenceNumbers);
+
+        if (checkError) {
+          console.warn('[Supabase] Error checking duplicates, proceeding without validation:', checkError);
+        } else if (existingTransactions && existingTransactions.length > 0) {
+          existingReferenceNumbers = new Set(existingTransactions.map(t => t.reference_number));
+          duplicateCount = existingReferenceNumbers.size;
+          console.log(`[Supabase] Found ${duplicateCount} duplicate reference numbers`);
+        }
+      }
+
+      // Step 3: Filter out transactions with duplicate reference_numbers
+      const transactionsToInsert = transactions.filter(t => {
+        // If transaction has no reference_number, always include it
+        if (!t.reference_number || t.reference_number.trim() === '') {
+          return true;
+        }
+        // If reference_number exists in DB, exclude it
+        if (existingReferenceNumbers.has(t.reference_number)) {
+          return false;
+        }
+        return true;
+      });
+
+      const skippedCount = transactions.length - transactionsToInsert.length;
+      console.log(`[Supabase] Inserting ${transactionsToInsert.length} transactions (${skippedCount} duplicates skipped)`);
+
+      // Step 4: If no transactions to insert, return early with stats
+      if (transactionsToInsert.length === 0) {
+        return {
+          inserted: [],
+          duplicatesSkipped: skippedCount,
+          totalProcessed: transactions.length
+        };
+      }
+
+      // Step 5: Prepare data for insertion
+      const transactionsData = transactionsToInsert.map(t => ({
         file_id: fileId,
         user_id: userId,
         transaction_date: t.transaction_date,
@@ -231,6 +284,7 @@ class SupabaseService {
         confidence_score: t.confidence_score
       }));
 
+      // Step 6: Insert non-duplicate transactions
       const { data, error } = await this.supabase
         .from('transactions')
         .insert(transactionsData)
@@ -240,7 +294,12 @@ class SupabaseService {
         throw error;
       }
 
-      return data;
+      // Step 7: Return inserted data with duplicate stats
+      return {
+        inserted: data,
+        duplicatesSkipped: skippedCount,
+        totalProcessed: transactions.length
+      };
     } catch (error) {
       console.error('Save transactions error:', error);
       throw new Error(`Failed to save transactions: ${error.message}`);
