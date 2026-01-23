@@ -777,7 +777,7 @@ app.put('/api/transactions/:transactionId/notes', devAuth, async (req, res) => {
 app.put('/api/transactions/:id', devAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const allowedFields = ['description', 'notes', 'merchant'];
+    const allowedFields = ['description', 'notes', 'merchant', 'transaction_date'];
     const updateData = {};
 
     // Only allow specific fields to be updated

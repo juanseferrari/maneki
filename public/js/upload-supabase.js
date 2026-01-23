@@ -1697,13 +1697,19 @@ async function showTransactionDetail(transactionId) {
         </div>
 
         <div class="detail-info-grid">
-          <div class="detail-info-item">
-            <div class="detail-info-label">FECHA</div>
-            <div class="detail-info-value">${formatDate(t.transaction_date, {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric'
-            })}</div>
+          <div class="detail-info-item editable-field">
+            <div class="detail-info-label">FECHA <span style="font-size: 10px; color: #6B7280; font-weight: 400;">(DD-MM-AAAA)</span></div>
+            <div class="detail-info-value" id="date-display" onclick="editTransactionDate('${t.id}', '${t.transaction_date}', this)">
+              ${formatDate(t.transaction_date, {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+              })}
+              <svg class="edit-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </div>
           </div>
 
           <div class="detail-info-item editable-field">
@@ -2229,6 +2235,178 @@ async function editTransactionField(transactionId, fieldName, element) {
   input.addEventListener('blur', saveEdit);
   input.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
+      saveEdit();
+    } else if (e.key === 'Escape') {
+      element.innerHTML = originalHTML;
+    }
+  });
+}
+
+// Edit transaction date
+async function editTransactionDate(transactionId, currentDate, element) {
+  // Get current date in YYYY-MM-DD format (database format) and convert to DD-MM-YYYY for display
+  const [datePart] = currentDate.split('T');
+  const [year, month, day] = datePart.split('-');
+  const dateValueDB = `${year}-${month}-${day}`; // Database format YYYY-MM-DD
+  const dateValueDisplay = `${day}-${month}-${year}`; // Display format DD-MM-YYYY
+
+  // Create simple text input
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = dateValueDisplay; // Show in DD-MM-YYYY format
+  input.className = 'edit-input';
+  input.placeholder = 'DD-MM-AAAA';
+  input.maxLength = 10;
+  input.style.cssText = 'width: 100%; padding: 8px; border: 2px solid #3B82F6; border-radius: 4px;';
+
+  const originalHTML = element.innerHTML;
+  element.innerHTML = '';
+  element.appendChild(input);
+  input.focus();
+  input.select(); // Select all text for easy editing
+
+  // Auto-format as user types: DD-MM-YYYY with validation
+  input.addEventListener('input', (e) => {
+    let value = e.target.value;
+
+    // Remove all non-digits
+    let numbers = value.replace(/\D/g, '');
+
+    // Limit to 8 digits (DDMMYYYY)
+    if (numbers.length > 8) {
+      numbers = numbers.substring(0, 8);
+    }
+
+    let formatted = '';
+
+    // Add day (DD) - validate 01-31
+    if (numbers.length >= 1) {
+      let day = numbers.substring(0, 2);
+      if (numbers.length >= 2) {
+        let dayNum = parseInt(day);
+        if (dayNum > 31) day = '31';
+        if (dayNum < 1 && numbers.length === 2) day = '01';
+      }
+      formatted = day;
+    }
+
+    // Add first dash after day
+    if (numbers.length >= 3) {
+      formatted += '-';
+
+      // Add month (MM) - validate 01-12
+      let month = numbers.substring(2, 4);
+      if (numbers.length >= 4) {
+        let monthNum = parseInt(month);
+        if (monthNum > 12) month = '12';
+        if (monthNum < 1 && numbers.length === 4) month = '01';
+      }
+      formatted += month;
+    }
+
+    // Add second dash after month
+    if (numbers.length >= 5) {
+      formatted += '-';
+
+      // Add year (YYYY) - validate range 1900-2100
+      let year = numbers.substring(4, 8);
+      if (numbers.length >= 8) {
+        let yearNum = parseInt(year);
+        if (yearNum > 2100) year = '2100';
+        if (yearNum < 1900) year = '1900';
+      }
+      formatted += year;
+    }
+
+    e.target.value = formatted;
+  });
+
+  const saveEdit = async () => {
+    const inputValue = input.value.trim();
+
+    // Validate format DD-MM-YYYY
+    const datePattern = /^(\d{2})-(\d{2})-(\d{4})$/;
+    const match = inputValue.match(datePattern);
+
+    if (!match) {
+      alert('Formato de fecha inválido. Use DD-MM-AAAA');
+      element.innerHTML = originalHTML;
+      return;
+    }
+
+    const [, d, m, y] = match;
+
+    // Validate it's a real date
+    const testDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+    if (testDate.getFullYear() !== parseInt(y) ||
+        testDate.getMonth() !== parseInt(m) - 1 ||
+        testDate.getDate() !== parseInt(d)) {
+      alert('Fecha inválida');
+      element.innerHTML = originalHTML;
+      return;
+    }
+
+    // Convert DD-MM-YYYY to YYYY-MM-DD for database
+    const newDateValueDB = `${y}-${m}-${d}`;
+
+    // If date hasn't changed, restore original
+    if (newDateValueDB === dateValueDB) {
+      element.innerHTML = originalHTML;
+      return;
+    }
+
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(`/api/transactions/${transactionId}`, {
+        method: 'PUT',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ transaction_date: newDateValueDB }) // Send in YYYY-MM-DD format
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        // Format the new date for display (formatDate expects YYYY-MM-DD)
+        const formattedDate = formatDate(newDateValueDB, {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
+
+        // Update display
+        element.innerHTML = `
+          ${formattedDate}
+          <svg class="edit-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+        `;
+
+        // Update the transaction in the list (store in YYYY-MM-DD format)
+        const transaction = allTransactions.find(t => t.id === transactionId);
+        if (transaction) {
+          transaction.transaction_date = newDateValueDB;
+          displayTransactions(allTransactions);
+        }
+
+        showNotification('Fecha actualizada correctamente', 'success');
+      } else {
+        element.innerHTML = originalHTML;
+        alert('Error al actualizar: ' + (result.error || 'Error desconocido'));
+      }
+    } catch (error) {
+      element.innerHTML = originalHTML;
+      console.error('Error updating date:', error);
+      alert('Error al actualizar la fecha');
+    }
+  };
+
+  input.addEventListener('blur', saveEdit);
+  input.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
       saveEdit();
     } else if (e.key === 'Escape') {
       element.innerHTML = originalHTML;
