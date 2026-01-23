@@ -143,6 +143,11 @@ function renderCategoriesList() {
               ${category.description ? escapeHtml(category.description) : '<span class="text-muted">-</span>'}
             </td>
             <td class="category-actions-cell">
+              <button class="action-btn" onclick="openKeywordsModal('${category.id}')" title="Gestionar keywords">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 7h16M4 12h16M4 17h16"></path>
+                </svg>
+              </button>
               <button class="action-btn" onclick="openEditCategoryModal('${category.id}')" title="Editar">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -464,3 +469,200 @@ window.addEventListener('hashchange', () => {
 
 // Also expose initialization function globally for navigation
 window.initializeCategories = initializeCategories;
+
+// =============================================
+// KEYWORDS MANAGEMENT FUNCTIONS
+// =============================================
+
+let currentKeywordsCategoryId = null;
+let categoryRules = [];
+
+// Open keywords management modal
+async function openKeywordsModal(categoryId) {
+  const category = categoriesData.find(c => c.id === categoryId);
+  if (!category) return;
+
+  currentKeywordsCategoryId = categoryId;
+
+  const modal = document.getElementById('keywords-modal');
+  const title = document.getElementById('keywords-modal-title');
+  const loadingEl = document.getElementById('keywords-loading');
+  const contentEl = document.getElementById('keywords-content');
+
+  if (title) {
+    title.textContent = `Keywords: ${category.name}`;
+  }
+
+  if (modal) modal.classList.add('active');
+  if (loadingEl) loadingEl.style.display = 'flex';
+  if (contentEl) contentEl.style.display = 'none';
+
+  // Load keywords for this category
+  await loadCategoryKeywords(categoryId);
+}
+
+// Close keywords modal
+function closeKeywordsModal() {
+  const modal = document.getElementById('keywords-modal');
+  if (modal) modal.classList.remove('active');
+  currentKeywordsCategoryId = null;
+  categoryRules = [];
+}
+
+// Load keywords for a category
+async function loadCategoryKeywords(categoryId) {
+  const loadingEl = document.getElementById('keywords-loading');
+  const contentEl = document.getElementById('keywords-content');
+  const emptyEl = document.getElementById('keywords-empty');
+  const listEl = document.getElementById('keywords-list');
+
+  try {
+    const headers = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
+
+    const response = await fetch(`/api/category-rules/category/${categoryId}`, { headers });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Error loading keywords');
+    }
+
+    categoryRules = data.rules || [];
+
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (contentEl) contentEl.style.display = 'block';
+
+    renderKeywordsList();
+
+  } catch (error) {
+    console.error('Error loading keywords:', error);
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (contentEl) contentEl.style.display = 'block';
+    if (typeof showNotification === 'function') {
+      showNotification('Error al cargar keywords', 'error');
+    }
+  }
+}
+
+// Render keywords list
+function renderKeywordsList() {
+  const emptyEl = document.getElementById('keywords-empty');
+  const listEl = document.getElementById('keywords-list');
+
+  if (!listEl) return;
+
+  if (categoryRules.length === 0) {
+    if (emptyEl) emptyEl.style.display = 'flex';
+    listEl.style.display = 'none';
+    return;
+  }
+
+  if (emptyEl) emptyEl.style.display = 'none';
+  listEl.style.display = 'block';
+
+  // Sort by priority descending
+  const sortedRules = [...categoryRules].sort((a, b) => (b.priority || 0) - (a.priority || 0));
+
+  listEl.innerHTML = sortedRules.map(rule => `
+    <div class="keyword-item">
+      <span class="keyword-text">${escapeHtml(rule.keyword)}</span>
+      <button class="keyword-delete-btn" onclick="deleteKeyword('${rule.id}')" title="Eliminar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  `).join('');
+}
+
+// Add a new keyword
+async function addKeyword(event) {
+  event.preventDefault();
+
+  const keywordInput = document.getElementById('keyword-input');
+  const keyword = keywordInput?.value?.trim();
+
+  if (!keyword) {
+    if (typeof showNotification === 'function') {
+      showNotification('La palabra clave es requerida', 'error');
+    }
+    return;
+  }
+
+  try {
+    const headers = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
+    headers['Content-Type'] = 'application/json';
+
+    const response = await fetch('/api/category-rules', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        category_id: currentKeywordsCategoryId,
+        keyword,
+        match_field: 'both',        // Siempre buscar en ambos campos
+        priority: 0,                 // Prioridad por defecto
+        case_sensitive: false,       // Siempre case insensitive
+        is_regex: false              // No regex por defecto
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Error adding keyword');
+    }
+
+    // Reset form
+    if (keywordInput) keywordInput.value = '';
+
+    // Reload keywords
+    await loadCategoryKeywords(currentKeywordsCategoryId);
+
+    if (typeof showNotification === 'function') {
+      showNotification('Palabra clave agregada', 'success');
+    }
+
+  } catch (error) {
+    console.error('Error adding keyword:', error);
+    if (typeof showNotification === 'function') {
+      showNotification(error.message || 'Error al agregar palabra clave', 'error');
+    }
+  }
+}
+
+// Delete a keyword
+async function deleteKeyword(ruleId) {
+  try {
+    const headers = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
+
+    const response = await fetch(`/api/category-rules/${ruleId}`, {
+      method: 'DELETE',
+      headers
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Error deleting keyword');
+    }
+
+    // Reload keywords
+    await loadCategoryKeywords(currentKeywordsCategoryId);
+
+    if (typeof showNotification === 'function') {
+      showNotification('Keyword eliminado', 'success');
+    }
+
+  } catch (error) {
+    console.error('Error deleting keyword:', error);
+    if (typeof showNotification === 'function') {
+      showNotification(error.message || 'Error al eliminar keyword', 'error');
+    }
+  }
+}
+
+// Expose functions globally
+window.openKeywordsModal = openKeywordsModal;
+window.closeKeywordsModal = closeKeywordsModal;
+window.addKeyword = addKeyword;
+window.deleteKeyword = deleteKeyword;

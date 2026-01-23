@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const categorizationService = require('./categorization.service');
 
 class SupabaseService {
   constructor() {
@@ -264,8 +265,18 @@ class SupabaseService {
         };
       }
 
+      // Step 4.5: Auto-categorize transactions (if userId provided)
+      let categorizedTransactions = transactionsToInsert;
+      if (userId) {
+        console.log(`[Supabase] Auto-categorizing ${transactionsToInsert.length} transactions...`);
+        categorizedTransactions = await categorizationService.autoCategorizeTransactions(
+          transactionsToInsert,
+          userId
+        );
+      }
+
       // Step 5: Prepare data for insertion
-      const transactionsData = transactionsToInsert.map(t => ({
+      const transactionsData = categorizedTransactions.map(t => ({
         file_id: fileId,
         user_id: userId,
         transaction_date: t.transaction_date,
@@ -277,6 +288,7 @@ class SupabaseService {
         reference_number: t.reference_number,
         card_number: t.card_number || null,
         category: t.category || null,
+        category_id: t.category_id || null,  // Auto-categorization result
         cuit: t.cuit || null,
         razon_social: t.razon_social || null,
         bank_name: bankName || t.bank_name || null,
@@ -710,7 +722,7 @@ class SupabaseService {
     try {
       let query = this.supabase
         .from('transactions')
-        .update({ category })
+        .update({ category_id: category })
         .eq('id', transactionId);
 
       if (userId) {

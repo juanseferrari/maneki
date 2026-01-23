@@ -904,7 +904,7 @@ function displayTransactions(transactions) {
       const amountClass = t.amount < 0 ? 'amount-negative' : 'amount-positive';
       const amountPrefix = t.amount < 0 ? '-' : '+';
       const amountFormatted = '$' + Math.abs(t.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-      const category = getCategoryById(t.category);
+      const category = getCategoryById(t.category_id);
 
       return `
         <tr data-transaction-id="${t.id}">
@@ -1181,7 +1181,7 @@ async function updateTransactionCategory(transactionId, categoryId) {
   const transaction = allTransactions.find(t => t.id === transactionId);
 
   // Store previous state for rollback
-  const previousCategoryId = transaction?.category;
+  const previousCategoryId = transaction?.category_id;
   const previousCategory = getCategoryById(previousCategoryId);
   const newCategory = getCategoryById(categoryId);
 
@@ -1189,7 +1189,7 @@ async function updateTransactionCategory(transactionId, categoryId) {
 
   // Update local data immediately
   if (transaction) {
-    transaction.category = categoryId;
+    transaction.category_id = categoryId;
   }
 
   // Update UI immediately - show category with loading spinner
@@ -1262,7 +1262,7 @@ async function updateTransactionCategory(transactionId, categoryId) {
 
     // === ROLLBACK: Revert to previous state ===
     if (transaction) {
-      transaction.category = previousCategoryId;
+      transaction.category_id = previousCategoryId;
     }
 
     if (row) {
@@ -1660,7 +1660,7 @@ async function showTransactionDetail(transactionId) {
       const isPositive = t.amount > 0;
 
       // Get category info
-      const category = getCategoryById(t.category);
+      const category = getCategoryById(t.category_id);
       const categoryName = category.name;
       const categoryColor = category.color;
 
@@ -2486,7 +2486,7 @@ async function editTransactionCategory(transactionId, currentCategoryId) {
           // Update the transaction in the list
           const transaction = allTransactions.find(t => t.id === transactionId);
           if (transaction) {
-            transaction.category = newCategoryId;
+            transaction.category_id = newCategoryId;
             displayTransactions(allTransactions);
           }
           // Reload detail view

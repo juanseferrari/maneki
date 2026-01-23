@@ -197,3 +197,71 @@
     </div>
   </div>
 </div>
+
+<!-- Keywords Management Modal -->
+<div class="custom-modal-overlay" id="keywords-modal">
+  <div class="custom-modal keywords-modal">
+    <div class="custom-modal-header">
+      <div class="custom-modal-icon info">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 7h16M4 12h16M4 17h16"></path>
+        </svg>
+      </div>
+      <h3 class="custom-modal-title" id="keywords-modal-title">Gestionar Keywords</h3>
+    </div>
+
+    <!-- Loading State -->
+    <div class="keywords-loading" id="keywords-loading">
+      <div class="spinner"></div>
+      <span>Cargando keywords...</span>
+    </div>
+
+    <!-- Content -->
+    <div class="keywords-content" id="keywords-content" style="display: none;">
+      <!-- Add Keyword Form -->
+      <form id="keyword-form" onsubmit="addKeyword(event)" class="keyword-form">
+        <div class="form-group">
+          <label for="keyword-input">Palabra clave *</label>
+          <div class="keyword-input-wrapper">
+            <input
+              type="text"
+              id="keyword-input"
+              required
+              placeholder="Ej: uber, mercado, netflix..."
+              maxlength="100"
+              autocomplete="off"
+              autofocus>
+            <button type="submit" class="btn-primary btn-sm">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Agregar
+            </button>
+          </div>
+          <small class="form-help-text">Presiona Enter o haz clic en Agregar</small>
+        </div>
+      </form>
+
+      <!-- Keywords List -->
+      <div class="keywords-list-section">
+        <h4>Keywords existentes</h4>
+
+        <!-- Empty State -->
+        <div class="keywords-empty" id="keywords-empty" style="display: none;">
+          <p>No hay keywords configurados</p>
+          <span>Agrega keywords para que las transacciones se categoricen automáticamente</span>
+        </div>
+
+        <!-- Keywords List -->
+        <div class="keywords-list" id="keywords-list" style="display: none;">
+          <!-- Keywords will be loaded here -->
+        </div>
+      </div>
+    </div>
+
+    <div class="custom-modal-actions">
+      <button type="button" class="custom-modal-btn btn-cancel" onclick="closeKeywordsModal()">Cerrar</button>
+    </div>
+  </div>
+</div>

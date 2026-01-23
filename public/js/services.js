@@ -441,8 +441,8 @@ function openEditServiceModal(serviceId) {
   // Populate category dropdown before setting value
   populateCategoryDropdown();
 
-  // Use category_id if available, otherwise fall back to category text
-  const categoryValue = service.category_id || service.category || '';
+  // Use category_id
+  const categoryValue = service.category_id || '';
   document.getElementById('service-category').value = categoryValue;
 
   document.getElementById('service-frequency').value = service.frequency || 'monthly';

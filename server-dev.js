@@ -824,7 +824,7 @@ app.put('/api/transactions/:transactionId/category', devAuth, async (req, res) =
     const { category } = req.body;
     const { data: transaction, error } = await supabaseAdmin
       .from('transactions')
-      .update({ category })
+      .update({ category_id: category })
       .eq('id', req.params.transactionId)
       .eq('user_id', req.user.id)
       .select()
@@ -2295,6 +2295,106 @@ app.delete('/api/categories/:id', devAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Error deleting category'
+    });
+  }
+});
+
+// =============================================
+// CATEGORY RULES ENDPOINTS (Auto-categorization)
+// =============================================
+
+const categorizationService = require('./services/categorization.service');
+
+// Get all category rules for the authenticated user
+app.get('/api/category-rules', devAuth, async (req, res) => {
+  try {
+    const rules = await categorizationService.getCategoryRules(req.user.id);
+
+    res.json({
+      success: true,
+      rules: rules || []
+    });
+  } catch (error) {
+    console.error('Error fetching category rules:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Error fetching category rules'
+    });
+  }
+});
+
+// Get rules for a specific category
+app.get('/api/category-rules/category/:categoryId', devAuth, async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const rules = await categorizationService.getRulesByCategory(categoryId, req.user.id);
+
+    res.json({
+      success: true,
+      rules: rules || []
+    });
+  } catch (error) {
+    console.error('Error fetching category rules:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Error fetching category rules'
+    });
+  }
+});
+
+// Add a new category rule
+app.post('/api/category-rules', devAuth, async (req, res) => {
+  try {
+    const { category_id, keyword, match_field, priority, case_sensitive, is_regex } = req.body;
+
+    if (!category_id || !keyword || !keyword.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'category_id and keyword are required'
+      });
+    }
+
+    const ruleData = {
+      user_id: req.user.id,
+      category_id,
+      keyword: keyword.trim(),
+      match_field: match_field || 'both',
+      priority: priority !== undefined ? parseInt(priority, 10) : 0,
+      case_sensitive: case_sensitive || false,
+      is_regex: is_regex || false
+    };
+
+    const rule = await categorizationService.addCategoryRule(ruleData);
+
+    res.json({
+      success: true,
+      rule
+    });
+  } catch (error) {
+    console.error('Error creating category rule:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Error creating category rule'
+    });
+  }
+});
+
+// Delete a category rule
+app.delete('/api/category-rules/:ruleId', devAuth, async (req, res) => {
+  try {
+    const { ruleId } = req.params;
+
+    await categorizationService.deleteCategoryRule(ruleId, req.user.id);
+
+    res.json({
+      success: true,
+      message: 'Regla eliminada'
+    });
+  } catch (error) {
+    console.error('Error deleting category rule:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Error deleting category rule'
     });
   }
 });

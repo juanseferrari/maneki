@@ -1,5 +1,6 @@
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
+const categorizationService = require('../categorization.service');
 
 /**
  * Mercado Pago Sync Service
@@ -320,7 +321,7 @@ class MercadoPagoSyncService {
   }
 
   /**
-   * Save transactions to database with deduplication
+   * Save transactions to database with deduplication and auto-categorization
    * @param {Array} transactions - Transactions to save
    * @param {string} userId - User ID
    * @returns {Promise<Object>} Result with counts
@@ -329,7 +330,14 @@ class MercadoPagoSyncService {
     let syncedCount = 0;
     let skippedCount = 0;
 
-    for (const transaction of transactions) {
+    // Step 1: Auto-categorize all transactions before inserting
+    console.log(`[MP Sync] Auto-categorizing ${transactions.length} transactions...`);
+    const categorizedTransactions = await categorizationService.autoCategorizeTransactions(
+      transactions,
+      userId
+    );
+
+    for (const transaction of categorizedTransactions) {
       try {
         // Check if transaction already exists (deduplication)
         const { data: existing } = await this.supabase
@@ -345,7 +353,7 @@ class MercadoPagoSyncService {
           continue;
         }
 
-        // Insert new transaction
+        // Insert new transaction with category_id
         const { error } = await this.supabase
           .from('transactions')
           .insert(transaction);
