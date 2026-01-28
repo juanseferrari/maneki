@@ -5,23 +5,26 @@
 }
 
 :root {
-  --primary-color: #635bff;
-  --primary-hover: #0a2540;
+  /* Maneki Brand Colors */
+  --primary-color: #2c0c6b;
+  --primary-hover: #413581;
+  --primary-light: #918dd7;
   --success-color: #10b981;
   --danger-color: #ef4444;
   --danger-hover: #dc2626;
-  --text-primary: #0a2540;
-  --text-secondary: #425466;
-  --text-muted: #8898aa;
-  --border-color: #e3e8ee;
-  --bg-light: #f7fafc;
+  --text-primary: #2c0c6b;
+  --text-secondary: #413581;
+  --text-muted: #918dd7;
+  --border-color: #dbd8ed;
+  --bg-light: #e5e7f0;
+  --bg-secondary: #dbd8ed;
   --bg-white: #ffffff;
-  --sidebar-bg: #0a2540;
-  --sidebar-text: #8898aa;
+  --sidebar-bg: #413581;
+  --sidebar-text: #dbd8ed;
   --sidebar-text-hover: #ffffff;
-  --sidebar-active-bg: rgba(99, 91, 255, 0.1);
-  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --sidebar-active-bg: rgba(145, 141, 215, 0.25);
+  --shadow: 0 1px 3px 0 rgba(44, 12, 107, 0.1), 0 1px 2px 0 rgba(44, 12, 107, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(44, 12, 107, 0.1), 0 2px 4px -1px rgba(44, 12, 107, 0.06);
   --sidebar-width: 240px;
 }
 
@@ -409,7 +412,7 @@ h2 {
 
 .drop-zone.drag-over {
   border-color: var(--primary-color);
-  background-color: #eff6ff;
+  background-color: #e5e7f0;
   border-style: solid;
 }
 
@@ -1041,7 +1044,7 @@ h2 {
 }
 
 .vep-header {
-  background-color: #eff6ff;
+  background-color: #e5e7f0;
   border: 2px solid #3b82f6;
   border-radius: 0.5rem;
   padding: 1.5rem;
@@ -1940,10 +1943,30 @@ h2 {
   animation: dropdownFadeIn 0.15s ease;
 }
 
+/* Dropup variant - opens upward when near bottom of viewport */
+.category-options.dropup {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 4px;
+  animation: dropupFadeIn 0.15s ease;
+}
+
 @keyframes dropdownFadeIn {
   from {
     opacity: 0;
     transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dropupFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -2043,7 +2066,7 @@ h2 {
 .filter-input:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(44, 12, 107, 0.1);
 }
 
 .filter-actions {
@@ -2173,12 +2196,12 @@ h2 {
 
 .filter-dropdown-btn:hover {
   border-color: var(--primary-color);
-  background: #f9fafb;
+  background: #e5e7f0;
 }
 
 .filter-dropdown-btn.active {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px rgba(44, 12, 107, 0.1);
 }
 
 .filter-dropdown-btn svg:first-child {
@@ -2332,7 +2355,7 @@ h2 {
   align-items: center;
   gap: 0.75rem;
   padding: 1rem;
-  background: #f9fafb;
+  background: #e5e7f0;
   border-radius: 6px;
   flex-wrap: wrap;
 }
@@ -2367,7 +2390,7 @@ h2 {
 
 .filter-pill:hover {
   border-color: var(--primary-color);
-  background: #f9fafb;
+  background: #e5e7f0;
 }
 
 .filter-pill-remove {
@@ -2651,7 +2674,7 @@ h2 {
 
 .file-preview-card:hover {
   border-color: var(--primary-color);
-  background: #f8f9ff;
+  background: #e5e7f0;
 }
 
 .file-preview-icon {
@@ -2756,7 +2779,7 @@ h2 {
 
 .file-action-btn:hover {
   border-color: var(--primary-color);
-  background: #f8f9ff;
+  background: #e5e7f0;
 }
 
 .file-action-btn.danger {
@@ -2812,7 +2835,7 @@ h2 {
 
 .connection-card:hover {
   border-color: var(--primary-color);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 4px 12px rgba(44, 12, 107, 0.1);
   transform: translateY(-2px);
 }
 
@@ -2906,7 +2929,7 @@ h2 {
 .btn-connection:hover {
   background: var(--primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(44, 12, 107, 0.3);
 }
 
 .connection-card.disabled .btn-connection {
@@ -3190,7 +3213,7 @@ h2 {
 .custom-modal-btn.btn-confirm:hover {
   background: var(--primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(44, 12, 107, 0.3);
 }
 
 .custom-modal-btn.btn-confirm.danger {
@@ -3407,12 +3430,12 @@ h2 {
   border-color: var(--primary-color);
   background: var(--bg-light);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  box-shadow: 0 4px 12px rgba(44, 12, 107, 0.15);
 }
 
 .country-option.selected, .bank-option.selected {
   border-color: var(--primary-color);
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, var(--bg-light) 100%);
+  background: linear-gradient(135deg, rgba(44, 12, 107, 0.1) 0%, var(--bg-light) 100%);
 }
 
 .country-flag {
@@ -3478,7 +3501,7 @@ h2 {
 .selector-search:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px rgba(44, 12, 107, 0.1);
 }
 
 .selector-loading {
@@ -3798,7 +3821,7 @@ h2 {
 .filter-select:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(44, 12, 107, 0.1);
 }
 
 /* Modern Date Picker Styles */
@@ -3844,7 +3867,7 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 input[type="date"]::-webkit-datetime-edit-month-field:focus,
 input[type="date"]::-webkit-datetime-edit-day-field:focus,
 input[type="date"]::-webkit-datetime-edit-year-field:focus {
-  background: rgba(99, 91, 255, 0.1);
+  background: rgba(44, 12, 107, 0.1);
   color: var(--primary-color);
   border-radius: 4px;
   outline: none;
@@ -3917,7 +3940,7 @@ input[type="date"]:invalid {
 }
 
 .summary-card.balance .summary-icon {
-  background: rgba(99, 91, 255, 0.1);
+  background: rgba(44, 12, 107, 0.1);
   color: var(--primary-color);
 }
 
@@ -4099,6 +4122,27 @@ input[type="date"]:invalid {
   font-weight: 500;
 }
 
+/* Categories by Month Table - Compact styling */
+#categories-by-month-container {
+  margin-top: 2rem;
+}
+
+.categories-month-table th,
+.categories-month-table td {
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.8125rem;
+}
+
+.categories-month-table th {
+  font-size: 0.6875rem;
+}
+
+.categories-month-table tbody tr:last-child td {
+  font-weight: 600;
+  border-top: 2px solid var(--border-color);
+  background: var(--bg-light);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .filters-row {
@@ -4239,7 +4283,7 @@ input[type="date"]:invalid {
 .pagination-limit select:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(44, 12, 107, 0.1);
 }
 
 .pagination-buttons {
@@ -4266,7 +4310,7 @@ input[type="date"]:invalid {
 .pagination-btn:hover:not(:disabled) {
   border-color: var(--primary-color);
   color: var(--primary-color);
-  background: rgba(99, 91, 255, 0.05);
+  background: rgba(44, 12, 107, 0.05);
 }
 
 .pagination-btn:disabled {
@@ -4367,7 +4411,7 @@ input[type="date"]:invalid {
 }
 
 .col-resize-handle:hover {
-  background: rgba(99, 91, 255, 0.15);
+  background: rgba(44, 12, 107, 0.15);
 }
 
 .col-resize-handle:hover::before {
@@ -4376,7 +4420,7 @@ input[type="date"]:invalid {
 }
 
 .col-resize-handle.active {
-  background: rgba(99, 91, 255, 0.25);
+  background: rgba(44, 12, 107, 0.25);
 }
 
 .col-resize-handle.active::before {
@@ -4465,7 +4509,7 @@ input[type="date"]:invalid {
 .calendar-nav-btn:hover {
   border-color: var(--primary-color);
   color: var(--primary-color);
-  background: rgba(99, 91, 255, 0.05);
+  background: rgba(44, 12, 107, 0.05);
 }
 
 .calendar-grid-large {
@@ -4519,11 +4563,11 @@ input[type="date"]:invalid {
 }
 
 .calendar-day-large.today {
-  background: rgba(99, 91, 255, 0.05);
+  background: rgba(44, 12, 107, 0.05);
 }
 
 .calendar-day-large.selected {
-  background: rgba(99, 91, 255, 0.1);
+  background: rgba(44, 12, 107, 0.1);
   border-color: var(--primary-color);
 }
 
@@ -6185,7 +6229,7 @@ input[type="date"]:invalid {
 .category-form input[type="number"]:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(44, 12, 107, 0.1);
 }
 
 .form-help-text {
@@ -7283,7 +7327,7 @@ input[type="date"]:invalid {
   justify-content: center;
   padding: 48px 24px;
   text-align: center;
-  background: #f9fafb;
+  background: #e5e7f0;
   border: 2px dashed #d1d5db;
   border-radius: 12px;
   gap: 16px;
@@ -7426,7 +7470,7 @@ input[type="date"]:invalid {
 .keyword-form {
   padding: 24px;
   border-bottom: 1px solid #e5e7eb;
-  background: linear-gradient(to bottom, #ffffff, #f9fafb);
+  background: linear-gradient(to bottom, #ffffff, #e5e7f0);
   flex-shrink: 0;
 }
 
@@ -7449,7 +7493,7 @@ input[type="date"]:invalid {
 .keyword-input-wrapper input:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(44, 12, 107, 0.1);
   transform: translateY(-1px);
 }
 
@@ -7463,13 +7507,13 @@ input[type="date"]:invalid {
   padding: 12px 20px;
   font-weight: 600;
   border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(99, 91, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(44, 12, 107, 0.2);
   transition: all 0.2s ease;
 }
 
 .keyword-input-wrapper .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(99, 91, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(44, 12, 107, 0.3);
 }
 
 .keyword-input-wrapper .btn-primary:active {
@@ -7567,7 +7611,7 @@ input[type="date"]:invalid {
   border-color: var(--primary-color);
   background: #fafbff;
   transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(99, 91, 255, 0.08);
+  box-shadow: 0 4px 12px rgba(44, 12, 107, 0.08);
 }
 
 .keyword-info {

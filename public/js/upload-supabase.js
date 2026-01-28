@@ -1126,6 +1126,7 @@ function toggleCategoryDropdown(transactionId) {
   document.querySelectorAll('.category-options.show').forEach(el => {
     if (el.id !== `category-options-${transactionId}`) {
       el.classList.remove('show');
+      el.classList.remove('dropup');
       // Remove dropdown-active class from parent row
       el.closest('tr')?.classList.remove('dropdown-active');
     }
@@ -1140,8 +1141,22 @@ function toggleCategoryDropdown(transactionId) {
   // Add/remove class to parent row to raise z-index
   if (isOpening) {
     row?.classList.add('dropdown-active');
+
+    // Check if there's enough space below to show the dropdown
+    const dropdownRect = dropdown.getBoundingClientRect();
+    const dropdownHeight = dropdown.scrollHeight || 300; // Estimated height if not visible yet
+    const spaceBelow = window.innerHeight - dropdownRect.top;
+    const spaceAbove = dropdownRect.top;
+
+    // If not enough space below but more space above, open upwards
+    if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
+      dropdown.classList.add('dropup');
+    } else {
+      dropdown.classList.remove('dropup');
+    }
   } else {
     row?.classList.remove('dropdown-active');
+    dropdown.classList.remove('dropup');
   }
 }
 

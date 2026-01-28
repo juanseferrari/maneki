@@ -98,6 +98,9 @@ async function loadDashboardChartData() {
       if (groupedContainer) groupedContainer.style.display = 'block';
     }
 
+    // Load categories by month table
+    loadCategoriesByMonthData();
+
   } catch (error) {
     console.error('Error loading dashboard data:', error);
     if (chartLoading) chartLoading.style.display = 'none';
@@ -169,11 +172,11 @@ function renderSalesChart(data) {
     datasets.push({
       label: 'Ingresos',
       data: data.incomeData,
-      backgroundColor: 'rgba(16, 185, 129, 0.2)',
+      backgroundColor: 'rgba(16, 185, 129, 0.8)',
       borderColor: 'rgba(16, 185, 129, 1)',
-      borderWidth: 2,
-      fill: true,
-      tension: 0.4
+      borderWidth: 0,
+      borderRadius: 4,
+      barPercentage: 0.7
     });
   }
 
@@ -181,16 +184,16 @@ function renderSalesChart(data) {
     datasets.push({
       label: 'Egresos',
       data: data.expenseData,
-      backgroundColor: 'rgba(239, 68, 68, 0.2)',
+      backgroundColor: 'rgba(239, 68, 68, 0.8)',
       borderColor: 'rgba(239, 68, 68, 1)',
-      borderWidth: 2,
-      fill: true,
-      tension: 0.4
+      borderWidth: 0,
+      borderRadius: 4,
+      barPercentage: 0.7
     });
   }
 
   salesChart = new Chart(ctx, {
-    type: 'line',
+    type: 'bar',
     data: {
       labels: data.labels,
       datasets: datasets
@@ -322,6 +325,104 @@ function escapeHtml(text) {
   var div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// Load categories by month data (last 6 months)
+async function loadCategoriesByMonthData() {
+  try {
+    const typeFilter = document.getElementById('dashboard-type')?.value || 'all';
+
+    // Build query params for last 6 months
+    const params = new URLSearchParams();
+    params.append('months', '6');
+    if (typeFilter !== 'all') params.append('type', typeFilter);
+
+    const headers = await getAuthHeaders();
+    const response = await fetch(`/api/dashboard/categories-by-month?${params.toString()}`, { headers });
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error('Failed to load categories by month');
+    }
+
+    renderCategoriesByMonthTable(result.data);
+
+  } catch (error) {
+    console.error('Error loading categories by month:', error);
+    const container = document.getElementById('categories-by-month-container');
+    if (container) container.style.display = 'none';
+  }
+}
+
+// Render categories by month table
+function renderCategoriesByMonthTable(data) {
+  const container = document.getElementById('categories-by-month-container');
+  const headerEl = document.getElementById('categories-month-header');
+  const bodyEl = document.getElementById('categories-month-body');
+
+  if (!container || !headerEl || !bodyEl || !data || !data.months || data.months.length === 0) {
+    if (container) container.style.display = 'none';
+    return;
+  }
+
+  // Format currency helper
+  var formatCurrency = function(val) {
+    if (val === 0) return '-';
+    if (val >= 1000000) {
+      return '$' + (val / 1000000).toFixed(1) + 'M';
+    } else if (val >= 1000) {
+      return '$' + (val / 1000).toFixed(1) + 'K';
+    }
+    return '$' + val.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  };
+
+  // Render header (months)
+  var headerHtml = '<tr><th>Categoría</th>';
+  data.months.forEach(function(month) {
+    var monthDate = new Date(month + '-01');
+    var monthLabel = monthDate.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
+    headerHtml += '<th>' + monthLabel + '</th>';
+  });
+  headerHtml += '</tr>';
+  headerEl.innerHTML = headerHtml;
+
+  // Render body (categories)
+  var bodyHtml = '';
+
+  if (data.categories && data.categories.length > 0) {
+    data.categories.forEach(function(category) {
+      bodyHtml += '<tr>';
+
+      // Category name with color dot
+      if (category.color) {
+        bodyHtml += '<td><span class="category-color-dot" style="background-color: ' + category.color + '; display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; vertical-align: middle;"></span>' + escapeHtml(category.name) + '</td>';
+      } else {
+        bodyHtml += '<td>' + escapeHtml(category.name) + '</td>';
+      }
+
+      // Monthly values
+      data.months.forEach(function(month) {
+        var value = category.monthlyTotals[month] || 0;
+        bodyHtml += '<td>' + formatCurrency(Math.abs(value)) + '</td>';
+      });
+
+      bodyHtml += '</tr>';
+    });
+
+    // Add total row
+    bodyHtml += '<tr style="font-weight: bold; border-top: 2px solid #e5e7eb;">';
+    bodyHtml += '<td>TOTAL</td>';
+    data.months.forEach(function(month) {
+      var total = data.monthlyTotals[month] || 0;
+      bodyHtml += '<td>' + formatCurrency(Math.abs(total)) + '</td>';
+    });
+    bodyHtml += '</tr>';
+  } else {
+    bodyHtml = '<tr><td colspan="' + (data.months.length + 1) + '" style="text-align: center; padding: 20px; color: #9CA3AF;">No hay datos para mostrar</td></tr>';
+  }
+
+  bodyEl.innerHTML = bodyHtml;
+  container.style.display = 'block';
 }
 
 // Add dashboard section listener

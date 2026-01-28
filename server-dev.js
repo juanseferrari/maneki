@@ -702,6 +702,139 @@ app.get('/api/dashboard/stats', devAuth, async (req, res) => {
   }
 });
 
+// Get categories by month data (for dashboard table)
+app.get('/api/dashboard/categories-by-month', devAuth, async (req, res) => {
+  try {
+    const { months = 6, type } = req.query;
+    const userId = req.user.id;
+    const monthsCount = parseInt(months);
+
+    // Calculate date range for last N months
+    const today = new Date();
+    const startDate = new Date(today.getFullYear(), today.getMonth() - (monthsCount - 1), 1);
+    const dateFrom = startDate.toISOString().split('T')[0];
+
+    // Fetch all transactions for the period
+    const BATCH_SIZE = 1000;
+    let allTransactions = [];
+    let offset = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      let batchQuery = supabaseAdmin
+        .from('transactions')
+        .select('transaction_date, amount, category_id')
+        .eq('user_id', userId)
+        .gte('transaction_date', dateFrom)
+        .or('status.is.null,status.neq.deleted');
+
+      const { data: batch, error } = await batchQuery
+        .order('transaction_date', { ascending: true })
+        .range(offset, offset + BATCH_SIZE - 1);
+
+      if (error) throw error;
+
+      if (batch && batch.length > 0) {
+        allTransactions = allTransactions.concat(batch);
+        offset += BATCH_SIZE;
+        hasMore = batch.length === BATCH_SIZE;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    // Filter by type if specified
+    let transactions = allTransactions;
+    if (type === 'income') {
+      transactions = allTransactions.filter(t => t.amount > 0);
+    } else if (type === 'expense') {
+      transactions = allTransactions.filter(t => t.amount < 0);
+    }
+
+    // Fetch all categories for this user
+    const { data: categories, error: catError } = await supabaseAdmin
+      .from('categories')
+      .select('id, name, color')
+      .eq('user_id', userId);
+
+    if (catError) throw catError;
+
+    const categoriesMap = categories.reduce((map, cat) => {
+      map[cat.id] = { name: cat.name, color: cat.color };
+      return map;
+    }, {});
+
+    // Generate last N months array (most recent first)
+    const monthsList = [];
+    for (let i = 0; i < monthsCount; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthsList.push(monthKey);
+    }
+
+    // Group transactions by category and month
+    const categoryMonthData = {};
+    const monthlyTotals = {};
+
+    transactions.forEach(t => {
+      const date = new Date(t.transaction_date + 'T00:00:00');
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+      // Only include months in our range
+      if (!monthsList.includes(monthKey)) return;
+
+      const categoryId = t.category_id || 'uncategorized';
+      const absAmount = Math.abs(t.amount);
+
+      // Initialize category if needed
+      if (!categoryMonthData[categoryId]) {
+        categoryMonthData[categoryId] = {
+          id: categoryId,
+          name: categoryId === 'uncategorized' ? 'Sin categoría' : (categoriesMap[categoryId]?.name || 'Desconocida'),
+          color: categoryId === 'uncategorized' ? '#9ca3af' : (categoriesMap[categoryId]?.color || '#9ca3af'),
+          monthlyTotals: {},
+          totalOverall: 0
+        };
+      }
+
+      // Add to category's monthly total
+      if (!categoryMonthData[categoryId].monthlyTotals[monthKey]) {
+        categoryMonthData[categoryId].monthlyTotals[monthKey] = 0;
+      }
+      categoryMonthData[categoryId].monthlyTotals[monthKey] += absAmount;
+      categoryMonthData[categoryId].totalOverall += absAmount;
+
+      // Add to overall monthly total
+      if (!monthlyTotals[monthKey]) {
+        monthlyTotals[monthKey] = 0;
+      }
+      monthlyTotals[monthKey] += absAmount;
+    });
+
+    // Convert to array and sort by total descending
+    const categoriesArray = Object.values(categoryMonthData)
+      .sort((a, b) => b.totalOverall - a.totalOverall)
+      .filter(cat => cat.totalOverall > 0); // Only include categories with transactions
+
+    console.log(`[Categories by Month] User ${userId}: ${categoriesArray.length} categories across ${monthsList.length} months`);
+
+    res.json({
+      success: true,
+      data: {
+        months: monthsList,
+        categories: categoriesArray,
+        monthlyTotals
+      }
+    });
+  } catch (error) {
+    console.error('Get categories by month error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to retrieve categories by month'
+    });
+  }
+});
+
 // Get single transaction
 app.get('/api/transactions/:transactionId', devAuth, async (req, res) => {
   try {
