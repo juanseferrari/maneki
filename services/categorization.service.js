@@ -38,12 +38,26 @@ class CategorizationService {
 
       console.log(`[Categorization] Found ${rules.length} rules to check`);
 
-      // 2. Try to match with each rule (ordered by priority DESC)
+      // 2. Find ALL matching rules, then pick the most specific (longest keyword)
+      const matchingRules = [];
       for (const rule of rules) {
         if (this.matchRule(transaction, rule)) {
-          console.log(`[Categorization] Matched rule: "${rule.keyword}" → category ${rule.category_id}`);
-          return rule.category_id;
+          matchingRules.push(rule);
         }
+      }
+
+      // If we have matches, pick the one with the longest keyword (most specific)
+      if (matchingRules.length > 0) {
+        // Sort by keyword length descending, then by priority descending
+        matchingRules.sort((a, b) => {
+          const lengthDiff = b.keyword.length - a.keyword.length;
+          if (lengthDiff !== 0) return lengthDiff;
+          return b.priority - a.priority;
+        });
+
+        const bestMatch = matchingRules[0];
+        console.log(`[Categorization] Matched "${bestMatch.keyword}" → category ${bestMatch.category_id} (${matchingRules.length} total matches, chose longest)`);
+        return bestMatch.category_id;
       }
 
       console.log('[Categorization] No matching rule found');
@@ -81,15 +95,32 @@ class CategorizationService {
           return transaction;
         }
 
-        // Try to find matching rule
+        // Find ALL matching rules, then pick the most specific one (longest keyword)
+        const matchingRules = [];
         for (const rule of rules) {
           if (this.matchRule(transaction, rule)) {
-            categorizedCount++;
-            return {
-              ...transaction,
-              category_id: rule.category_id
-            };
+            matchingRules.push(rule);
           }
+        }
+
+        // If we have matches, pick the one with the longest keyword (most specific)
+        if (matchingRules.length > 0) {
+          // Sort by keyword length descending, then by priority descending
+          matchingRules.sort((a, b) => {
+            const lengthDiff = b.keyword.length - a.keyword.length;
+            if (lengthDiff !== 0) return lengthDiff;
+            return b.priority - a.priority;
+          });
+
+          const bestMatch = matchingRules[0];
+          categorizedCount++;
+
+          console.log(`[Categorization] Matched "${bestMatch.keyword}" (${matchingRules.length} total matches, chose longest)`);
+
+          return {
+            ...transaction,
+            category_id: bestMatch.category_id
+          };
         }
 
         return transaction;
