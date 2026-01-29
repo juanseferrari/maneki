@@ -3,6 +3,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const crypto = require('crypto');
+const cron = require('node-cron');
 const { createClient } = require('@supabase/supabase-js');
 const processorService = require('./services/processor.service');
 const uploadConfig = require('./config/upload.config');
@@ -14,6 +15,7 @@ const emailInboundService = require('./services/email-inbound.service');
 const mercadoPagoSync = require('./services/sync/mercadopago-sync.service');
 const mercurySync = require('./services/sync/mercury-sync.service');
 const recurringServicesService = require('./services/recurring-services.service');
+const ExchangeRateService = require('./services/exchange-rate.service');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -31,6 +33,9 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
 );
+
+// Initialize Exchange Rate Service
+const exchangeRateService = new ExchangeRateService(supabaseAdmin);
 
 // Configure multer
 const storage = multer.memoryStorage();
@@ -2566,6 +2571,26 @@ app.post('/api/user/upload-email/regenerate', devAuth, async (req, res) => {
     });
   }
 });
+
+// =====================================================
+// CRON JOBS
+// =====================================================
+
+/**
+ * Daily cron job to update exchange rates and process unconverted transactions
+ * Runs every day at 2:00 AM (server time)
+ */
+cron.schedule('0 2 * * *', async () => {
+  console.log('[CRON] Starting daily exchange rate update job...');
+  try {
+    const result = await exchangeRateService.processDailyCron();
+    console.log(`[CRON] Daily exchange rate job completed: ${result.processed} transactions processed, ${result.failed} failed`);
+  } catch (error) {
+    console.error('[CRON] Daily exchange rate job failed:', error);
+  }
+});
+
+console.log('[CRON] Daily exchange rate job scheduled: 2:00 AM every day');
 
 // Start server
 app.listen(PORT, () => {

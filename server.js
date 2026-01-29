@@ -6,6 +6,7 @@ const passport = require('./config/passport.config');
 const { Pool } = require('pg');
 const multer = require('multer');
 const path = require('path');
+const cron = require('node-cron');
 const supabaseService = require('./services/supabase.service');
 const processorService = require('./services/processor.service');
 const uploadConfig = require('./config/upload.config');
@@ -825,6 +826,26 @@ app.use((error, req, res, next) => {
     error: error.message || 'An error occurred'
   });
 });
+
+// =====================================================
+// CRON JOBS
+// =====================================================
+
+/**
+ * Daily cron job to update exchange rates and process unconverted transactions
+ * Runs every day at 2:00 AM (server time)
+ */
+cron.schedule('0 2 * * *', async () => {
+  console.log('[CRON] Starting daily exchange rate update job...');
+  try {
+    const result = await supabaseService.exchangeRateService.processDailyCron();
+    console.log(`[CRON] Daily exchange rate job completed: ${result.processed} transactions processed, ${result.failed} failed`);
+  } catch (error) {
+    console.error('[CRON] Daily exchange rate job failed:', error);
+  }
+});
+
+console.log('[CRON] Daily exchange rate job scheduled: 2:00 AM every day');
 
 // Start server
 app.listen(PORT, () => {

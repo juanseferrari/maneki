@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const categorizationService = require('./categorization.service');
+const ExchangeRateService = require('./exchange-rate.service');
 
 class SupabaseService {
   constructor() {
@@ -9,6 +10,7 @@ class SupabaseService {
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
     );
     this.bucketName = process.env.SUPABASE_BUCKET_NAME || 'uploads';
+    this.exchangeRateService = new ExchangeRateService(this.supabase);
   }
 
   /**
@@ -275,14 +277,45 @@ class SupabaseService {
         );
       }
 
+      // Step 4.75: Convert transactions to USD
+      console.log(`[Supabase] Converting ${categorizedTransactions.length} transactions to USD...`);
+      const transactionsWithUSD = await Promise.all(
+        categorizedTransactions.map(async (t) => {
+          // Get currency from transaction, default to ARS
+          const currency = t.currency || 'ARS';
+
+          // Try to convert to USD
+          const conversion = await this.exchangeRateService.convertToUSD(
+            t.amount,
+            currency,
+            t.transaction_date
+          );
+
+          // Add conversion data if successful, otherwise leave null
+          return {
+            ...t,
+            amount_usd: conversion ? conversion.amountUsd : null,
+            exchange_rate: conversion ? conversion.exchangeRate : null,
+            exchange_rate_date: conversion ? conversion.exchangeRateDate : null
+          };
+        })
+      );
+
+      const convertedCount = transactionsWithUSD.filter(t => t.amount_usd !== null).length;
+      console.log(`[Supabase] Successfully converted ${convertedCount}/${transactionsWithUSD.length} transactions to USD`);
+
       // Step 5: Prepare data for insertion
-      const transactionsData = categorizedTransactions.map(t => ({
+      const transactionsData = transactionsWithUSD.map(t => ({
         file_id: fileId,
         user_id: userId,
         transaction_date: t.transaction_date,
         description: t.description,
         merchant: t.merchant,
         amount: t.amount,
+        currency: t.currency || 'ARS',  // Store original currency
+        amount_usd: t.amount_usd,
+        exchange_rate: t.exchange_rate,
+        exchange_rate_date: t.exchange_rate_date,
         transaction_type: t.transaction_type,
         balance: t.balance || null,
         reference_number: t.reference_number,
