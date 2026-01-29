@@ -615,7 +615,7 @@ app.get('/api/dashboard/categories-by-month', ensureAuthenticated, async (req, r
     let hasMore = true;
 
     while (hasMore) {
-      let batchQuery = supabase
+      let batchQuery = supabaseService.supabase
         .from('transactions')
         .select('transaction_date, amount, category_id')
         .eq('user_id', userId)
@@ -646,7 +646,7 @@ app.get('/api/dashboard/categories-by-month', ensureAuthenticated, async (req, r
     }
 
     // Fetch all categories for this user
-    const { data: categories, error: catError } = await supabase
+    const { data: categories, error: catError } = await supabaseService.supabase
       .from('categories')
       .select('id, name, color')
       .eq('user_id', userId);
