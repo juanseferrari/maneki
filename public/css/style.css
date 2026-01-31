@@ -744,6 +744,18 @@ h2 {
   color: var(--text-primary);
   border-bottom: 2px solid var(--border-color);
   white-space: nowrap;
+  user-select: none;
+}
+
+.transactions-table th[onclick]:hover {
+  background-color: #f3f4f6;
+}
+
+.sort-icon {
+  margin-left: 0.5rem;
+  font-size: 0.875rem;
+  opacity: 0.4;
+  transition: opacity 0.2s ease;
 }
 
 .transactions-table td {
@@ -2788,6 +2800,174 @@ h2 {
 }
 
 .file-action-btn.danger:hover {
+  background: #fff5f5;
+  border-color: var(--danger-color);
+}
+
+/* New File Detail Styles */
+.file-detail-container {
+  padding: 0;
+}
+
+.file-main-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem 1.5rem;
+  text-align: center;
+  color: white;
+  margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+}
+
+.file-type-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  opacity: 0.9;
+  margin-bottom: 1rem;
+}
+
+.file-bank-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  backdrop-filter: blur(10px);
+}
+
+.file-transaction-count {
+  margin: 1.5rem 0;
+}
+
+.count-number {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.count-label {
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.file-status-indicator {
+  display: inline-block;
+  padding: 0.375rem 0.875rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.file-status-indicator.completed {
+  background: rgba(16, 185, 129, 0.3);
+}
+
+.file-status-indicator.failed {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+.file-name-section {
+  padding: 1rem 0;
+}
+
+.file-name-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.file-name-text {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.detail-separator {
+  height: 1px;
+  background: var(--border-color);
+  margin: 1.5rem 0;
+}
+
+.file-details-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.file-detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+}
+
+.detail-value {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.file-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.file-action-button {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+}
+
+.file-action-button.primary {
+  background: var(--primary-color);
+  color: white;
+}
+
+.file-action-button.primary:hover {
+  background: #4338ca;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.file-action-button.secondary {
+  background: var(--bg-light);
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+}
+
+.file-action-button.secondary:hover {
+  background: #e5e7f0;
+  transform: translateY(-1px);
+}
+
+.file-action-button.danger {
+  background: transparent;
+  color: var(--danger-color);
+  border: 2px solid var(--border-color);
+}
+
+.file-action-button.danger:hover {
   background: #fff5f5;
   border-color: var(--danger-color);
 }
@@ -7103,7 +7283,11 @@ input[type="date"]:invalid {
   color: #0f172a;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  line-height: 1.4;
+  max-height: 4.2em;
 }
 
 .tx-card-value-amount {
@@ -7693,5 +7877,309 @@ input[type="date"]:invalid {
 
   .keyword-text {
     font-size: 14px;
+  }
+}
+
+/* ========================================
+   TRANSACTION SPLITS STYLES
+   ======================================== */
+
+/* Split badge en tabla */
+.split-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background-color: #EEF2FF;
+  color: #4F46E5;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.split-badge svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Lista de splits en panel derecho */
+.splits-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #E5E7EB;
+}
+
+.detail-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.detail-section-header h4 {
+  margin: 0;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #6B7280;
+  transition: color 0.2s ease;
+}
+
+.btn-icon:hover {
+  color: #111827;
+}
+
+.splits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.split-item {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  gap: 12px;
+  padding: 12px;
+  background-color: #F9FAFB;
+  border-radius: 8px;
+  border: 1px solid #E5E7EB;
+}
+
+.split-category {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.split-category .category-name {
+  font-weight: 500;
+  color: #111827;
+}
+
+.split-description {
+  color: #6B7280;
+  font-size: 13px;
+}
+
+.split-amount {
+  font-weight: 600;
+  color: #111827;
+  text-align: right;
+}
+
+.splits-total {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px;
+  background-color: #F3F4F6;
+  border-radius: 8px;
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.btn-text-danger {
+  background: none;
+  border: none;
+  color: #EF4444;
+  cursor: pointer;
+  padding: 8px 0;
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 12px;
+  transition: color 0.2s ease;
+}
+
+.btn-text-danger:hover {
+  color: #DC2626;
+}
+
+/* Modal de editor de splits */
+.split-editor-modal {
+  max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.split-editor-modal .custom-modal-actions {
+  padding: 20px 24px 24px 24px;
+  margin-top: 8px;
+}
+
+.transaction-info-banner {
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
+}
+
+.info-row .label {
+  color: #6B7280;
+  font-size: 14px;
+}
+
+.info-row .value {
+  font-weight: 600;
+  color: #111827;
+}
+
+.splits-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.split-row {
+  display: grid;
+  grid-template-columns: 32px 1fr 40px;
+  gap: 12px;
+  align-items: start;
+}
+
+.split-row-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: #EEF2FF;
+  color: #4F46E5;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.split-row-fields {
+  display: grid;
+  grid-template-columns: 1fr 2fr 120px;
+  gap: 12px;
+}
+
+.split-row-fields .form-group {
+  margin: 0;
+}
+
+.split-row-fields label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.split-row-fields input,
+.split-row-fields select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.split-row-fields input:focus,
+.split-row-fields select:focus {
+  outline: none;
+  border-color: #4F46E5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.btn-icon-danger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #EF4444;
+  transition: color 0.2s ease;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon-danger:hover {
+  color: #DC2626;
+}
+
+.split-summary {
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.summary-row:last-child {
+  margin-bottom: 0;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.sum-value {
+  color: #6B7280;
+}
+
+.remaining-value {
+  color: #10B981;
+  font-weight: 600;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+/* Responsive para modal de splits */
+@media (max-width: 768px) {
+  .split-editor-modal {
+    max-width: 95%;
+    margin: 20px auto;
+  }
+
+  .split-row {
+    grid-template-columns: 32px 1fr;
+    gap: 8px;
+  }
+
+  .split-row-fields {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .btn-icon-danger {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+  }
+
+  .split-row {
+    position: relative;
+    padding-right: 40px;
   }
 }

@@ -332,6 +332,18 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
         ),
         service_payments!service_payments_transaction_id_fkey (
           id
+        ),
+        transaction_splits!left (
+          id,
+          amount,
+          category_id,
+          description,
+          split_order,
+          categories:category_id (
+            id,
+            name,
+            color
+          )
         )
       `)
       .eq('user_id', req.user.id);
@@ -431,10 +443,12 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
       throw error;
     }
 
-    // Add has_service flag to each transaction
+    // Add has_service and has_splits flags to each transaction
     const transactionsWithServiceInfo = transactions.map(t => ({
       ...t,
-      has_service: t.service_payments && t.service_payments.length > 0
+      has_service: t.service_payments && t.service_payments.length > 0,
+      has_splits: t.transaction_splits && t.transaction_splits.length > 0,
+      split_count: t.transaction_splits ? t.transaction_splits.length : 0
     }));
 
     res.json({
@@ -931,6 +945,118 @@ app.put('/api/transactions/:id', requireAuth, async (req, res) => {
       success: false,
       error: error.message || 'Failed to update transaction'
     });
+  }
+});
+
+// Create or update transaction splits - Protected
+app.post('/api/transactions/:id/splits', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { splits } = req.body; // Array de { category_id, amount, description }
+
+    // Validar que el usuario sea dueño de la transacción
+    const { data: transaction, error: txError } = await supabaseAdmin
+      .from('transactions')
+      .select('id, amount, user_id')
+      .eq('id', id)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (txError || !transaction) {
+      return res.status(404).json({ error: 'Transacción no encontrada' });
+    }
+
+    // Validar que splits sea un array no vacío
+    if (!Array.isArray(splits) || splits.length === 0) {
+      return res.status(400).json({ error: 'Debe proporcionar al menos una subdivisión' });
+    }
+
+    // Validar que la suma de splits sea igual al monto total
+    const totalAmount = Math.abs(transaction.amount);
+    const splitsSum = splits.reduce((sum, split) => sum + parseFloat(split.amount), 0);
+
+    if (Math.abs(splitsSum - totalAmount) > 0.01) { // Tolerancia de 1 centavo
+      return res.status(400).json({
+        error: `La suma de subdivisiones (${splitsSum}) debe ser igual al monto total (${totalAmount})`
+      });
+    }
+
+    // Eliminar splits existentes (si los hay)
+    await supabaseAdmin
+      .from('transaction_splits')
+      .delete()
+      .eq('transaction_id', id);
+
+    // Insertar nuevos splits
+    const splitsToInsert = splits.map((split, index) => ({
+      transaction_id: id,
+      user_id: req.user.id,
+      category_id: split.category_id || null,
+      amount: parseFloat(split.amount),
+      description: split.description || null,
+      split_order: index + 1
+    }));
+
+    const { data: createdSplits, error: insertError } = await supabaseAdmin
+      .from('transaction_splits')
+      .insert(splitsToInsert)
+      .select(`
+        *,
+        categories:category_id (
+          id,
+          name,
+          color
+        )
+      `);
+
+    if (insertError) {
+      console.error('Error al crear splits:', insertError);
+      return res.status(500).json({ error: 'Error al crear subdivisiones' });
+    }
+
+    res.json({
+      success: true,
+      splits: createdSplits,
+      message: `${createdSplits.length} subdivisiones creadas correctamente`
+    });
+  } catch (error) {
+    console.error('Error en POST /api/transactions/:id/splits:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Delete all transaction splits - Protected
+app.delete('/api/transactions/:id/splits', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Verificar que la transacción pertenece al usuario
+    const { data: transaction } = await supabaseAdmin
+      .from('transactions')
+      .select('id')
+      .eq('id', id)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (!transaction) {
+      return res.status(404).json({ error: 'Transacción no encontrada' });
+    }
+
+    // Eliminar splits
+    const { error } = await supabaseAdmin
+      .from('transaction_splits')
+      .delete()
+      .eq('transaction_id', id);
+
+    if (error) {
+      console.error('Error al eliminar splits:', error);
+      return res.status(500).json({ error: 'Error al eliminar subdivisiones' });
+    }
+
+    res.json({ success: true, message: 'Subdivisiones eliminadas' });
+  } catch (error) {
+    console.error('Error en DELETE /api/transactions/:id/splits:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 

@@ -13,6 +13,10 @@ let totalPages = 1;
 // Files state variable
 let existingFiles = [];
 
+// Sort state variables
+let currentSortColumn = 'fecha';
+let currentSortOrder = 'desc'; // 'asc' or 'desc'
+
 // Filter state variables
 let currentFilters = {
   dateFrom: '',
@@ -693,11 +697,21 @@ async function loadAllTransactions(page = 1, limit = currentLimit) {
       <table>
         <thead>
           <tr>
-            <th data-col="fecha" style="width: 10%;">Fecha<span class="col-resize-handle"></span></th>
-            <th data-col="descripcion" style="width: 30%;">Descripción<span class="col-resize-handle"></span></th>
-            <th data-col="monto" style="width: 12%;">Monto<span class="col-resize-handle"></span></th>
-            <th data-col="categoria" style="width: 18%;">Categoría<span class="col-resize-handle"></span></th>
-            <th data-col="banco" style="width: 16%;">Banco<span class="col-resize-handle"></span></th>
+            <th data-col="fecha" style="width: 10%; cursor: pointer;" onclick="sortTransactions('fecha')" title="Click para ordenar">
+              Fecha <span class="sort-icon" id="sort-icon-fecha">⇅</span><span class="col-resize-handle"></span>
+            </th>
+            <th data-col="descripcion" style="width: 30%; cursor: pointer;" onclick="sortTransactions('descripcion')" title="Click para ordenar">
+              Descripción <span class="sort-icon" id="sort-icon-descripcion">⇅</span><span class="col-resize-handle"></span>
+            </th>
+            <th data-col="monto" style="width: 12%; cursor: pointer;" onclick="sortTransactions('monto')" title="Click para ordenar">
+              Monto <span class="sort-icon" id="sort-icon-monto">⇅</span><span class="col-resize-handle"></span>
+            </th>
+            <th data-col="categoria" style="width: 18%; cursor: pointer;" onclick="sortTransactions('categoria')" title="Click para ordenar">
+              Categoría <span class="sort-icon" id="sort-icon-categoria">⇅</span><span class="col-resize-handle"></span>
+            </th>
+            <th data-col="banco" style="width: 16%; cursor: pointer;" onclick="sortTransactions('banco')" title="Click para ordenar">
+              Banco <span class="sort-icon" id="sort-icon-banco">⇅</span><span class="col-resize-handle"></span>
+            </th>
             <th data-col="acciones" style="width: 14%;">Acciones</th>
           </tr>
         </thead>
@@ -906,10 +920,20 @@ function displayTransactions(transactions) {
       const amountFormatted = '$' + Math.abs(t.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
       const category = getCategoryById(t.category_id);
 
+      // Badge de splits
+      const splitIndicator = t.has_splits
+        ? `<span class="split-badge" title="${t.split_count} subdivisiones">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+               <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"></path>
+             </svg>
+             ${t.split_count}
+           </span>`
+        : '';
+
       return `
         <tr data-transaction-id="${t.id}">
           <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;">${formatDate(t.transaction_date)}</td>
-          <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;">${t.description || '-'}</td>
+          <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;">${t.description || '-'}${splitIndicator}</td>
           <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;" class="${amountClass}">${amountPrefix}${amountFormatted}</td>
           <td class="category-cell">
             <div class="category-dropdown" onclick="event.stopPropagation();">
@@ -1021,6 +1045,9 @@ function displayTransactions(transactions) {
 
   // Initialize category option click listeners
   initCategoryOptionListeners();
+
+  // Update sort icons to show current sort state
+  updateSortIcons();
 }
 
 // Column resize functionality
@@ -1344,6 +1371,96 @@ function filterTransactions() {
 
   // Reload from page 1 with new filters
   loadAllTransactions(1, currentLimit);
+}
+
+// Sort transactions by column
+function sortTransactions(column) {
+  // Toggle sort order if clicking same column
+  if (currentSortColumn === column) {
+    currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+  } else {
+    currentSortColumn = column;
+    currentSortOrder = 'desc'; // Default to descending for new column
+  }
+
+  // Sort the transactions array
+  allTransactions.sort((a, b) => {
+    let valueA, valueB;
+
+    switch(column) {
+      case 'fecha':
+        valueA = new Date(a.transaction_date);
+        valueB = new Date(b.transaction_date);
+        break;
+
+      case 'monto':
+        valueA = a.amount;
+        valueB = b.amount;
+        break;
+
+      case 'descripcion':
+        valueA = (a.description || '').toLowerCase();
+        valueB = (b.description || '').toLowerCase();
+        break;
+
+      case 'categoria':
+        // Get category name from category_id
+        const catA = getCategoryById(a.category_id);
+        const catB = getCategoryById(b.category_id);
+        valueA = (catA ? catA.name : 'Sin categoría').toLowerCase();
+        valueB = (catB ? catB.name : 'Sin categoría').toLowerCase();
+        break;
+
+      case 'banco':
+        // Get bank name from connection or file
+        valueA = (a.bank_name || a.files?.original_name || 'Sin banco').toLowerCase();
+        valueB = (b.bank_name || b.files?.original_name || 'Sin banco').toLowerCase();
+        break;
+
+      default:
+        return 0;
+    }
+
+    // Handle null/undefined values
+    if (valueA == null && valueB == null) return 0;
+    if (valueA == null) return 1;
+    if (valueB == null) return -1;
+
+    // Compare values
+    let comparison = 0;
+    if (valueA > valueB) {
+      comparison = 1;
+    } else if (valueA < valueB) {
+      comparison = -1;
+    }
+
+    // Apply sort order
+    return currentSortOrder === 'asc' ? comparison : -comparison;
+  });
+
+  // Re-render table with sorted data
+  displayTransactions(allTransactions);
+
+  // Update sort icons
+  updateSortIcons();
+}
+
+// Update sort icons to show current sort state
+function updateSortIcons() {
+  // Reset all icons
+  const icons = ['fecha', 'descripcion', 'monto', 'categoria', 'banco'];
+  icons.forEach(col => {
+    const icon = document.getElementById(`sort-icon-${col}`);
+    if (icon) {
+      if (col === currentSortColumn) {
+        icon.textContent = currentSortOrder === 'asc' ? '↑' : '↓';
+        icon.style.opacity = '1';
+      } else {
+        icon.textContent = '⇅';
+        icon.style.opacity = '0.4';
+      }
+    }
+  });
 }
 
 function clearFilters() {
@@ -1801,6 +1918,51 @@ async function showTransactionDetail(transactionId) {
           ` : ''}
 
         </div>
+
+        ${t.transaction_splits && t.transaction_splits.length > 0 ? `
+          <div class="detail-section splits-section">
+            <div class="detail-section-header">
+              <h4 class="detail-title">SUBDIVISIONES</h4>
+              <button class="btn-icon" onclick="createSplits('${t.id}')" title="Editar subdivisiones">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
+            </div>
+            <div class="splits-list">
+              ${t.transaction_splits.sort((a, b) => a.split_order - b.split_order).map(split => {
+                const splitCategory = split.categories || { name: 'Sin categoría', color: '#6B7280' };
+                return `
+                  <div class="split-item">
+                    <div class="split-category">
+                      <span class="category-dot" style="background-color: ${splitCategory.color}"></span>
+                      <span class="category-name">${splitCategory.name}</span>
+                    </div>
+                    <div class="split-description">${split.description || '-'}</div>
+                    <div class="split-amount">$${split.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+            <div class="splits-total">
+              <span>Total subdivisiones:</span>
+              <strong>$${t.transaction_splits.reduce((sum, s) => sum + s.amount, 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
+            </div>
+            <button class="btn-text-danger" onclick="removeSplits('${t.id}')">
+              Eliminar subdivisiones
+            </button>
+          </div>
+        ` : `
+          <div class="detail-section">
+            <button class="btn-secondary" onclick="createSplits('${t.id}')" style="width: 100%;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"></path>
+              </svg>
+              Subdividir transacción
+            </button>
+          </div>
+        `}
 
         <div class="notes-section">
           <div class="detail-title">NOTAS</div>
@@ -2528,6 +2690,35 @@ async function editTransactionCategory(transactionId, currentCategoryId) {
   setTimeout(() => document.addEventListener('click', closeDropdown), 100);
 }
 
+// Detect bank from filename
+function detectBankFromFilename(filename) {
+  const banks = {
+    'santander': { name: 'Santander Rio', color: '#EC0000' },
+    'galicia': { name: 'Banco Galicia', color: '#FF6600' },
+    'bbva': { name: 'BBVA', color: '#004481' },
+    'macro': { name: 'Banco Macro', color: '#0066CC' },
+    'nacion': { name: 'Banco Nación', color: '#0033A0' },
+    'patagonia': { name: 'Banco Patagonia', color: '#005EB8' },
+    'icbc': { name: 'ICBC', color: '#C8102E' },
+    'hsbc': { name: 'HSBC', color: '#DB0011' },
+    'mercadopago': { name: 'Mercado Pago', color: '#009EE3' },
+    'brubank': { name: 'Brubank', color: '#7B61FF' },
+    'uala': { name: 'Ualá', color: '#FF4C4C' },
+    'prex': { name: 'Prex', color: '#00D632' },
+    'naranja': { name: 'Naranja X', color: '#FF6600' },
+    'personal': { name: 'Personal Pay', color: '#00A8E1' },
+  };
+
+  const lowerFilename = filename.toLowerCase();
+  for (const [key, value] of Object.entries(banks)) {
+    if (lowerFilename.includes(key)) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
 // File Detail View
 async function showFileDetail(fileId) {
   openRightSidebar();
@@ -2546,88 +2737,97 @@ async function showFileDetail(fileId) {
     if (result.success) {
       const file = result.file;
       const transactionCount = file.transaction_count || 0;
+      const detectedBank = detectBankFromFilename(file.original_name);
 
       sidebarContent.innerHTML = `
-        <div class="file-detail-header">
-          <div class="file-detail-icon">${getFileIcon(file.original_name)}</div>
-          <div class="file-detail-name">${file.original_name}</div>
-          <div class="file-status-badge ${file.processing_status}">
-            ${file.processing_status === 'completed' ? 'Completado' :
-              file.processing_status === 'pending' ? 'Pendiente' :
-              file.processing_status === 'processing' ? 'Procesando' :
-              file.processing_status === 'failed' ? 'Error' : file.processing_status}
-          </div>
-        </div>
+        <div class="file-detail-container">
+          <!-- Main Info Card -->
+          <div class="file-main-card">
+            <div class="file-type-label">${file.document_type === 'vep' ? 'VEP' : 'EXTRACTO BANCARIO'}</div>
 
-        <div class="detail-info-grid">
-          <div class="detail-info-item">
-            <div class="detail-info-label">Fecha de Carga</div>
-            <div class="detail-info-value">${new Date(file.created_at).toLocaleDateString('es-AR', {
-              day: '2-digit',
-              month: 'long',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}</div>
-          </div>
+            ${detectedBank ? `
+              <div class="file-bank-badge" style="background: ${detectedBank.color}15; color: ${detectedBank.color}; border: 2px solid ${detectedBank.color}30;">
+                🏦 ${detectedBank.name}
+              </div>
+            ` : ''}
 
-          <div class="detail-info-item">
-            <div class="detail-info-label">Tamaño</div>
-            <div class="detail-info-value">${formatFileSize(file.file_size)}</div>
-          </div>
+            ${file.document_type !== 'vep' ? `
+              <div class="file-transaction-count">
+                <div class="count-number">${transactionCount}</div>
+                <div class="count-label">Transacciones Extraídas</div>
+              </div>
+            ` : ''}
 
-          <div class="detail-info-item">
-            <div class="detail-info-label">Tipo de Documento</div>
-            <div class="detail-info-value">${file.document_type === 'vep' ? 'VEP' : 'Extracto Bancario'}</div>
-          </div>
-
-          ${file.document_type !== 'vep' ? `
-            <div class="detail-info-item">
-              <div class="detail-info-label">Transacciones Extraídas</div>
-              <div class="detail-info-value">${transactionCount}</div>
+            <div class="file-status-indicator ${file.processing_status}">
+              ${file.processing_status === 'completed' ? '✓ Completado' :
+                file.processing_status === 'pending' ? '⏱ Pendiente' :
+                file.processing_status === 'processing' ? '⚙️ Procesando' :
+                file.processing_status === 'failed' ? '✗ Error' : file.processing_status}
             </div>
-          ` : ''}
-
-          <div class="detail-info-item">
-            <div class="detail-info-label">Estado</div>
-            <div class="detail-info-value">${
-              file.processing_status === 'completed' ? 'Procesado correctamente' :
-              file.processing_status === 'pending' ? 'En espera' :
-              file.processing_status === 'processing' ? 'Procesando...' :
-              file.processing_status === 'failed' ? 'Error en el procesamiento' : file.processing_status
-            }</div>
           </div>
-        </div>
 
-        <div class="file-actions-section">
-          ${file.storage_path ? `
-            <button class="file-action-btn" onclick="downloadFile('${file.id}', '${file.original_name}')">
+          <!-- File Name -->
+          <div class="file-name-section">
+            <div class="file-name-label">ARCHIVO</div>
+            <div class="file-name-text">${file.original_name}</div>
+          </div>
+
+          <!-- Separator -->
+          <div class="detail-separator"></div>
+
+          <!-- File Details -->
+          <div class="file-details-grid">
+            <div class="file-detail-row">
+              <span class="detail-label">FECHA DE CARGA</span>
+              <span class="detail-value">${new Date(file.created_at).toLocaleDateString('es-AR', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}</span>
+            </div>
+
+            <div class="file-detail-row">
+              <span class="detail-label">TAMAÑO DEL ARCHIVO</span>
+              <span class="detail-value">${formatFileSize(file.file_size)}</span>
+            </div>
+          </div>
+
+          <!-- Separator -->
+          <div class="detail-separator"></div>
+
+          <!-- Actions -->
+          <div class="file-actions-list">
+            ${file.storage_path ? `
+              <button class="file-action-button primary" onclick="downloadFile('${file.id}', '${file.original_name}')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Descargar Archivo
+              </button>
+            ` : ''}
+
+            ${file.document_type !== 'vep' && transactionCount > 0 ? `
+              <button class="file-action-button secondary" onclick="viewFileTransactions('${file.id}', '${escapeHtml(file.original_name)}')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="1" x2="12" y2="23"></line>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                Ver Transacciones (${transactionCount})
+              </button>
+            ` : ''}
+
+            <button class="file-action-button danger" onclick="confirmDeleteFile('${file.id}')">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
               </svg>
-              Descargar Archivo
+              Eliminar Archivo
             </button>
-          ` : ''}
-
-          ${file.document_type !== 'vep' && transactionCount > 0 ? `
-            <button class="file-action-btn" onclick="viewFileTransactions('${file.id}', '${escapeHtml(file.original_name)}')">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="1" x2="12" y2="23"></line>
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-              </svg>
-              Ver Transacciones (${transactionCount})
-            </button>
-          ` : ''}
-
-          <button class="file-action-btn danger" onclick="confirmDeleteFile('${file.id}')">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-            Eliminar Archivo
-          </button>
+          </div>
         </div>
       `;
     } else {
@@ -4256,3 +4456,327 @@ async function checkForDuplicatesNotification(fileId) {
 }
 
 // ========================================
+
+// TRANSACTION SPLITS FUNCTIONS
+// ========================================
+
+// Create or edit splits for a transaction
+async function createSplits(transactionId) {
+  const transaction = allTransactions.find(t => t.id === transactionId);
+  if (!transaction) return;
+
+  const totalAmount = Math.abs(transaction.amount);
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-container split-editor-modal" data-total-amount="${totalAmount}">
+      <div class="modal-header">
+        <h3>Subdividir transacción</h3>
+        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="transaction-info-banner">
+          <div class="info-row">
+            <span class="label">Descripción:</span>
+            <span class="value">${escapeHtml(transaction.description || '-')}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Monto total:</span>
+            <span class="value total-amount">${formatCurrency(totalAmount, transaction.currency || 'ARS')}</span>
+          </div>
+        </div>
+
+        <div id="splits-container" class="splits-editor">
+          <!-- Splits se agregarán aquí dinámicamente -->
+        </div>
+
+        <div class="split-summary">
+          <div class="summary-row">
+            <span>Suma de subdivisiones:</span>
+            <span id="splits-sum" class="sum-value">$0.00</span>
+          </div>
+          <div class="summary-row">
+            <span>Restante:</span>
+            <span id="splits-remaining" class="remaining-value">
+              ${formatCurrency(totalAmount, transaction.currency || 'ARS')}
+            </span>
+          </div>
+        </div>
+
+        <button class="btn-secondary btn-block" onclick="addSplitRow()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Agregar subdivisión
+        </button>
+      </div>
+
+      <div class="custom-modal-actions">
+        <button class="custom-modal-btn btn-cancel" onclick="this.closest('.modal-overlay').remove()">Cancelar</button>
+        <button class="custom-modal-btn btn-confirm" onclick="saveSplits('${transactionId}', ${totalAmount}, '${transaction.currency || 'ARS'}')">
+          Guardar subdivisiones
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Inicializar con splits existentes o 2 vacíos
+  window.splitCounter = 0;
+
+  if (transaction.transaction_splits && transaction.transaction_splits.length > 0) {
+    // Pre-cargar splits existentes
+    transaction.transaction_splits.sort((a, b) => a.split_order - b.split_order).forEach(split => {
+      addSplitRow(split);
+    });
+  } else {
+    // Agregar 2 splits vacíos
+    addSplitRow();
+    addSplitRow();
+  }
+
+  updateSplitsSummary();
+}
+
+// Add a new split row to the editor
+function addSplitRow(existingSplit = null) {
+  window.splitCounter = (window.splitCounter || 0) + 1;
+  const container = document.getElementById('splits-container');
+
+  if (!container) {
+    console.error('splits-container not found');
+    return;
+  }
+
+  const categories = getCategories();
+  const splitRow = document.createElement('div');
+  splitRow.className = 'split-row';
+  splitRow.dataset.splitId = window.splitCounter;
+
+  splitRow.innerHTML = `
+    <div class="split-row-number">${window.splitCounter}</div>
+    <div class="split-row-fields">
+      <div class="form-group">
+        <label>Categoría</label>
+        <select class="split-category" onchange="updateSplitsSummary()">
+          <option value="">Sin categoría</option>
+          ${categories.map(cat =>
+            `<option value="${cat.id}" ${existingSplit && existingSplit.category_id === cat.id ? 'selected' : ''}>${escapeHtml(cat.name)}</option>`
+          ).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Descripción (opcional)</label>
+        <input type="text" class="split-description" placeholder="Ej: Factura A" value="${existingSplit ? escapeHtml(existingSplit.description || '') : ''}">
+      </div>
+      <div class="form-group">
+        <label>Monto</label>
+        <input type="number" class="split-amount" step="0.01" min="0"
+               oninput="updateSplitsSummary()" placeholder="0.00" value="${existingSplit ? existingSplit.amount : ''}">
+      </div>
+    </div>
+    <button class="btn-icon-danger" onclick="removeSplitRow(${window.splitCounter})" title="Eliminar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      </svg>
+    </button>
+  `;
+
+  container.appendChild(splitRow);
+}
+
+// Remove a split row from the editor
+function removeSplitRow(splitId) {
+  const row = document.querySelector(`[data-split-id="${splitId}"]`);
+  if (row) {
+    row.remove();
+    updateSplitsSummary();
+
+    // Renumerar splits restantes
+    const allRows = document.querySelectorAll('.split-row');
+    allRows.forEach((row, index) => {
+      const numberEl = row.querySelector('.split-row-number');
+      if (numberEl) numberEl.textContent = index + 1;
+    });
+  }
+}
+
+// Update the splits summary (sum and remaining)
+let autoCompleteTimeout;
+function updateSplitsSummary() {
+  const amountInputs = Array.from(document.querySelectorAll('.split-amount'));
+  const amounts = amountInputs.map(input => parseFloat(input.value) || 0);
+
+  // Obtener el monto total del data-attribute
+  const modalContainer = document.querySelector('.split-editor-modal');
+  const totalAmount = parseFloat(modalContainer?.dataset.totalAmount || '0');
+
+  const sum = amounts.reduce((total, amount) => total + amount, 0);
+  const remaining = totalAmount - sum;
+
+  document.getElementById('splits-sum').textContent = `$${sum.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+  document.getElementById('splits-remaining').textContent = `$${remaining.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+  // Color rojo si remaining es negativo, verde si es cero, gris si es positivo
+  const remainingEl = document.getElementById('splits-remaining');
+  if (remainingEl) {
+    remainingEl.style.color = remaining < 0 ? '#EF4444' : (remaining === 0 ? '#10B981' : '#6B7280');
+  }
+
+  // Cancelar timeout anterior
+  if (autoCompleteTimeout) {
+    clearTimeout(autoCompleteTimeout);
+  }
+
+  // Auto-completar después de 500ms de inactividad
+  autoCompleteTimeout = setTimeout(() => {
+    const currentAmounts = Array.from(document.querySelectorAll('.split-amount')).map(input => parseFloat(input.value) || 0);
+    const currentSum = currentAmounts.reduce((total, amount) => total + amount, 0);
+    const currentRemaining = totalAmount - currentSum;
+
+    if (currentRemaining > 0 && amountInputs.length >= 2) {
+      // Encontrar todos los inputs vacíos
+      const emptyInputs = amountInputs.filter(input => !input.value || parseFloat(input.value) === 0);
+
+      // Si hay exactamente UN input vacío, llenarlo con el restante
+      if (emptyInputs.length === 1) {
+        emptyInputs[0].value = currentRemaining.toFixed(2);
+
+        // Recalcular después de auto-completar
+        const newSum = amountInputs.reduce((total, input) => total + (parseFloat(input.value) || 0), 0);
+        const newRemaining = totalAmount - newSum;
+
+        document.getElementById('splits-sum').textContent = `$${newSum.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('splits-remaining').textContent = `$${newRemaining.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+        if (remainingEl) {
+          remainingEl.style.color = newRemaining < 0 ? '#EF4444' : (newRemaining === 0 ? '#10B981' : '#6B7280');
+        }
+      }
+    }
+  }, 500);
+}
+
+// Save splits for a transaction
+async function saveSplits(transactionId, totalAmount, currency) {
+  const splitRows = document.querySelectorAll('.split-row');
+  const splits = [];
+
+  for (const row of splitRows) {
+    const categoryValue = row.querySelector('.split-category').value;
+    const categoryId = categoryValue && categoryValue !== '' ? categoryValue : null;
+    const description = row.querySelector('.split-description').value.trim();
+    const amount = parseFloat(row.querySelector('.split-amount').value);
+
+    if (!amount || amount <= 0) {
+      showNotification('Todos los montos deben ser mayores a 0', 'error');
+      return;
+    }
+
+    splits.push({
+      category_id: categoryId,
+      description: description || null,
+      amount: amount
+    });
+  }
+
+  if (splits.length === 0) {
+    showNotification('Debe agregar al menos una subdivisión', 'error');
+    return;
+  }
+
+  // Validar que sumen el total
+  const sum = splits.reduce((total, split) => total + split.amount, 0);
+  if (Math.abs(sum - totalAmount) > 0.01) {
+    showNotification(
+      `La suma de subdivisiones ($${sum.toFixed(2)}) debe ser igual al total ($${totalAmount.toFixed(2)})`,
+      'error'
+    );
+    return;
+  }
+
+  try {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`/api/transactions/${transactionId}/splits`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ splits })
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Error al guardar subdivisiones';
+      const contentType = response.headers.get('content-type');
+
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          const error = await response.json();
+          errorMessage = error.error || errorMessage;
+        } catch (e) {
+          errorMessage = `Error del servidor (${response.status}): ${response.statusText}`;
+        }
+      } else {
+        errorMessage = `Error del servidor (${response.status}): ${response.statusText}`;
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    showNotification('Subdivisiones guardadas correctamente', 'success');
+    document.querySelector('.modal-overlay').remove();
+
+    // Recargar transacciones
+    await loadAllTransactions();
+
+    // Reabrir detalle
+    showTransactionDetail(transactionId);
+  } catch (error) {
+    console.error('Error al guardar splits:', error);
+    showNotification(error.message, 'error');
+  }
+}
+
+// Remove all splits from a transaction
+async function removeSplits(transactionId) {
+  const confirmed = await showCustomModal({
+    title: 'Eliminar subdivisiones',
+    message: '¿Estás seguro de eliminar todas las subdivisiones? Esta acción no se puede deshacer.',
+    type: 'warning',
+    confirmText: 'Eliminar',
+    cancelText: 'Cancelar',
+    danger: true
+  });
+
+  if (!confirmed) return;
+
+  try {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`/api/transactions/${transactionId}/splits`, {
+      method: 'DELETE',
+      headers
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al eliminar subdivisiones');
+    }
+
+    showNotification('Subdivisiones eliminadas', 'success');
+    await loadAllTransactions();
+    showTransactionDetail(transactionId);
+  } catch (error) {
+    console.error('Error al eliminar splits:', error);
+    showNotification('Error al eliminar subdivisiones', 'error');
+  }
+}
