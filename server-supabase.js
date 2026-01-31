@@ -202,9 +202,27 @@ app.get('/api/files', requireAuth, async (req, res) => {
       throw error;
     }
 
+    // Get transaction counts for each file
+    const filesWithCounts = await Promise.all(files.map(async (file) => {
+      const { count, error: countError } = await supabaseAdmin
+        .from('transactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('file_id', file.id)
+        .eq('user_id', req.user.id);
+
+      if (countError) {
+        console.error('Error counting transactions for file:', file.id, countError);
+      }
+
+      return {
+        ...file,
+        transaction_count: count || 0
+      };
+    }));
+
     res.json({
       success: true,
-      files
+      files: filesWithCounts
     });
   } catch (error) {
     console.error('List files error:', error);
@@ -947,16 +965,25 @@ app.get('/api/files/:fileId/vep', requireAuth, async (req, res) => {
 app.delete('/api/files/:fileId', requireAuth, async (req, res) => {
   try {
     // First get the file to get the stored name
-    const { data: file, error: fileError } = await supabase
+    const { data: files, error: fileError } = await supabase
       .from('files')
       .select('stored_name')
       .eq('id', req.params.fileId)
-      .eq('user_id', req.user.id)
-      .single();
+      .eq('user_id', req.user.id);
 
     if (fileError) {
       throw fileError;
     }
+
+    // Check if file exists
+    if (!files || files.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'File not found'
+      });
+    }
+
+    const file = files[0];
 
     // Delete all associated transactions first (cascade delete)
     const { error: transactionsError } = await supabase
