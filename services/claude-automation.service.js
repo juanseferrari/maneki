@@ -242,21 +242,19 @@ class ClaudeAutomationService {
         throw new Error(`Failed to parse Claude response as JSON: ${parseError.message}`);
       }
 
-      // Extract file changes from JSON
-      const changes = parsedResponse.files.map(file => ({
-        file: file.path,
-        code: file.content,
-        language: file.path.endsWith('.js') ? 'javascript' : 'text'
-      }));
-
-      console.log(`[ClaudeAutomation] Extracted ${changes.length} file changes from JSON`);
-
-      if (changes.length === 0) {
-        throw new Error('No file changes in Claude response');
+      if (!parsedResponse.changes || parsedResponse.changes.length === 0) {
+        throw new Error('No changes in Claude response');
       }
 
+      console.log(`[ClaudeAutomation] Parsed ${parsedResponse.changes.length} changes from JSON`);
+
+      // Apply changes to files
+      const filesToCommit = await this.applyChangesToFiles(parsedResponse.changes, fileContents);
+
+      console.log(`[ClaudeAutomation] Applied changes to ${filesToCommit.length} files`);
+
       // Create branch and commit changes using GitHub API
-      await this.createBranchAndCommit(branchName, changes, issue);
+      await this.createBranchAndCommit(branchName, filesToCommit, issue);
 
       // Update job with branch name
       await this.updateJobBranch(job.id, branchName);
@@ -397,12 +395,16 @@ Keep it brief and actionable.`;
    * Build implementation prompt for Claude
    */
   buildImplementationPrompt(issue, analysis, fileContents) {
+    // Show a preview of existing files (first 100 lines only)
     let filesContext = '';
 
     if (fileContents && Object.keys(fileContents).length > 0) {
-      filesContext = '\n## Existing Files\n\n';
+      filesContext = '\n## Existing Files (preview)\n\n';
       for (const [filePath, content] of Object.entries(fileContents)) {
-        filesContext += `### ${filePath}\n\`\`\`javascript\n${content}\n\`\`\`\n\n`;
+        const lines = content.split('\n');
+        const preview = lines.slice(0, 100).join('\n');
+        const truncated = lines.length > 100 ? `\n... (${lines.length - 100} more lines)` : '';
+        filesContext += `### ${filePath} (${lines.length} lines total)\n\`\`\`javascript\n${preview}${truncated}\n\`\`\`\n\n`;
       }
     }
 
@@ -416,38 +418,47 @@ ${analysis.summary}
 ${filesContext}
 
 CRITICAL INSTRUCTIONS:
-You MUST respond with ONLY a valid JSON object. No other text before or after.
+You MUST respond with ONLY a valid JSON object describing the changes to make.
 
-The JSON must have this exact structure:
+Use this exact structure:
 {
-  "files": [
+  "changes": [
     {
-      "path": "path/to/file.js",
-      "content": "complete file content here as a string"
+      "file": "path/to/file.js",
+      "action": "modify",
+      "description": "what to add/change",
+      "code": "the new code to add (just the new lines, not the whole file)"
     }
   ],
-  "summary": "brief description of changes"
+  "summary": "brief description of all changes"
 }
 
-Requirements:
-1. Provide the COMPLETE file content for each file you modify
-2. Include the entire file, not just snippets or changes
-3. Make minimal changes - only add what's needed for this issue
-4. The "content" field must be a valid string (escape quotes and newlines properly)
-5. Return ONLY the JSON object, nothing else
+Actions can be:
+- "modify": Add or modify code in an existing file
+- "create": Create a new file (provide full content)
+
+For "modify" actions:
+- Provide ONLY the new code to add
+- Include a clear description of WHERE to add it (e.g., "Add after line 50", "Add at the end of the file", "Add before the app.listen() call")
+- Keep it minimal - just what's needed for this issue
+
+For "create" actions:
+- Provide the complete file content
 
 Example response:
 {
-  "files": [
+  "changes": [
     {
-      "path": "server-supabase.js",
-      "content": "const express = require('express');\\n// rest of file..."
+      "file": "server-supabase.js",
+      "action": "modify",
+      "description": "Add health check endpoint before app.listen()",
+      "code": "// Health check endpoint\\napp.get('/health', (req, res) => {\\n  res.json({ status: 'ok', timestamp: new Date().toISOString() });\\n});"
     }
   ],
-  "summary": "Added health check endpoint"
+  "summary": "Added /health endpoint"
 }
 
-Now generate the JSON response:`;
+Now generate the JSON response with the changes:`;
   }
 
   /**
@@ -636,6 +647,82 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>`;
     // Simple extraction of file paths from analysis
     const filePattern = /(\w+\/)+\w+\.\w+/g;
     return text.match(filePattern) || [];
+  }
+
+  /**
+   * Apply changes to files based on Claude's instructions
+   */
+  async applyChangesToFiles(changes, existingFiles) {
+    const filesToCommit = [];
+
+    for (const change of changes) {
+      console.log(`[ClaudeAutomation] Processing change for ${change.file}: ${change.action}`);
+
+      if (change.action === 'create') {
+        // New file - use code as-is
+        filesToCommit.push({
+          file: change.file,
+          code: change.code,
+          language: change.file.endsWith('.js') ? 'javascript' : 'text'
+        });
+      } else if (change.action === 'modify') {
+        // Modify existing file
+        const existingContent = existingFiles[change.file];
+        if (!existingContent) {
+          console.warn(`[ClaudeAutomation] File ${change.file} not found in existing files, treating as create`);
+          filesToCommit.push({
+            file: change.file,
+            code: change.code,
+            language: change.file.endsWith('.js') ? 'javascript' : 'text'
+          });
+          continue;
+        }
+
+        // Apply the modification based on description
+        let modifiedContent;
+        const description = change.description.toLowerCase();
+
+        if (description.includes('at the end') || description.includes('before app.listen')) {
+          // Add code before app.listen() or at the end
+          const lines = existingContent.split('\n');
+          const listenIndex = lines.findIndex(line => line.includes('app.listen('));
+
+          if (listenIndex !== -1) {
+            // Insert before app.listen()
+            lines.splice(listenIndex, 0, '', change.code, '');
+          } else {
+            // Add at the end
+            lines.push('', change.code);
+          }
+          modifiedContent = lines.join('\n');
+        } else if (description.match(/after line (\d+)/)) {
+          // Insert after specific line number
+          const lineNumber = parseInt(description.match(/after line (\d+)/)[1]);
+          const lines = existingContent.split('\n');
+          lines.splice(lineNumber, 0, change.code);
+          modifiedContent = lines.join('\n');
+        } else {
+          // Default: add before app.listen() or at the end
+          const lines = existingContent.split('\n');
+          const listenIndex = lines.findIndex(line => line.includes('app.listen('));
+
+          if (listenIndex !== -1) {
+            lines.splice(listenIndex, 0, '', change.code, '');
+          } else {
+            lines.push('', change.code);
+          }
+          modifiedContent = lines.join('\n');
+        }
+
+        filesToCommit.push({
+          file: change.file,
+          code: modifiedContent,
+          language: change.file.endsWith('.js') ? 'javascript' : 'text'
+        });
+      }
+    }
+
+    return filesToCommit;
   }
 
   /**
