@@ -14,6 +14,8 @@ const emailInboundService = require('./services/email-inbound.service');
 const mercadoPagoSync = require('./services/sync/mercadopago-sync.service');
 const mercurySync = require('./services/sync/mercury-sync.service');
 const recurringServicesService = require('./services/recurring-services.service');
+const LinearWebhookService = require('./services/linear-webhook.service');
+const ClaudeAutomationService = require('./services/claude-automation.service');
 
 // Temporary storage for OAuth states (use Redis in production)
 const oauthStates = new Map();
@@ -2053,6 +2055,130 @@ app.post('/api/email/token/regenerate', requireAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to regenerate email token'
+    });
+  }
+});
+
+// ==========================================
+// Linear Webhook (for automation)
+// ==========================================
+
+// Initialize automation services
+const supabaseServiceInstance = require('./services/supabase.service');
+const claudeAutomationService = new ClaudeAutomationService(supabaseServiceInstance);
+const linearWebhookService = new LinearWebhookService(supabaseServiceInstance, claudeAutomationService);
+
+// Linear webhook endpoint (public - secured by signature)
+app.post('/api/webhooks/linear', async (req, res) => {
+  try {
+    console.log('[Linear Webhook] Received webhook event');
+
+    // Get signature from header
+    const signature = req.headers['linear-signature'];
+    const rawBody = JSON.stringify(req.body);
+
+    // Verify signature
+    if (!linearWebhookService.verifySignature(rawBody, signature)) {
+      console.error('[Linear Webhook] Invalid signature');
+      return res.status(401).json({ success: false, error: 'Invalid signature' });
+    }
+
+    // Process webhook event
+    const result = await linearWebhookService.processWebhook(req.body);
+
+    console.log('[Linear Webhook] Event processed:', result);
+
+    res.json({
+      success: true,
+      message: result.message,
+      jobId: result.jobId
+    });
+  } catch (error) {
+    console.error('[Linear Webhook] Error processing webhook:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to process webhook'
+    });
+  }
+});
+
+// Get automation job status (for debugging/monitoring)
+app.get('/api/automation/jobs/:jobId', requireAuth, async (req, res) => {
+  try {
+    const { jobId } = req.params;
+
+    const { data: job, error } = await supabaseAdmin
+      .from('automation_jobs')
+      .select('*')
+      .eq('id', jobId)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      job
+    });
+  } catch (error) {
+    console.error('Get automation job error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get job'
+    });
+  }
+});
+
+// List recent automation jobs
+app.get('/api/automation/jobs', requireAuth, async (req, res) => {
+  try {
+    const { data: jobs, error } = await supabaseAdmin
+      .from('automation_jobs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      jobs,
+      count: jobs.length
+    });
+  } catch (error) {
+    console.error('List automation jobs error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to list jobs'
+    });
+  }
+});
+
+// Get automation metrics
+app.get('/api/automation/metrics', requireAuth, async (req, res) => {
+  try {
+    const { data: metrics, error } = await supabaseAdmin
+      .from('automation_metrics')
+      .select('*')
+      .order('date', { ascending: false })
+      .limit(30);
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      metrics
+    });
+  } catch (error) {
+    console.error('Get automation metrics error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get metrics'
     });
   }
 });
