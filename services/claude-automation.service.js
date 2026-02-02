@@ -1,8 +1,16 @@
-const Anthropic = require('@anthropic-ai/sdk');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const LinearService = require('./linear.service');
+
+// Lazy load Anthropic SDK to avoid errors if not installed
+let Anthropic;
+try {
+  Anthropic = require('@anthropic-ai/sdk');
+} catch (error) {
+  console.warn('[ClaudeAutomation] @anthropic-ai/sdk not installed. Automation features will be disabled.');
+  Anthropic = null;
+}
 
 /**
  * Claude Automation Service
@@ -12,11 +20,26 @@ class ClaudeAutomationService {
   constructor(supabaseService) {
     this.supabase = supabaseService;
     this.linearService = new LinearService();
-    this.anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY
-    });
-    this.model = 'claude-sonnet-4-5-20250929';
-    this.maxTokens = 8000;
+
+    // Initialize Anthropic client if SDK is available
+    if (Anthropic && process.env.ANTHROPIC_API_KEY) {
+      this.anthropic = new Anthropic({
+        apiKey: process.env.ANTHROPIC_API_KEY
+      });
+      this.model = 'claude-sonnet-4-5-20250929';
+      this.maxTokens = 8000;
+      console.log('[ClaudeAutomation] Service initialized successfully');
+    } else {
+      this.anthropic = null;
+      console.warn('[ClaudeAutomation] Service initialized WITHOUT Anthropic SDK or API key');
+    }
+  }
+
+  /**
+   * Check if automation is available
+   */
+  isAvailable() {
+    return this.anthropic !== null;
   }
 
   /**
