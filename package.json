@@ -27,6 +27,7 @@
     "npm": "9.x"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.1",
     "@supabase/supabase-js": "^2.39.7",
     "axios": "^1.13.2",
     "connect-pg-simple": "^9.0.1",
@@ -46,7 +47,6 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "@anthropic-ai/sdk": "^0.30.1",
     "@eslint/js": "^9.0.0",
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^9.1.0",
