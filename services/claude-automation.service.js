@@ -227,12 +227,32 @@ class ClaudeAutomationService {
       const implementation = response.content[0].text;
       console.log(`[ClaudeAutomation] Implementation response length: ${implementation.length} chars`);
 
-      // Extract code changes
-      const changes = this.extractCodeChanges(implementation);
-      console.log(`[ClaudeAutomation] Extracted ${changes.length} file changes`);
+      // Parse JSON response from Claude
+      let parsedResponse;
+      try {
+        // Try to extract JSON if there's text before/after it
+        const jsonMatch = implementation.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error('No JSON object found in response');
+        }
+        parsedResponse = JSON.parse(jsonMatch[0]);
+      } catch (parseError) {
+        console.error('[ClaudeAutomation] Failed to parse JSON response:', parseError.message);
+        console.error('[ClaudeAutomation] Response preview:', implementation.substring(0, 1000));
+        throw new Error(`Failed to parse Claude response as JSON: ${parseError.message}`);
+      }
+
+      // Extract file changes from JSON
+      const changes = parsedResponse.files.map(file => ({
+        file: file.path,
+        code: file.content,
+        language: file.path.endsWith('.js') ? 'javascript' : 'text'
+      }));
+
+      console.log(`[ClaudeAutomation] Extracted ${changes.length} file changes from JSON`);
 
       if (changes.length === 0) {
-        throw new Error('No code changes extracted from Claude response. Response may not be in expected format.');
+        throw new Error('No file changes in Claude response');
       }
 
       // Create branch and commit changes using GitHub API
@@ -244,7 +264,7 @@ class ClaudeAutomationService {
       return {
         branchName,
         changes,
-        summary: implementation
+        summary: parsedResponse.summary || implementation
       };
     } catch (error) {
       console.error('[ClaudeAutomation] Implementation failed:', error);
@@ -394,28 +414,40 @@ Description: ${issue.description || 'No description provided'}
 Analysis:
 ${analysis.summary}
 ${filesContext}
+
 CRITICAL INSTRUCTIONS:
-1. You MUST provide actual code implementation
-2. You MUST use EXACTLY this format for each file:
+You MUST respond with ONLY a valid JSON object. No other text before or after.
 
-FILE: path/to/file.js
-\`\`\`javascript
-// Complete file code here
-\`\`\`
+The JSON must have this exact structure:
+{
+  "files": [
+    {
+      "path": "path/to/file.js",
+      "content": "complete file content here as a string"
+    }
+  ],
+  "summary": "brief description of changes"
+}
 
-3. Provide the COMPLETE file content, not just snippets
-4. For each file you need to modify, provide the full updated version
-5. Do NOT provide explanations or analysis - ONLY provide code in the format above
-6. Make minimal changes - only add what's needed for this specific issue
+Requirements:
+1. Provide the COMPLETE file content for each file you modify
+2. Include the entire file, not just snippets or changes
+3. Make minimal changes - only add what's needed for this issue
+4. The "content" field must be a valid string (escape quotes and newlines properly)
+5. Return ONLY the JSON object, nothing else
 
-Example output format:
-FILE: server-supabase.js
-\`\`\`javascript
-const express = require('express');
-// ... rest of the complete file content with your changes
-\`\`\`
+Example response:
+{
+  "files": [
+    {
+      "path": "server-supabase.js",
+      "content": "const express = require('express');\\n// rest of file..."
+    }
+  ],
+  "summary": "Added health check endpoint"
+}
 
-Now provide the complete implementation:`;
+Now generate the JSON response:`;
   }
 
   /**
