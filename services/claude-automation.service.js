@@ -1,4 +1,3 @@
-const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
@@ -199,10 +198,7 @@ class ClaudeAutomationService {
   async implementSolution(job, issue, analysis) {
     console.log(`[ClaudeAutomation] Implementing solution for ${issue.identifier}`);
 
-    // Create feature branch
     const branchName = this.createBranchName(issue);
-    await this.createBranch(branchName);
-
     const prompt = this.buildImplementationPrompt(issue, analysis);
 
     try {
@@ -219,12 +215,11 @@ class ClaudeAutomationService {
 
       const implementation = response.content[0].text;
 
-      // Extract code changes and apply them
+      // Extract code changes
       const changes = this.extractCodeChanges(implementation);
-      await this.applyCodeChanges(changes);
 
-      // Commit changes
-      await this.commitChanges(issue, branchName);
+      // Create branch and commit changes using GitHub API
+      await this.createBranchAndCommit(branchName, changes, issue);
 
       // Update job with branch name
       await this.updateJobBranch(job.id, branchName);
@@ -285,16 +280,10 @@ class ClaudeAutomationService {
     const body = this.buildPRDescription(issue, implementation);
 
     try {
-      // Push branch to remote
-      execSync(`git push -u origin ${branchName}`, {
-        encoding: 'utf-8',
-        cwd: process.cwd()
-      });
-
-      // Create PR using GitHub API instead of gh CLI
       const owner = this.getRepoOwner();
       const repo = this.getRepoName();
 
+      // Create PR using GitHub API
       const response = await axios.post(
         `https://api.github.com/repos/${owner}/${repo}/pulls`,
         {
@@ -436,17 +425,105 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>`;
     return `automation/linear-${issue.identifier.toLowerCase()}-${slug}`;
   }
 
-  async createBranch(branchName) {
-    execSync('git fetch origin main', { encoding: 'utf-8' });
-    execSync('git checkout main', { encoding: 'utf-8' });
-    execSync('git pull origin main', { encoding: 'utf-8' });
-    execSync(`git checkout -b ${branchName}`, { encoding: 'utf-8' });
-  }
+  /**
+   * Create branch and commit changes using GitHub API
+   */
+  async createBranchAndCommit(branchName, changes, issue) {
+    const owner = this.getRepoOwner();
+    const repo = this.getRepoName();
 
-  async commitChanges(issue, branchName) {
-    execSync('git add .', { encoding: 'utf-8' });
+    try {
+      // 1. Get the latest commit SHA from main branch
+      const refResponse = await axios.get(
+        `https://api.github.com/repos/${owner}/${repo}/git/refs/heads/main`,
+        {
+          headers: {
+            'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        }
+      );
 
-    const commitMessage = `[${issue.identifier}] ${issue.title}
+      const mainSha = refResponse.data.object.sha;
+      console.log(`[ClaudeAutomation] Main branch SHA: ${mainSha}`);
+
+      // 2. Create a new branch from main
+      await axios.post(
+        `https://api.github.com/repos/${owner}/${repo}/git/refs`,
+        {
+          ref: `refs/heads/${branchName}`,
+          sha: mainSha
+        },
+        {
+          headers: {
+            'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        }
+      );
+
+      console.log(`[ClaudeAutomation] Created branch: ${branchName}`);
+
+      // 3. Get the base tree
+      const commitResponse = await axios.get(
+        `https://api.github.com/repos/${owner}/${repo}/git/commits/${mainSha}`,
+        {
+          headers: {
+            'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        }
+      );
+
+      const baseTreeSha = commitResponse.data.tree.sha;
+
+      // 4. Create blobs for each file
+      const treeItems = [];
+      for (const change of changes) {
+        const blobResponse = await axios.post(
+          `https://api.github.com/repos/${owner}/${repo}/git/blobs`,
+          {
+            content: change.code,
+            encoding: 'utf-8'
+          },
+          {
+            headers: {
+              'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+              'Accept': 'application/vnd.github.v3+json'
+            }
+          }
+        );
+
+        treeItems.push({
+          path: change.file,
+          mode: '100644',
+          type: 'blob',
+          sha: blobResponse.data.sha
+        });
+
+        console.log(`[ClaudeAutomation] Created blob for ${change.file}`);
+      }
+
+      // 5. Create a new tree
+      const treeResponse = await axios.post(
+        `https://api.github.com/repos/${owner}/${repo}/git/trees`,
+        {
+          base_tree: baseTreeSha,
+          tree: treeItems
+        },
+        {
+          headers: {
+            'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        }
+      );
+
+      const newTreeSha = treeResponse.data.sha;
+      console.log(`[ClaudeAutomation] Created tree: ${newTreeSha}`);
+
+      // 6. Create a commit
+      const commitMessage = `[${issue.identifier}] ${issue.title}
 
 Automated implementation
 
@@ -454,9 +531,45 @@ Linear: ${issue.url}
 
 Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>`;
 
-    execSync(`git commit -m "${commitMessage.replace(/"/g, '\\"')}"`, {
-      encoding: 'utf-8'
-    });
+      const newCommitResponse = await axios.post(
+        `https://api.github.com/repos/${owner}/${repo}/git/commits`,
+        {
+          message: commitMessage,
+          tree: newTreeSha,
+          parents: [mainSha]
+        },
+        {
+          headers: {
+            'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        }
+      );
+
+      const newCommitSha = newCommitResponse.data.sha;
+      console.log(`[ClaudeAutomation] Created commit: ${newCommitSha}`);
+
+      // 7. Update the branch reference to point to the new commit
+      await axios.patch(
+        `https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branchName}`,
+        {
+          sha: newCommitSha,
+          force: false
+        },
+        {
+          headers: {
+            'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        }
+      );
+
+      console.log(`[ClaudeAutomation] Updated branch ${branchName} to ${newCommitSha}`);
+
+    } catch (error) {
+      console.error('[ClaudeAutomation] Branch creation failed:', error.response?.data || error.message);
+      throw new Error(`Failed to create branch and commit: ${error.response?.data?.message || error.message}`);
+    }
   }
 
   extractFilesFromAnalysis(text) {
@@ -481,22 +594,6 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>`;
     return changes;
   }
 
-  async applyCodeChanges(changes) {
-    for (const change of changes) {
-      const filePath = path.join(process.cwd(), change.file);
-      const dir = path.dirname(filePath);
-
-      // Create directory if it doesn't exist
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-
-      // Write file
-      fs.writeFileSync(filePath, change.code, 'utf-8');
-      console.log(`[ClaudeAutomation] Written ${change.file}`);
-    }
-  }
-
   parseCoverage(output) {
     try {
       // Try to read coverage-summary.json
@@ -519,16 +616,13 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>`;
   }
 
   getRepoOwner() {
-    // Extract from git remote
-    const remote = execSync('git config --get remote.origin.url', { encoding: 'utf-8' }).trim();
-    const match = remote.match(/github\.com[:/](.+?)\//);
-    return match ? match[1] : 'unknown';
+    // Use environment variable or default
+    return process.env.GITHUB_REPO_OWNER || 'juanseferrari';
   }
 
   getRepoName() {
-    const remote = execSync('git config --get remote.origin.url', { encoding: 'utf-8' }).trim();
-    const match = remote.match(/github\.com[:/].+?\/(.+?)(\.git)?$/);
-    return match ? match[1].replace('.git', '') : 'unknown';
+    // Use environment variable or default
+    return process.env.GITHUB_REPO_NAME || 'maneki';
   }
 
   getCurrentStep(job) {
