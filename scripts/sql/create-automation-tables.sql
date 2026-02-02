@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS automation_jobs (
 
   -- Timestamps
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   started_at TIMESTAMP WITH TIME ZONE,
   completed_at TIMESTAMP WITH TIME ZONE,
 
@@ -163,7 +164,7 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER automation_jobs_updated_at
   BEFORE UPDATE ON automation_jobs
   FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+  EXECUTE FUNCTION update_automation_jobs_updated_at();
 
 -- Grant permissions (adjust based on your RLS setup)
 -- For now, assuming service role will handle these operations
