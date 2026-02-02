@@ -199,9 +199,20 @@ class ClaudeAutomationService {
     console.log(`[ClaudeAutomation] Implementing solution for ${issue.identifier}`);
 
     const branchName = this.createBranchName(issue);
-    const prompt = this.buildImplementationPrompt(issue, analysis);
 
     try {
+      // Step 1: Get existing file contents for files that need to be modified
+      const filesToModify = analysis.filesNeeded && analysis.filesNeeded.length > 0
+        ? analysis.filesNeeded
+        : ['server-supabase.js']; // Default if analysis didn't find any
+
+      console.log(`[ClaudeAutomation] Files to modify: ${filesToModify.join(', ')}`);
+
+      const fileContents = await this.fetchFilesFromGitHub(filesToModify);
+
+      // Step 2: Ask Claude to generate the updated code
+      const prompt = this.buildImplementationPrompt(issue, analysis, fileContents);
+
       const response = await this.anthropic.messages.create({
         model: this.model,
         max_tokens: this.maxTokens,
@@ -214,9 +225,15 @@ class ClaudeAutomationService {
       await this.incrementClaudeCalls(job.id);
 
       const implementation = response.content[0].text;
+      console.log(`[ClaudeAutomation] Implementation response length: ${implementation.length} chars`);
 
       // Extract code changes
       const changes = this.extractCodeChanges(implementation);
+      console.log(`[ClaudeAutomation] Extracted ${changes.length} file changes`);
+
+      if (changes.length === 0) {
+        throw new Error('No code changes extracted from Claude response. Response may not be in expected format.');
+      }
 
       // Create branch and commit changes using GitHub API
       await this.createBranchAndCommit(branchName, changes, issue);
@@ -359,35 +376,46 @@ Keep it brief and actionable.`;
   /**
    * Build implementation prompt for Claude
    */
-  buildImplementationPrompt(issue, analysis) {
-    return `You are implementing the following Linear issue:
+  buildImplementationPrompt(issue, analysis, fileContents) {
+    let filesContext = '';
+
+    if (fileContents && Object.keys(fileContents).length > 0) {
+      filesContext = '\n## Existing Files\n\n';
+      for (const [filePath, content] of Object.entries(fileContents)) {
+        filesContext += `### ${filePath}\n\`\`\`javascript\n${content}\n\`\`\`\n\n`;
+      }
+    }
+
+    return `You are implementing code for the following Linear issue:
 
 Issue: ${issue.identifier} - ${issue.title}
 Description: ${issue.description || 'No description provided'}
 
 Analysis:
 ${analysis.summary}
+${filesContext}
+CRITICAL INSTRUCTIONS:
+1. You MUST provide actual code implementation
+2. You MUST use EXACTLY this format for each file:
 
-Your task:
-1. Write the necessary code changes
-2. Follow existing code patterns in the repository
-3. Include tests if applicable
-4. Keep changes minimal and focused
-
-Provide the implementation with file paths and code blocks.
-
-Format your response as:
 FILE: path/to/file.js
 \`\`\`javascript
-// code here
+// Complete file code here
 \`\`\`
 
-FILE: path/to/test.js
+3. Provide the COMPLETE file content, not just snippets
+4. For each file you need to modify, provide the full updated version
+5. Do NOT provide explanations or analysis - ONLY provide code in the format above
+6. Make minimal changes - only add what's needed for this specific issue
+
+Example output format:
+FILE: server-supabase.js
 \`\`\`javascript
-// test code here
+const express = require('express');
+// ... rest of the complete file content with your changes
 \`\`\`
 
-Keep code clean, simple, and following project conventions.`;
+Now provide the complete implementation:`;
   }
 
   /**
@@ -576,6 +604,39 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>`;
     // Simple extraction of file paths from analysis
     const filePattern = /(\w+\/)+\w+\.\w+/g;
     return text.match(filePattern) || [];
+  }
+
+  /**
+   * Fetch file contents from GitHub
+   */
+  async fetchFilesFromGitHub(filePaths) {
+    const owner = this.getRepoOwner();
+    const repo = this.getRepoName();
+    const fileContents = {};
+
+    for (const filePath of filePaths) {
+      try {
+        const response = await axios.get(
+          `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`,
+          {
+            headers: {
+              'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+              'Accept': 'application/vnd.github.v3+json'
+            }
+          }
+        );
+
+        // Decode base64 content
+        const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
+        fileContents[filePath] = content;
+        console.log(`[ClaudeAutomation] Fetched ${filePath} (${content.length} bytes)`);
+      } catch (error) {
+        console.warn(`[ClaudeAutomation] Could not fetch ${filePath}:`, error.message);
+        // If file doesn't exist, it's okay - Claude will create it
+      }
+    }
+
+    return fileContents;
   }
 
   extractCodeChanges(implementation) {
