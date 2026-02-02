@@ -1,6 +1,7 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 const LinearService = require('./linear.service');
 
 // Lazy load Anthropic SDK to avoid errors if not installed
@@ -290,23 +291,49 @@ class ClaudeAutomationService {
         cwd: process.cwd()
       });
 
-      // Create PR using gh CLI
-      const prUrl = execSync(
-        `gh pr create --title "${title}" --body "${body.replace(/"/g, '\\"')}" --label "automated" --label "claude"`,
-        {
-          encoding: 'utf-8',
-          cwd: process.cwd()
-        }
-      ).trim();
+      // Create PR using GitHub API instead of gh CLI
+      const owner = this.getRepoOwner();
+      const repo = this.getRepoName();
 
-      // Extract PR number from URL
-      const prNumber = parseInt(prUrl.split('/').pop());
+      const response = await axios.post(
+        `https://api.github.com/repos/${owner}/${repo}/pulls`,
+        {
+          title,
+          body,
+          head: branchName,
+          base: 'main'
+        },
+        {
+          headers: {
+            'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        }
+      );
+
+      const prData = response.data;
+
+      // Add labels to PR
+      try {
+        await axios.post(
+          `https://api.github.com/repos/${owner}/${repo}/issues/${prData.number}/labels`,
+          { labels: ['automated', 'claude'] },
+          {
+            headers: {
+              'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+              'Accept': 'application/vnd.github.v3+json'
+            }
+          }
+        );
+      } catch (labelError) {
+        console.warn('[ClaudeAutomation] Failed to add labels:', labelError.message);
+      }
 
       return {
-        number: prNumber,
-        url: prUrl,
+        number: prData.number,
+        url: prData.html_url,
         branchName,
-        branchUrl: `https://github.com/${this.getRepoOwner()}/${this.getRepoName()}/tree/${branchName}`
+        branchUrl: `https://github.com/${owner}/${repo}/tree/${branchName}`
       };
     } catch (error) {
       console.error('[ClaudeAutomation] PR creation failed:', error);
