@@ -2988,6 +2988,13 @@ app.get('/health', (req, res) => {
 });
 
 // Start server
+
+// Health check endpoint - no authentication required
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Using Supabase Auth`);
