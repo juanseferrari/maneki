@@ -1,0 +1,17 @@
+.card,
+.metric-card,
+.stat-card,
+.dashboard-metric,
+.info-card {
+  background-color: #ffffff;
+  background: white;
+}
+
+/* Specific cards for financial metrics */
+.total-ingresos-card,
+.total-egresos-card,
+.balance-neto-card,
+.transacciones-card {
+  background-color: #ffffff;
+  background: white;
+}
