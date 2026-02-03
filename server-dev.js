@@ -525,7 +525,7 @@ app.get('/api/dashboard/stats', devAuth, async (req, res) => {
 
     // Determine which fields to fetch based on groupBy
     const selectFields = groupBy !== 'none'
-      ? 'transaction_date, amount, description, category'
+      ? 'transaction_date, amount, description, category_id'
       : 'transaction_date, amount';
 
     // Fetch ALL transactions using pagination loop (no arbitrary limits)
