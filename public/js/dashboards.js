@@ -368,18 +368,17 @@ function renderCategoriesByMonthTable(data) {
   // Format currency helper
   var formatCurrency = function(val) {
     if (val === 0) return '-';
-    if (val >= 1000000) {
-      return '$' + (val / 1000000).toFixed(1) + 'M';
-    } else if (val >= 1000) {
-      return '$' + (val / 1000).toFixed(1) + 'K';
-    }
-    return '$' + val.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    return '$' + val.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   // Render header (months)
   var headerHtml = '<tr><th>Categoría</th>';
   data.months.forEach(function(month) {
-    var monthDate = new Date(month + '-01');
+    // Parse YYYY-MM directly to avoid timezone issues
+    var parts = month.split('-');
+    var year = parseInt(parts[0]);
+    var monthNum = parseInt(parts[1]) - 1; // JavaScript months are 0-indexed
+    var monthDate = new Date(year, monthNum, 1);
     var monthLabel = monthDate.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
     headerHtml += '<th>' + monthLabel + '</th>';
   });
@@ -403,7 +402,7 @@ function renderCategoriesByMonthTable(data) {
       // Monthly values
       data.months.forEach(function(month) {
         var value = category.monthlyTotals[month] || 0;
-        bodyHtml += '<td>' + formatCurrency(Math.abs(value)) + '</td>';
+        bodyHtml += '<td>' + formatCurrency(value) + '</td>';
       });
 
       bodyHtml += '</tr>';
@@ -414,7 +413,7 @@ function renderCategoriesByMonthTable(data) {
     bodyHtml += '<td>TOTAL</td>';
     data.months.forEach(function(month) {
       var total = data.monthlyTotals[month] || 0;
-      bodyHtml += '<td>' + formatCurrency(Math.abs(total)) + '</td>';
+      bodyHtml += '<td>' + formatCurrency(total) + '</td>';
     });
     bodyHtml += '</tr>';
   } else {

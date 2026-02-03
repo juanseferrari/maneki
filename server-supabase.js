@@ -763,7 +763,7 @@ app.get('/api/dashboard/categories-by-month', requireAuth, async (req, res) => {
       return map;
     }, {});
 
-    // Generate last N months array (most recent first)
+    // Generate last N months array (most recent first, starting from current month)
     const monthsList = [];
     for (let i = 0; i < monthsCount; i++) {
       const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
@@ -776,14 +776,17 @@ app.get('/api/dashboard/categories-by-month', requireAuth, async (req, res) => {
     const monthlyTotals = {};
 
     transactions.forEach(t => {
-      const date = new Date(t.transaction_date + 'T00:00:00');
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      // Parse date as YYYY-MM-DD (extract year and month directly to avoid timezone issues)
+      const dateParts = t.transaction_date.split('-');
+      const year = parseInt(dateParts[0]);
+      const month = parseInt(dateParts[1]);
+      const monthKey = `${year}-${String(month).padStart(2, '0')}`;
 
       // Only include months in our range
       if (!monthsList.includes(monthKey)) return;
 
       const categoryId = t.category_id || 'uncategorized';
-      const absAmount = Math.abs(t.amount);
+      const amount = t.amount; // Keep original sign (negative for expenses, positive for income)
 
       // Initialize category if needed
       if (!categoryMonthData[categoryId]) {
@@ -800,20 +803,20 @@ app.get('/api/dashboard/categories-by-month', requireAuth, async (req, res) => {
       if (!categoryMonthData[categoryId].monthlyTotals[monthKey]) {
         categoryMonthData[categoryId].monthlyTotals[monthKey] = 0;
       }
-      categoryMonthData[categoryId].monthlyTotals[monthKey] += absAmount;
-      categoryMonthData[categoryId].totalOverall += absAmount;
+      categoryMonthData[categoryId].monthlyTotals[monthKey] += amount;
+      categoryMonthData[categoryId].totalOverall += amount;
 
       // Add to overall monthly total
       if (!monthlyTotals[monthKey]) {
         monthlyTotals[monthKey] = 0;
       }
-      monthlyTotals[monthKey] += absAmount;
+      monthlyTotals[monthKey] += amount;
     });
 
-    // Convert to array and sort by total descending
+    // Convert to array and sort by total descending (by absolute value)
     const categoriesArray = Object.values(categoryMonthData)
-      .sort((a, b) => b.totalOverall - a.totalOverall)
-      .filter(cat => cat.totalOverall > 0); // Only include categories with transactions
+      .sort((a, b) => Math.abs(b.totalOverall) - Math.abs(a.totalOverall))
+      .filter(cat => cat.totalOverall !== 0); // Only include categories with transactions
 
     console.log(`[Categories by Month] User ${userId}: ${categoriesArray.length} categories across ${monthsList.length} months`);
 
