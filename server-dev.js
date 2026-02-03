@@ -383,16 +383,16 @@ app.get('/api/transactions', devAuth, async (req, res) => {
 
       if (categoryArray.length > 0 && includeNoCategory === 'true') {
         // Both specific categories AND null category selected
-        countQuery = countQuery.or(`category.in.(${categoryArray.join(',')}),category.is.null`);
-        dataQuery = dataQuery.or(`category.in.(${categoryArray.join(',')}),category.is.null`);
+        countQuery = countQuery.or(`category_id.in.(${categoryArray.join(',')}),category_id.is.null`);
+        dataQuery = dataQuery.or(`category_id.in.(${categoryArray.join(',')}),category_id.is.null`);
       } else if (categoryArray.length > 0) {
         // Only specific categories selected
-        countQuery = countQuery.in('category', categoryArray);
-        dataQuery = dataQuery.in('category', categoryArray);
+        countQuery = countQuery.in('category_id', categoryArray);
+        dataQuery = dataQuery.in('category_id', categoryArray);
       } else if (includeNoCategory === 'true') {
         // Only null category selected
-        countQuery = countQuery.is('category', null);
-        dataQuery = dataQuery.is('category', null);
+        countQuery = countQuery.is('category_id', null);
+        dataQuery = dataQuery.is('category_id', null);
       }
     }
 
@@ -641,7 +641,7 @@ app.get('/api/dashboard/stats', devAuth, async (req, res) => {
         let key, categoryColor;
 
         if (groupBy === 'category') {
-          const categoryId = t.category;
+          const categoryId = t.category_id;
           if (categoryId && categoriesMap[categoryId]) {
             key = categoryId; // Use ID as key to group properly
             categoryColor = categoriesMap[categoryId].color;
