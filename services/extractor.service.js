@@ -161,8 +161,14 @@ class ExtractorService {
         continue;
       }
 
+      // Debug: log the raw date value from XLSX
+      console.log(`[Extractor] Hipotecario raw date field: "${row[dateField]}" (type: ${typeof row[dateField]})`);
+
       const date = this.parseDate(row[dateField]);
-      if (!date) continue;
+      if (!date) {
+        console.log(`[Extractor] Hipotecario CSV: Skipping row due to invalid date: "${row[dateField]}"`);
+        continue;
+      }
 
       const description = descField ? row[descField] : '';
       const reference = refField ? row[refField] : null;
@@ -243,8 +249,14 @@ class ExtractorService {
         continue;
       }
 
+      // Debug: log the raw date value from XLSX
+      console.log(`[Extractor] Santander raw date field: "${row[dateField]}" (type: ${typeof row[dateField]})`);
+
       const date = this.parseDate(row[dateField]);
-      if (!date) continue;
+      if (!date) {
+        console.log(`[Extractor] Santander CSV: Skipping row due to invalid date: "${row[dateField]}"`);
+        continue;
+      }
 
       // Build description from Concepto (main description)
       const concept = conceptField ? row[conceptField] : '';
@@ -293,10 +305,16 @@ class ExtractorService {
    * @returns {number}
    */
   parseArgentineAmount(value) {
-    if (typeof value === 'number') return value;
+    // If already a number, return as-is
+    if (typeof value === 'number') {
+      console.log(`[Extractor] parseArgentineAmount: got number ${value}, returning as-is`);
+      return value;
+    }
+
     if (!value || value.toString().trim() === '') return 0;
 
     let cleaned = value.toString().trim();
+    console.log(`[Extractor] parseArgentineAmount: processing string "${cleaned}"`);
 
     // Remove currency symbols and spaces
     cleaned = cleaned.replace(/[$\s]/g, '');
@@ -311,10 +329,17 @@ class ExtractorService {
     // Replace comma with dot (decimal separator)
     cleaned = cleaned.replace(',', '.');
 
-    const amount = parseFloat(cleaned);
-    if (isNaN(amount)) return 0;
+    console.log(`[Extractor] parseArgentineAmount: cleaned string "${cleaned}"`);
 
-    return isNegative ? -amount : amount;
+    const amount = parseFloat(cleaned);
+    if (isNaN(amount)) {
+      console.log(`[Extractor] parseArgentineAmount: FAILED to parse, returning 0`);
+      return 0;
+    }
+
+    const result = isNegative ? -amount : amount;
+    console.log(`[Extractor] parseArgentineAmount: final result ${result}`);
+    return result;
   }
 
 
@@ -361,25 +386,62 @@ class ExtractorService {
     if (!dateString) return null;
 
     try {
+      // Convert to string if it's not already
+      const dateStr = dateString.toString().trim();
+
+      console.log(`[Extractor] parseDate input: "${dateStr}" (type: ${typeof dateString})`);
+
       // Handle YYYY-MM-DD format
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-        return dateString;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        console.log(`[Extractor] parseDate matched YYYY-MM-DD format`);
+        return dateStr;
       }
 
-      // Handle DD/MM/YYYY format
-      if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
-        const [day, month, year] = dateString.split('/');
-        return `${year}-${month}-${day}`;
+      // Handle DD/MM/YYYY format (Argentine/European style)
+      if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
+        const [day, month, year] = dateStr.split('/');
+        const paddedDay = day.padStart(2, '0');
+        const paddedMonth = month.padStart(2, '0');
+        const result = `${year}-${paddedMonth}-${paddedDay}`;
+        console.log(`[Extractor] parseDate matched DD/MM/YYYY format, result: ${result}`);
+        return result;
       }
 
-      // Try to parse as Date object
-      const date = new Date(dateString);
-      if (!isNaN(date.getTime())) {
-        return date.toISOString().split('T')[0];
+      // Handle DD-MM-YYYY format
+      if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(dateStr)) {
+        const [day, month, year] = dateStr.split('-');
+        const paddedDay = day.padStart(2, '0');
+        const paddedMonth = month.padStart(2, '0');
+        const result = `${year}-${paddedMonth}-${paddedDay}`;
+        console.log(`[Extractor] parseDate matched DD-MM-YYYY format, result: ${result}`);
+        return result;
       }
 
+      // Handle Excel serial date numbers (numbers that represent dates)
+      if (!isNaN(dateString) && dateString > 25569) { // Excel epoch starts at 1900-01-01 (25569 is Unix epoch)
+        const excelEpoch = new Date(1899, 11, 30); // Excel's epoch date
+        const date = new Date(excelEpoch.getTime() + dateString * 86400000); // Convert days to milliseconds
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const result = `${year}-${month}-${day}`;
+        console.log(`[Extractor] parseDate matched Excel serial number, result: ${result}`);
+        return result;
+      }
+
+      // Handle ISO 8601 format (YYYY-MM-DDTHH:MM:SS)
+      if (/^\d{4}-\d{2}-\d{2}T/.test(dateStr)) {
+        const result = dateStr.split('T')[0];
+        console.log(`[Extractor] parseDate matched ISO 8601 format: "${dateStr}" -> ${result}`);
+        return result;
+      }
+
+      // DO NOT use new Date() fallback - it interprets DD/MM as MM/DD (US format)
+      // If we reach here, the format is not supported
+      console.log(`[Extractor] parseDate FAILED - unsupported format: "${dateStr}"`);
       return null;
     } catch (error) {
+      console.error(`[Extractor] parseDate error:`, error);
       return null;
     }
   }

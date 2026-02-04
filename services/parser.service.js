@@ -174,10 +174,10 @@ class ParserService {
         }
 
         // Re-parse with the correct header row
-        // Use raw: false to get formatted values (respects cell number format)
+        // Keep cells as strings to preserve exact formatting from the file
         const jsonData = XLSX.utils.sheet_to_json(worksheet, {
           range: headerRowIndex, // Start from the detected header row
-          raw: false, // Get formatted strings instead of raw numbers
+          raw: false, // Format values as strings to preserve date and number formats
           defval: '' // Default value for empty cells
         });
 
