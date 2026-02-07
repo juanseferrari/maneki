@@ -60,8 +60,10 @@ async function main() {
   console.log('='.repeat(60));
 
   const migrations = [
-    path.join(__dirname, 'sql', 'create-exchange-rates-table.sql'),
-    path.join(__dirname, 'sql', 'add-usd-fields-to-transactions.sql')
+    path.join(__dirname, '..', 'db', 'migrations', '001-create-claude-usage-tracking.sql'),
+    path.join(__dirname, '..', 'db', 'migrations', '002-create-installments.sql'),
+    path.join(__dirname, '..', 'db', 'migrations', '003-alter-files-table.sql'),
+    path.join(__dirname, '..', 'db', 'migrations', '004-alter-transactions-table.sql')
   ];
 
   console.log('\n📋 Instructions:');

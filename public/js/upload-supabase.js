@@ -558,10 +558,33 @@ function displayFiles(files) {
       const statusClass = file.processing_status;
       const transactionCount = file.transaction_count || 0;
 
+      // Processing method badge
+      const processingMethod = file.processing_method || 'template';
+      const methodBadge = processingMethod === 'claude'
+        ? '<span class="badge-ai" title="Procesado con IA" style="margin-left: 8px;">IA</span>'
+        : processingMethod === 'hybrid'
+        ? '<span class="badge-hybrid" title="Procesado con IA + Plantillas" style="margin-left: 8px;">Híbrido</span>'
+        : processingMethod === 'template'
+        ? '<span class="badge-template" title="Procesado con plantillas" style="margin-left: 8px;">Plantilla</span>'
+        : '';
+
+      // Check if file has transactions needing review
+      const hasReview = file.has_pending_review === true || (file.processing_method === 'claude' && transactionCount > 0);
+      const reviewButton = hasReview
+        ? `<button class="btn-review" onclick="event.stopPropagation(); openTransactionReview('${file.id}')" title="Revisar transacciones">
+             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+               <path d="M9 11l3 3L22 4"></path>
+               <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+             </svg>
+             Revisar
+           </button>`
+        : '';
+
       return `
         <tr class="file-row" onclick="viewFileDetails('${file.id}', '${file.document_type}')">
           <td class="file-name-cell">
             <span class="file-name-text" title="${file.original_name}">${file.original_name}</span>
+            ${methodBadge}
           </td>
           <td>
             <span class="file-type-badge">${getFileExtension(file.original_name)}</span>
@@ -572,6 +595,7 @@ function displayFiles(files) {
           <td>
             <div class="file-actions">
               <span class="file-status-badge ${statusClass}">${statusLabel}</span>
+              ${reviewButton}
               <button class="btn-icon-delete" onclick="event.stopPropagation(); deleteFile('${file.id}')" title="Eliminar">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="3 6 5 6 21 6"></polyline>
@@ -4780,3 +4804,43 @@ async function removeSplits(transactionId) {
     showNotification('Error al eliminar subdivisiones', 'error');
   }
 }
+
+// Open transaction review modal (for Claude-processed files)
+function openTransactionReview(fileId) {
+  if (typeof transactionPreviewModal !== 'undefined') {
+    transactionPreviewModal.open(fileId);
+  } else {
+    console.error('Transaction preview modal not loaded. Make sure claude-components.js is included.');
+    showToast('Error al abrir vista de revisión', 'error');
+  }
+}
+
+// Add CSS for review button
+const reviewButtonStyles = document.createElement('style');
+reviewButtonStyles.textContent = `
+  .btn-review {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-right: 8px;
+  }
+
+  .btn-review:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.5);
+  }
+
+  .btn-review svg {
+    flex-shrink: 0;
+  }
+`;
+document.head.appendChild(reviewButtonStyles);

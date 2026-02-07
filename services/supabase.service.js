@@ -774,6 +774,178 @@ class SupabaseService {
       throw new Error(`Failed to update transaction category: ${error.message}`);
     }
   }
+
+  /**
+   * Get user's categories for Claude smart categorization
+   * @param {string} userId - User ID
+   * @returns {Promise<Array>}
+   */
+  async getUserCategories(userId) {
+    try {
+      const { data, error } = await this.supabase
+        .from('categories')
+        .select('id, name, keywords')
+        .eq('user_id', userId)
+        .order('name');
+
+      if (error) {
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Get user categories error:', error);
+      throw new Error(`Failed to get user categories: ${error.message}`);
+    }
+  }
+
+  /**
+   * Save installment data for transactions with cuotas
+   * @param {Array} transactions - Transactions with installment_data
+   * @param {string} userId - User ID
+   * @returns {Promise<Object>}
+   */
+  async saveInstallments(transactions, userId) {
+    try {
+      // Filter transactions that have installment data
+      const installmentsData = [];
+
+      for (const tx of transactions) {
+        if (tx.installment_data && tx.id) {
+          installmentsData.push({
+            transaction_id: tx.id,
+            user_id: userId,
+            installment_number: tx.installment_data.installment_number,
+            total_installments: tx.installment_data.total_installments,
+            group_id: tx.installment_data.group_id
+          });
+        }
+      }
+
+      if (installmentsData.length === 0) {
+        console.log('[Supabase] No installments to save');
+        return { success: true, inserted: [] };
+      }
+
+      // Insert all installments
+      const { data, error } = await this.supabase
+        .from('installments')
+        .insert(installmentsData)
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      console.log(`[Supabase] Saved ${data.length} installment records`);
+
+      return {
+        success: true,
+        inserted: data
+      };
+    } catch (error) {
+      console.error('Save installments error:', error);
+      throw new Error(`Failed to save installments: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get transactions for review (for preview modal)
+   * @param {string} fileId - File ID
+   * @param {string} userId - User ID
+   * @returns {Promise<Array>}
+   */
+  async getFileTransactionsForReview(fileId, userId) {
+    try {
+      const { data, error } = await this.supabase
+        .rpc('get_file_transactions_for_review', {
+          p_file_id: fileId,
+          p_user_id: userId
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Get file transactions for review error:', error);
+      throw new Error(`Failed to get transactions for review: ${error.message}`);
+    }
+  }
+
+  /**
+   * Confirm reviewed transactions (mark as not needing review)
+   * @param {Array} transactions - Array of transaction updates
+   * @param {string} userId - User ID
+   * @returns {Promise<Object>}
+   */
+  async confirmReviewedTransactions(transactions, userId) {
+    try {
+      const updates = [];
+
+      for (const tx of transactions) {
+        const updateData = {
+          needs_review: false
+        };
+
+        // Update fields if provided
+        if (tx.description !== undefined) updateData.description = tx.description;
+        if (tx.amount !== undefined) updateData.amount = tx.amount;
+        if (tx.date !== undefined) updateData.date = tx.date;
+        if (tx.category_id !== undefined) updateData.category_id = tx.category_id;
+
+        const { data, error } = await this.supabase
+          .from('transactions')
+          .update(updateData)
+          .eq('id', tx.id)
+          .eq('user_id', userId)
+          .select()
+          .single();
+
+        if (error) {
+          console.error(`Failed to update transaction ${tx.id}:`, error);
+          continue; // Continue with other transactions
+        }
+
+        updates.push(data);
+      }
+
+      return {
+        success: true,
+        updated: updates,
+        count: updates.length
+      };
+    } catch (error) {
+      console.error('Confirm reviewed transactions error:', error);
+      throw new Error(`Failed to confirm transactions: ${error.message}`);
+    }
+  }
+
+  /**
+   * Delete transaction (for removing from preview)
+   * @param {string} transactionId - Transaction ID
+   * @param {string} userId - User ID
+   * @returns {Promise<Object>}
+   */
+  async deleteTransaction(transactionId, userId) {
+    try {
+      const { error } = await this.supabase
+        .from('transactions')
+        .delete()
+        .eq('id', transactionId)
+        .eq('user_id', userId);
+
+      if (error) {
+        throw error;
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Delete transaction error:', error);
+      throw new Error(`Failed to delete transaction: ${error.message}`);
+    }
+  }
 }
 
 module.exports = new SupabaseService();

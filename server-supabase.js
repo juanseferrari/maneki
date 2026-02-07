@@ -1162,6 +1162,223 @@ app.delete('/api/files/:fileId', requireAuth, async (req, res) => {
 });
 
 // ==========================================
+// Claude API & Transaction Review Routes
+// ==========================================
+
+// Get Claude usage quota for current user
+app.get('/api/claude/usage', requireAuth, async (req, res) => {
+  try {
+    const claudeUsageTrackingService = require('./services/claude-usage-tracking.service');
+    const quota = await claudeUsageTrackingService.checkQuota(req.user.id);
+
+    res.json({
+      success: true,
+      data: quota
+    });
+  } catch (error) {
+    console.error('Get Claude usage error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get Claude usage'
+    });
+  }
+});
+
+// Get transactions for review (preview modal)
+app.get('/api/files/:fileId/transactions/preview', requireAuth, async (req, res) => {
+  try {
+    const supabaseService = require('./services/supabase.service');
+
+    // Get file details first
+    const { data: file, error: fileError } = await supabase
+      .from('files')
+      .select('id, original_name, processing_method, metadata, confidence_score')
+      .eq('id', req.params.fileId)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (fileError) throw fileError;
+
+    if (!file) {
+      return res.status(404).json({
+        success: false,
+        error: 'File not found'
+      });
+    }
+
+    // Get transactions for review
+    const transactions = await supabaseService.getFileTransactionsForReview(
+      req.params.fileId,
+      req.user.id
+    );
+
+    res.json({
+      success: true,
+      data: {
+        file: {
+          id: file.id,
+          name: file.original_name,
+          processing_method: file.processing_method,
+          confidence_score: file.confidence_score,
+          metadata: file.metadata
+        },
+        transactions
+      }
+    });
+  } catch (error) {
+    console.error('Get transactions for review error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get transactions for review'
+    });
+  }
+});
+
+// Confirm reviewed transactions (mark as not needing review)
+app.post('/api/files/:fileId/confirm-transactions', requireAuth, async (req, res) => {
+  try {
+    const { transactions } = req.body;
+
+    if (!transactions || !Array.isArray(transactions)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request: transactions array required'
+      });
+    }
+
+    const supabaseService = require('./services/supabase.service');
+    const result = await supabaseService.confirmReviewedTransactions(
+      transactions,
+      req.user.id
+    );
+
+    res.json({
+      success: true,
+      message: `Successfully confirmed ${result.count} transactions`,
+      data: result
+    });
+  } catch (error) {
+    console.error('Confirm transactions error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to confirm transactions'
+    });
+  }
+});
+
+// Reprocess file with Claude (manual trigger)
+app.post('/api/files/:fileId/reprocess-with-claude', requireAuth, async (req, res) => {
+  try {
+    const claudeUsageTrackingService = require('./services/claude-usage-tracking.service');
+    const claudeService = require('./services/claude.service');
+    const parserService = require('./services/parser.service');
+    const supabaseService = require('./services/supabase.service');
+
+    // Check quota first
+    const quota = await claudeUsageTrackingService.checkQuota(req.user.id);
+    if (!quota.available) {
+      return res.status(429).json({
+        success: false,
+        error: `Claude quota exceeded. You have used ${quota.used}/${quota.limit} analyses this month. Resets on ${quota.resetDate}.`
+      });
+    }
+
+    // Check if Claude is available
+    if (!claudeService.isClaudeAvailable()) {
+      return res.status(503).json({
+        success: false,
+        error: 'Claude API is not configured'
+      });
+    }
+
+    // Get file details
+    const { data: file, error: fileError } = await supabase
+      .from('files')
+      .select('id, original_name, stored_name, mime_type')
+      .eq('id', req.params.fileId)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (fileError) throw fileError;
+
+    if (!file) {
+      return res.status(404).json({
+        success: false,
+        error: 'File not found'
+      });
+    }
+
+    // Download file from storage
+    const { data: fileData, error: downloadError } = await supabaseAdmin.storage
+      .from(process.env.SUPABASE_BUCKET_NAME || 'uploads')
+      .download(file.stored_name);
+
+    if (downloadError) throw downloadError;
+
+    // Parse file to get text content
+    const buffer = Buffer.from(await fileData.arrayBuffer());
+    const textContent = await parserService.parseFile(buffer, file.mime_type, file.original_name);
+
+    // Extract with Claude
+    console.log('[API] Reprocessing file with Claude:', file.original_name);
+    const claudeResult = await claudeService.extractTransactionsEnhanced(
+      textContent,
+      file.original_name,
+      req.user.id
+    );
+
+    // Increment usage
+    await claudeUsageTrackingService.incrementUsage(req.user.id);
+
+    // Delete existing transactions for this file
+    await supabase
+      .from('transactions')
+      .delete()
+      .eq('file_id', file.id)
+      .eq('user_id', req.user.id);
+
+    // Save new transactions
+    const bankName = claudeResult.documentMetadata?.banco || null;
+    const saveResult = await supabaseService.saveTransactions(
+      file.id,
+      claudeResult.transactions,
+      req.user.id,
+      bankName
+    );
+
+    // Save installments if present
+    if (claudeResult.transactions.some(tx => tx.installment_data)) {
+      await supabaseService.saveInstallments(claudeResult.transactions, req.user.id);
+    }
+
+    // Update file metadata
+    await supabaseService.updateFileProcessing(file.id, {
+      processing_method: 'claude',
+      confidence_score: claudeResult.confidenceScore,
+      metadata: claudeResult.documentMetadata,
+      bank_name: bankName
+    });
+
+    res.json({
+      success: true,
+      message: 'File reprocessed with Claude successfully',
+      data: {
+        totalTransactions: claudeResult.totalTransactions,
+        transactionsInserted: saveResult.inserted.length,
+        confidenceScore: claudeResult.confidenceScore,
+        quotaRemaining: quota.remaining - 1
+      }
+    });
+  } catch (error) {
+    console.error('Reprocess with Claude error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to reprocess file with Claude'
+    });
+  }
+});
+
+// ==========================================
 // OAuth Routes
 // ==========================================
 
