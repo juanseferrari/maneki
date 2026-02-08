@@ -159,29 +159,40 @@ app.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
       throw dbError;
     }
 
-    // Step 3: Process file immediately (async)
+    // Step 3: Process file and WAIT for result (synchronous processing)
     console.log(`Starting to process file: ${fileName}`);
-    processorService.processFile(fileRecord, req.file.buffer)
-      .then(result => {
-        console.log(`File processed successfully: ${fileName}`, result);
-      })
-      .catch(error => {
-        console.error(`File processing failed: ${fileName}`, error);
-      });
+    const processingResult = await processorService.processFile(fileRecord, req.file.buffer);
 
-    res.json({
-      success: true,
-      message: 'File uploaded and processing started',
-      file: {
-        id: fileRecord.id,
-        name: fileName,
-        originalName: req.file.originalname,
-        size: req.file.size,
-        processingStatus: fileRecord.processing_status,
-        path: uploadData.path,
-        publicUrl: urlData.publicUrl
-      }
-    });
+    console.log(`File processed: ${fileName}`, processingResult.success ? '✅ SUCCESS' : '❌ FAILED');
+
+    // Return standardized formatted response
+    if (processingResult.formatted) {
+      // Return the standardized JSON format
+      res.json(processingResult.formatted);
+    } else {
+      // Fallback to old format if formatter not available
+      res.json({
+        success: processingResult.success,
+        message: processingResult.success ? 'File uploaded and processed successfully' : 'File processing failed',
+        file: {
+          id: fileRecord.id,
+          name: fileName,
+          originalName: req.file.originalname,
+          size: req.file.size,
+          processingStatus: processingResult.success ? 'completed' : 'failed',
+          path: uploadData.path,
+          publicUrl: urlData.publicUrl
+        },
+        stats: {
+          totalTransactions: processingResult.totalTransactions || 0,
+          transactionsInserted: processingResult.transactionsInserted || 0,
+          duplicatesSkipped: processingResult.duplicatesSkipped || 0,
+          confidenceScore: processingResult.confidenceScore || 0,
+          processingMethod: processingResult.processingMethod || 'unknown'
+        },
+        error: processingResult.error || null
+      });
+    }
   } catch (error) {
     console.error('Upload error:', error);
     res.status(500).json({
@@ -1180,6 +1191,78 @@ app.get('/api/claude/usage', requireAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to get Claude usage'
+    });
+  }
+});
+
+// Get detailed analysis of a file (standardized JSON format)
+app.get('/api/files/:fileId/analysis', requireAuth, async (req, res) => {
+  try {
+    const responseFormatterService = require('./services/response-formatter.service');
+    const supabaseService = require('./services/supabase.service');
+
+    // Get file details
+    const { data: file, error: fileError } = await supabase
+      .from('files')
+      .select('*')
+      .eq('id', req.params.fileId)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (fileError || !file) {
+      return res.status(404).json({
+        success: false,
+        error: 'File not found'
+      });
+    }
+
+    // Get all transactions for this file
+    const { data: transactions, error: txError } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('file_id', req.params.fileId)
+      .eq('user_id', req.user.id)
+      .order('date', { ascending: false });
+
+    if (txError) throw txError;
+
+    // Build extraction result object
+    const extractionResult = {
+      transactions: transactions || [],
+      documentMetadata: file.metadata || {},
+      confidenceScore: file.confidence_score || 0,
+      bankName: file.bank_name,
+      statementDate: file.statement_date,
+      totalTransactions: transactions?.length || 0
+    };
+
+    // Format using response formatter
+    const formattedResponse = responseFormatterService.formatResponse(
+      file,
+      extractionResult,
+      file.processing_method || 'template'
+    );
+
+    // Add optional formats
+    const format = req.query.format || 'json';
+
+    if (format === 'markdown') {
+      const markdown = responseFormatterService.generateMarkdownReport(formattedResponse);
+      res.setHeader('Content-Type', 'text/markdown');
+      res.send(markdown);
+    } else if (format === 'text') {
+      const text = responseFormatterService.generateSummaryText(formattedResponse);
+      res.setHeader('Content-Type', 'text/plain');
+      res.send(text);
+    } else {
+      // Default: JSON
+      res.json(formattedResponse);
+    }
+  } catch (error) {
+    console.error('Get file analysis error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get file analysis'
     });
   }
 });

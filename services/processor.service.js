@@ -5,6 +5,7 @@ const vepProcessorService = require('./vep-processor.service');
 const documentClassifier = require('./document-classifier.service');
 const claudeService = require('./claude.service');
 const claudeUsageTrackingService = require('./claude-usage-tracking.service');
+const responseFormatterService = require('./response-formatter.service');
 
 /**
  * Processing Service
@@ -204,7 +205,28 @@ class ProcessorService {
 
       console.log(`[Processor] ✅ Successfully processed file: ${fileMetadata.original_name}`);
 
+      // Get updated file metadata from database for formatting
+      const { data: updatedFileMetadata } = await supabaseService.supabase
+        .from('files')
+        .select('*')
+        .eq('id', fileId)
+        .single();
+
+      // Format response using ResponseFormatterService
+      const formattedResponse = responseFormatterService.formatResponse(
+        updatedFileMetadata || fileMetadata,
+        {
+          ...finalResult,
+          duplicatesSkipped: saveResult.duplicatesSkipped
+        },
+        processingMethod
+      );
+
+      console.log(`[Processor] 📋 Generated standardized JSON response`);
+
+      // Return both old format (for backward compatibility) and new formatted response
       return {
+        // Old format (backward compatibility)
         success: true,
         fileId,
         totalTransactions: finalResult.totalTransactions,
@@ -213,7 +235,9 @@ class ProcessorService {
         confidenceScore: finalResult.confidenceScore,
         bankName: bankName,
         processingMethod: processingMethod,
-        needsPreview: needsPreview
+        needsPreview: needsPreview,
+        // New standardized format
+        formatted: formattedResponse
       };
     } catch (error) {
       console.error('[Processor] Processing failed:', error);
@@ -221,10 +245,16 @@ class ProcessorService {
       // Update file status to failed
       await supabaseService.updateFileStatus(fileId, 'failed', error.message);
 
+      // Format error response
+      const errorResponse = responseFormatterService.formatError(fileMetadata, error);
+
       return {
+        // Old format (backward compatibility)
         success: false,
         fileId,
-        error: error.message
+        error: error.message,
+        // New standardized format
+        formatted: errorResponse
       };
     }
   }
