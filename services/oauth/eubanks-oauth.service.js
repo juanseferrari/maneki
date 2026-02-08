@@ -33,7 +33,8 @@ class EuBanksOAuthService extends BaseOAuthService {
 
     // First try to load from EUBANKS_PRIVATE_KEY environment variable
     if (process.env.EUBANKS_PRIVATE_KEY) {
-      this.privateKey = process.env.EUBANKS_PRIVATE_KEY;
+      // Replace literal \n with actual newlines (for Heroku env vars)
+      this.privateKey = process.env.EUBANKS_PRIVATE_KEY.replace(/\\n/g, '\n');
       console.log('🔑 Loaded private key from EUBANKS_PRIVATE_KEY environment variable');
     }
     // Fallback to reading from file path (for local development)
