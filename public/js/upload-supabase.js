@@ -3411,6 +3411,79 @@ async function syncMercury() {
   }
 }
 
+// Sync Enable Banking transactions
+async function syncEuBanks() {
+  const syncBtn = document.getElementById('eubanks-sync-btn');
+  const originalText = syncBtn.innerHTML;
+
+  try {
+    syncBtn.disabled = true;
+    syncBtn.innerHTML = '<svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg> Sincronizando...';
+
+    console.log('[EuBanks] Starting sync...');
+
+    const response = await fetch('/api/eubanks/sync', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${supabase.auth.session().access_token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      console.log('[EuBanks] Sync successful:', result.data);
+
+      // Show success message with details
+      const summary = result.data;
+      await showCustomModal({
+        title: '✅ Sincronización Exitosa',
+        message: `
+          <div style="text-align: left;">
+            <p><strong>Transacciones sincronizadas:</strong></p>
+            <ul>
+              <li>Total: ${summary.total_transactions}</li>
+              <li>Nuevas: ${summary.inserted}</li>
+              <li>Duplicadas: ${summary.duplicates}</li>
+              <li>Cuentas: ${summary.accounts.length}</li>
+            </ul>
+            <p><strong>Período:</strong> ${summary.date_range.from} a ${summary.date_range.to}</p>
+          </div>
+        `,
+        type: 'success',
+        confirmText: 'Ok'
+      });
+
+      // Refresh connections to update last sync time
+      await loadConnections();
+
+      // Reload transactions if function exists
+      if (typeof loadAllTransactions === 'function') {
+        loadAllTransactions();
+      }
+    } else {
+      await showCustomModal({
+        title: '❌ Error de Sincronización',
+        message: result.error || 'Error desconocido al sincronizar',
+        type: 'error',
+        confirmText: 'Ok'
+      });
+    }
+  } catch (error) {
+    console.error('[EuBanks] Sync error:', error);
+    await showCustomModal({
+      title: '❌ Error de Sincronización',
+      message: 'No se pudo conectar con el servidor. Intenta nuevamente.',
+      type: 'error',
+      confirmText: 'Ok'
+    });
+  } finally {
+    syncBtn.disabled = false;
+    syncBtn.innerHTML = originalText;
+  }
+}
+
 // Disconnect provider
 async function disconnectProvider(provider) {
   let providerName = provider;

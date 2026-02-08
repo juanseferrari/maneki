@@ -1815,6 +1815,73 @@ app.delete('/api/connections/:provider', requireAuth, async (req, res) => {
   }
 });
 
+// Sync transactions from Enable Banking
+app.post('/api/eubanks/sync', requireAuth, async (req, res) => {
+  try {
+    const euBanksSyncService = require('./services/eubanks-sync.service');
+
+    console.log(`[Server] Starting Enable Banking sync for user: ${req.user.id}`);
+
+    // Sync transactions for all accounts (last 3 months)
+    const result = await euBanksSyncService.syncTransactions(req.user.id);
+
+    res.json({
+      success: true,
+      message: 'Transactions synced successfully',
+      data: result
+    });
+
+  } catch (error) {
+    console.error('EuBanks sync error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to sync transactions'
+    });
+  }
+});
+
+// Get Enable Banking accounts
+app.get('/api/eubanks/accounts', requireAuth, async (req, res) => {
+  try {
+    const euBanksSyncService = require('./services/eubanks-sync.service');
+
+    const accounts = await euBanksSyncService.getAccounts(req.user.id);
+
+    res.json({
+      success: true,
+      accounts
+    });
+
+  } catch (error) {
+    console.error('Get accounts error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get accounts'
+    });
+  }
+});
+
+// Get Enable Banking sync status
+app.get('/api/eubanks/sync/status', requireAuth, async (req, res) => {
+  try {
+    const euBanksSyncService = require('./services/eubanks-sync.service');
+
+    const status = await euBanksSyncService.getSyncStatus(req.user.id);
+
+    res.json({
+      success: true,
+      data: status
+    });
+
+  } catch (error) {
+    console.error('Get sync status error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get sync status'
+    });
+  }
+});
+
 // ==========================================
 // Mercury OAuth Routes
 // ==========================================
