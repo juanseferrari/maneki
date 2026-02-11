@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
 const categorizationService = require('../categorization.service');
+const ExchangeRateService = require('../exchange-rate.service');
 
 /**
  * Mercado Pago Sync Service
@@ -17,6 +18,7 @@ class MercadoPagoSyncService {
       process.env.SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
     );
+    this.exchangeRateService = new ExchangeRateService(this.supabase);
   }
 
   /**
@@ -104,10 +106,12 @@ class MercadoPagoSyncService {
       const userInfo = await this.getUserInfo(accessToken);
       const mpUserId = userInfo.id;
 
-      // Transform payments to transactions
-      const transactions = allPayments.map(payment =>
-        this.transformPaymentToTransaction(payment, userId, connectionId, mpUserId)
-      );
+      // Transform payments to transactions with USD conversion
+      const transactions = [];
+      for (const payment of allPayments) {
+        const transaction = await this.transformPaymentToTransaction(payment, userId, connectionId, mpUserId);
+        transactions.push(transaction);
+      }
 
       // Save transactions (with deduplication)
       const { syncedCount, skippedCount } = await this.saveTransactions(transactions, userId);
@@ -235,9 +239,9 @@ class MercadoPagoSyncService {
    * @param {string} userId - User ID
    * @param {string} connectionId - Connection ID
    * @param {string} mpUserId - Mercado Pago user ID (to determine direction)
-   * @returns {Object} Transaction object
+   * @returns {Promise<Object>} Transaction object
    */
-  transformPaymentToTransaction(payment, userId, connectionId, mpUserId) {
+  async transformPaymentToTransaction(payment, userId, connectionId, mpUserId) {
     // Determine if this is inbound (collector) or outbound (payer)
     const isInbound = payment.collector_id === mpUserId;
 
@@ -278,6 +282,10 @@ class MercadoPagoSyncService {
       description = isInbound ? 'Pago recibido' : 'Pago enviado';
     }
 
+    // Convert to USD
+    const currency = payment.currency_id || 'ARS';
+    const usdConversion = await this.exchangeRateService.convertToUSD(Math.abs(amount), currency, dateOnly);
+
     return {
       user_id: userId,
       connection_id: connectionId,
@@ -289,7 +297,12 @@ class MercadoPagoSyncService {
       merchant: counterparty?.email || counterparty?.first_name || null,
       amount: amount,
       transaction_type: isInbound ? 'credit' : 'debit',
-      currency: payment.currency_id || 'ARS',
+      currency: currency,
+
+      // USD conversion fields
+      amount_usd: usdConversion?.amountUsd || null,
+      exchange_rate: usdConversion?.exchangeRate || null,
+      exchange_rate_date: usdConversion?.exchangeRateDate || null,
 
       status: payment.status,
       payment_method: payment.payment_type_id || payment.payment_method_id,
