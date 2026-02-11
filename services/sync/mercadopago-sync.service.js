@@ -244,6 +244,15 @@ class MercadoPagoSyncService {
     // Get the counterparty (the other party in the transaction)
     const counterparty = isInbound ? payment.payer : { id: payment.collector_id };
 
+    // Extract collector_id for merchant identification and auto-categorization
+    // This helps track repeated merchants (e.g., always same grocery store)
+    let collectorId = null;
+    if (payment.collector) {
+      collectorId = payment.collector.id;
+    } else if (payment.collector_id) {
+      collectorId = payment.collector_id;
+    }
+
     // Calculate the actual amount (positive for inbound, negative for outbound)
     // Also account for fees for inbound payments
     let amount = payment.transaction_amount;
@@ -286,7 +295,7 @@ class MercadoPagoSyncService {
       payment_method: payment.payment_type_id || payment.payment_method_id,
       operation_type: payment.operation_type,
 
-      counterparty_id: counterparty?.id?.toString() || null,
+      counterparty_id: collectorId?.toString() || counterparty?.id?.toString() || null,
       counterparty_name: counterparty?.first_name
         ? `${counterparty.first_name} ${counterparty.last_name || ''}`.trim()
         : null,
