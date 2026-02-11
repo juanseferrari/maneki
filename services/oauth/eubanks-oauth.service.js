@@ -24,8 +24,8 @@ class EuBanksOAuthService extends BaseOAuthService {
     this.defaultCountry = 'FI'; // Finland by default
     this.defaultAccess = {
       valid_until: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days
-      max_historical_days: 90,
-      accounts: ['balances', 'details', 'transactions']
+      balances: true,
+      transactions: true
     };
 
     // Load private key from environment variable or file path
