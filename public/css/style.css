@@ -5166,6 +5166,24 @@ input[type="date"]:invalid {
   white-space: nowrap;
 }
 
+.services-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.services-table th.sortable:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.services-table th .sort-icon {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--primary-color);
+  min-width: 12px;
+}
+
 .services-table td {
   padding: 1rem;
   border-bottom: 1px solid var(--border-color);

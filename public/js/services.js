@@ -5,6 +5,8 @@
 // State
 let servicesData = [];
 let currentServiceId = null;
+let currentSortField = null;
+let currentSortDirection = 'asc'; // 'asc' or 'desc'
 
 // Use shared global categories array (defined in categories.js)
 // Ensure the global array exists
@@ -334,6 +336,51 @@ function renderServicesList() {
     filteredServices = servicesData.filter(s => s.status === filterValue);
   }
 
+  // Apply sorting if a field is selected
+  if (currentSortField) {
+    filteredServices = [...filteredServices].sort((a, b) => {
+      let aValue, bValue;
+
+      switch (currentSortField) {
+        case 'name':
+          aValue = (a.name || '').toLowerCase();
+          bValue = (b.name || '').toLowerCase();
+          break;
+        case 'category':
+          aValue = (a.category_name || categoryLabels[a.category] || '').toLowerCase();
+          bValue = (b.category_name || categoryLabels[b.category] || '').toLowerCase();
+          break;
+        case 'frequency':
+          // Sort by frequency order: weekly, biweekly, monthly, bimonthly, quarterly, semiannual, annual
+          const frequencyOrder = { weekly: 1, biweekly: 2, monthly: 3, bimonthly: 4, quarterly: 5, semiannual: 6, annual: 7 };
+          aValue = frequencyOrder[a.frequency] || 999;
+          bValue = frequencyOrder[b.frequency] || 999;
+          break;
+        case 'amount':
+          aValue = a.estimated_amount || 0;
+          bValue = b.estimated_amount || 0;
+          break;
+        case 'next_date':
+          aValue = a.next_expected_date ? new Date(a.next_expected_date).getTime() : 0;
+          bValue = b.next_expected_date ? new Date(b.next_expected_date).getTime() : 0;
+          break;
+        case 'status':
+          // Sort by status priority: overdue, due_soon, up_to_date, active, paused, cancelled
+          const statusOrder = { overdue: 1, due_soon: 2, up_to_date: 3, active: 4, paused: 5, cancelled: 6 };
+          aValue = statusOrder[a.status] || 999;
+          bValue = statusOrder[b.status] || 999;
+          break;
+        default:
+          return 0;
+      }
+
+      // Compare values
+      if (aValue < bValue) return currentSortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return currentSortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }
+
   if (filteredServices.length === 0) {
     if (tableBody) tableBody.innerHTML = '';
     if (tableContainer) tableContainer.style.display = 'none';
@@ -382,6 +429,43 @@ function renderServicesList() {
 
 function filterServices() {
   renderServicesList();
+}
+
+/**
+ * Sort services by field
+ */
+function sortServices(field) {
+  // Toggle direction if clicking the same field
+  if (currentSortField === field) {
+    currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+  } else {
+    currentSortField = field;
+    currentSortDirection = 'asc';
+  }
+
+  // Update sort icons
+  updateSortIcons();
+
+  // Re-render with sorted data
+  renderServicesList();
+}
+
+/**
+ * Update sort icons in table headers
+ */
+function updateSortIcons() {
+  // Clear all icons
+  document.querySelectorAll('.sort-icon').forEach(icon => {
+    icon.innerHTML = '';
+  });
+
+  // Set active icon
+  if (currentSortField) {
+    const icon = document.getElementById(`sort-icon-${currentSortField}`);
+    if (icon) {
+      icon.innerHTML = currentSortDirection === 'asc' ? '▲' : '▼';
+    }
+  }
 }
 
 async function toggleServiceStatus(serviceId) {

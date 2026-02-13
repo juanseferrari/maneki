@@ -63,12 +63,30 @@
       <table class="services-table">
         <thead>
           <tr>
-            <th>Nombre</th>
-            <th>Categoria</th>
-            <th>Frecuencia</th>
-            <th>Monto</th>
-            <th>Proximo Pago</th>
-            <th>Estado</th>
+            <th class="sortable" onclick="sortServices('name')">
+              Nombre
+              <span class="sort-icon" id="sort-icon-name"></span>
+            </th>
+            <th class="sortable" onclick="sortServices('category')">
+              Categoria
+              <span class="sort-icon" id="sort-icon-category"></span>
+            </th>
+            <th class="sortable" onclick="sortServices('frequency')">
+              Frecuencia
+              <span class="sort-icon" id="sort-icon-frequency"></span>
+            </th>
+            <th class="sortable" onclick="sortServices('amount')">
+              Monto
+              <span class="sort-icon" id="sort-icon-amount"></span>
+            </th>
+            <th class="sortable" onclick="sortServices('next_date')">
+              Proximo Pago
+              <span class="sort-icon" id="sort-icon-next_date"></span>
+            </th>
+            <th class="sortable" onclick="sortServices('status')">
+              Estado
+              <span class="sort-icon" id="sort-icon-status"></span>
+            </th>
           </tr>
         </thead>
         <tbody id="services-table-body">
