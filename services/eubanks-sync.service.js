@@ -228,13 +228,19 @@ class EuBanksSyncService {
         const amount = Math.abs(parseFloat(tx.amount));
         const isDebit = parseFloat(tx.amount) < 0;
 
+        // Parse datetime - Enable Banking provides dates in YYYY-MM-DD format
+        // We'll use booking_date as the primary date and set time to noon UTC
+        const dateOnly = transactionDate; // Already in YYYY-MM-DD format
+        const dateTime = new Date(transactionDate + 'T12:00:00Z').toISOString(); // Noon UTC as default
+
         // Prepare transaction record
         const transactionRecord = {
           user_id: userId,
           connection_id: connectionId,
           source: 'enable_banking',
           provider_transaction_id: tx.transaction_id,
-          date: transactionDate,
+          date: dateOnly, // Keep for backwards compatibility
+          transaction_datetime: dateTime, // New field with timestamp
           description: tx.remittance_information || tx.description || 'Unknown transaction',
           amount: amount,
           type: isDebit ? 'expense' : 'income',

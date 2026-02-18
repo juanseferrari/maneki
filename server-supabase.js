@@ -288,7 +288,7 @@ app.get('/api/files/:fileId/transactions', requireAuth, async (req, res) => {
       .select('*')
       .eq('file_id', req.params.fileId)
       .eq('user_id', req.user.id)
-      .order('transaction_date', { ascending: true });
+      .order('transaction_datetime', { ascending: true });
 
     if (error) {
       throw error;
@@ -449,7 +449,7 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
 
     // Get paginated transactions with filters
     const { data: transactions, error } = await dataQuery
-      .order('transaction_date', { ascending: false })
+      .order('transaction_datetime', { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (error) {
@@ -556,7 +556,7 @@ app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
       }
 
       const { data: batch, error } = await batchQuery
-        .order('transaction_date', { ascending: true })
+        .order('transaction_datetime', { ascending: true })
         .range(offset, offset + BATCH_SIZE - 1);
 
       if (error) throw error;
@@ -739,7 +739,7 @@ app.get('/api/dashboard/categories-by-month', requireAuth, async (req, res) => {
         .or('status.is.null,status.neq.deleted');
 
       const { data: batch, error } = await batchQuery
-        .order('transaction_date', { ascending: true })
+        .order('transaction_datetime', { ascending: true })
         .range(offset, offset + BATCH_SIZE - 1);
 
       if (error) throw error;

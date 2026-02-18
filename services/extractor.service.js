@@ -191,8 +191,12 @@ class ExtractorService {
 
       console.log(`[Extractor] Hipotecario CSV: ${date} | ${description.substring(0, 40)}... | ${amount}`);
 
+      // Generate timestamp - for files use noon UTC as default
+      const dateTime = new Date(date + 'T12:00:00Z').toISOString();
+
       transactions.push({
-        transaction_date: date,
+        transaction_date: date, // Keep for backwards compatibility
+        transaction_datetime: dateTime, // New field with timestamp
         description: description || 'Unknown',
         merchant: this.extractMerchant(description),
         amount: amount,
@@ -278,8 +282,12 @@ class ExtractorService {
 
       console.log(`[Extractor] Santander CSV: ${date} | ${description.substring(0, 40)}... | ${amount}`);
 
+      // Generate timestamp - for files use noon UTC as default
+      const dateTime2 = new Date(date + 'T12:00:00Z').toISOString();
+
       transactions.push({
-        transaction_date: date,
+        transaction_date: date, // Keep for backwards compatibility
+        transaction_datetime: dateTime2, // New field with timestamp
         description: description,
         merchant: this.extractMerchant(description),
         amount: amount,
@@ -361,8 +369,12 @@ class ExtractorService {
       // Determine transaction type
       const transactionType = amount < 0 ? 'debit' : 'credit';
 
+      // Generate timestamp - for files we don't have time, so use noon UTC as default
+      const dateTime = new Date(date + 'T12:00:00Z').toISOString();
+
       return {
-        transaction_date: date,
+        transaction_date: date, // Keep for backwards compatibility (YYYY-MM-DD)
+        transaction_datetime: dateTime, // New field with timestamp (noon UTC for files)
         description: rawTransaction.description || 'Unknown',
         merchant: this.extractMerchant(rawTransaction.description),
         amount: amount,

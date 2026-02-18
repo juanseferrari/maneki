@@ -268,9 +268,10 @@ class MercadoPagoSyncService {
       amount = -Math.abs(amount);
     }
 
-    // Parse the date
+    // Parse the date with full timestamp
     const transactionDate = new Date(payment.date_created);
     const dateOnly = transactionDate.toISOString().split('T')[0];
+    const dateTime = transactionDate.toISOString(); // Full ISO timestamp with timezone
 
     // Build description
     let description = payment.description || '';
@@ -292,7 +293,8 @@ class MercadoPagoSyncService {
       source: 'mercadopago',
       provider_transaction_id: payment.id.toString(),
 
-      transaction_date: dateOnly,
+      transaction_date: dateOnly, // Keep for backwards compatibility
+      transaction_datetime: dateTime, // New field with full timestamp
       description: description,
       merchant: counterparty?.email || counterparty?.first_name || null,
       amount: amount,

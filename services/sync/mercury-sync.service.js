@@ -230,9 +230,10 @@ class MercurySyncService {
     const amount = tx.amount;
     const isCredit = amount > 0;
 
-    // Parse the date
+    // Parse the date with full timestamp
     const transactionDate = tx.postedAt || tx.createdAt;
     const dateOnly = new Date(transactionDate).toISOString().split('T')[0];
+    const dateTime = new Date(transactionDate).toISOString(); // Full ISO timestamp
 
     // Build description
     let description = tx.bankDescription || tx.externalMemo || '';
@@ -252,7 +253,8 @@ class MercurySyncService {
       source: 'mercury',
       provider_transaction_id: tx.id,
 
-      transaction_date: dateOnly,
+      transaction_date: dateOnly, // Keep for backwards compatibility
+      transaction_datetime: dateTime, // New field with full timestamp
       description: description,
       merchant: counterparty,
       amount: amount,

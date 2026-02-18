@@ -47,6 +47,44 @@ function formatDate(dateStr, options = {}) {
   return new Date(dateStr).toLocaleDateString('es-AR', options);
 }
 
+/**
+ * Format datetime with time when available
+ * Shows time only for transactions that have precise timestamps (API sources)
+ * @param {string} dateTimeStr - ISO datetime string or date-only string
+ * @param {Object} transaction - Transaction object (optional, to check source)
+ * @returns {string} Formatted date and optionally time
+ */
+function formatDateTime(dateTimeStr, transaction = null) {
+  if (!dateTimeStr) return '-';
+
+  // Check if this is a date-only string (YYYY-MM-DD)
+  const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(dateTimeStr);
+
+  // Check if this is from an API source (has precise time)
+  const hasTime = !isDateOnly && dateTimeStr.includes('T');
+
+  // For sources that provide accurate time (API integrations), show it
+  const shouldShowTime = hasTime && transaction &&
+    ['mercadopago', 'mercury', 'enable_banking'].includes(transaction.source);
+
+  if (shouldShowTime) {
+    const date = new Date(dateTimeStr);
+    const dateStr = date.toLocaleDateString('es-AR', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+    const timeStr = date.toLocaleTimeString('es-AR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    return `${dateStr} ${timeStr}`;
+  }
+
+  // Otherwise, just show the date
+  return formatDate(dateTimeStr, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 // Promise that resolves when auth is ready
 let authReadyPromise = null;
 let authReadyResolve = null;
