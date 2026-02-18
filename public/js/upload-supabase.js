@@ -49,7 +49,9 @@ function formatDate(dateStr, options = {}) {
 
 /**
  * Format datetime with time when available
- * Shows time only for transactions that have precise timestamps (API sources)
+ * Shows time in user's local timezone in format: YYYY-MM-DD HH:MM:SS
+ * For transactions with precise timestamps (API sources), shows the time
+ * For file-based transactions, shows only the date
  * @param {string} dateTimeStr - ISO datetime string or date-only string
  * @param {Object} transaction - Transaction object (optional, to check source)
  * @returns {string} Formatted date and optionally time
@@ -68,21 +70,31 @@ function formatDateTime(dateTimeStr, transaction = null) {
     ['mercadopago', 'mercury', 'enable_banking'].includes(transaction.source);
 
   if (shouldShowTime) {
+    // Parse the ISO datetime string
     const date = new Date(dateTimeStr);
-    const dateStr = date.toLocaleDateString('es-AR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
-    const timeStr = date.toLocaleTimeString('es-AR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-    return `${dateStr} ${timeStr}`;
+
+    // Format in YYYY-MM-DD HH:MM:SS format using user's local timezone
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   }
 
-  // Otherwise, just show the date
-  return formatDate(dateTimeStr, { day: 'numeric', month: 'short', year: 'numeric' });
+  // Otherwise, just show the date in YYYY-MM-DD format
+  if (isDateOnly) {
+    return dateTimeStr; // Already in YYYY-MM-DD format
+  }
+
+  // For other datetime formats, extract just the date
+  const date = new Date(dateTimeStr);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 // Promise that resolves when auth is ready
@@ -994,7 +1006,7 @@ function displayTransactions(transactions) {
 
       return `
         <tr data-transaction-id="${t.id}">
-          <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;">${formatDate(t.transaction_date)}</td>
+          <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;">${formatDateTime(t.transaction_datetime || t.transaction_date, t)}</td>
           <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;">${t.description || '-'}${splitIndicator}</td>
           <td onclick="showTransactionDetail('${t.id}')" style="cursor: pointer;" class="${amountClass}">${amountPrefix}${amountFormatted}</td>
           <td class="category-cell">
@@ -1451,8 +1463,9 @@ function sortTransactions(column) {
 
     switch(column) {
       case 'fecha':
-        valueA = new Date(a.transaction_date);
-        valueB = new Date(b.transaction_date);
+        // Use transaction_datetime for more precise sorting, fallback to transaction_date
+        valueA = new Date(a.transaction_datetime || a.transaction_date);
+        valueB = new Date(b.transaction_datetime || b.transaction_date);
         break;
 
       case 'monto':
