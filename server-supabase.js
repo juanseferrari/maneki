@@ -79,7 +79,15 @@ app.set('views', path.join(__dirname, 'views'));
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
 
+  console.log('[requireAuth]', {
+    path: req.path,
+    method: req.method,
+    hasAuthHeader: !!authHeader,
+    headerPreview: authHeader ? authHeader.substring(0, 20) + '...' : null
+  });
+
   if (!authHeader) {
+    console.log('[requireAuth] No authorization header');
     return res.status(401).json({ success: false, error: 'No authorization header' });
   }
 
@@ -88,9 +96,11 @@ async function requireAuth(req, res, next) {
   const { data: { user }, error } = await supabase.auth.getUser(token);
 
   if (error || !user) {
+    console.log('[requireAuth] Invalid token:', error?.message);
     return res.status(401).json({ success: false, error: 'Invalid token' });
   }
 
+  console.log('[requireAuth] Success:', { userId: user.id, email: user.email });
   req.user = user;
   next();
 }
@@ -1106,19 +1116,32 @@ app.get('/api/files/:fileId/vep', requireAuth, async (req, res) => {
 // Delete file - Protected
 app.delete('/api/files/:fileId', requireAuth, async (req, res) => {
   try {
+    console.log('[Delete File] Request:', {
+      fileId: req.params.fileId,
+      userId: req.user?.id,
+      userEmail: req.user?.email
+    });
+
     // First get the file to get the stored name
     const { data: files, error: fileError } = await supabase
       .from('files')
-      .select('stored_name')
+      .select('stored_name, user_id')
       .eq('id', req.params.fileId)
       .eq('user_id', req.user.id);
 
     if (fileError) {
+      console.error('[Delete File] Database error:', fileError);
       throw fileError;
     }
 
+    console.log('[Delete File] Query result:', {
+      filesFound: files?.length || 0,
+      files: files
+    });
+
     // Check if file exists
     if (!files || files.length === 0) {
+      console.log('[Delete File] File not found or user mismatch');
       return res.status(404).json({
         success: false,
         error: 'File not found'
