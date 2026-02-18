@@ -67,10 +67,18 @@ class ExtractorService {
         return this.extractHipotecarioCSV(data);
       }
 
-      // Detect Santander format: IMPORTE PESOS, SALDO PESOS, COD. OPERATIVO
-      // Also check for variations: "Importe Pesos", "IMPORTE", "Saldo Pesos", "SALDO"
-      const hasSantanderColumns = keys.some(k => k.includes('IMPORTE') && k.includes('PESOS')) &&
-                                   keys.some(k => k.includes('SALDO') && k.includes('PESOS'));
+      // Detect Santander format: Check for key Santander columns
+      // Variations:
+      // - Old format: "Importe Pesos", "Saldo Pesos", "Cod. Operativo", "Concepto"
+      // - New format: "Importe", "Saldo", "Cod. Operativo", "Concepto", "Referencia"
+      const hasImporte = keys.some(k => k.includes('IMPORTE'));
+      const hasSaldo = keys.some(k => k.includes('SALDO'));
+      const hasConcepto = keys.some(k => k === 'CONCEPTO' || k.includes('CONCEPTO'));
+      const hasCodOperativo = keys.some(k => k.includes('COD') && k.includes('OPERATIVO'));
+
+      // If it has Importe + Saldo + (Concepto OR CodOperativo), it's likely Santander
+      const hasSantanderColumns = hasImporte && hasSaldo && (hasConcepto || hasCodOperativo);
+
       if (hasSantanderColumns) {
         console.log('[Extractor] Detected Santander CSV format');
         return this.extractSantanderCSV(data);
@@ -331,11 +339,51 @@ class ExtractorService {
     const isNegative = cleaned.startsWith('-') || (cleaned.startsWith('(') && cleaned.endsWith(')'));
     cleaned = cleaned.replace(/[-()]/g, '');
 
-    // Argentine format: dots for thousands (1.234), comma for decimal (,56)
-    // Remove all dots (thousands separator)
-    cleaned = cleaned.replace(/\./g, '');
-    // Replace comma with dot (decimal separator)
-    cleaned = cleaned.replace(',', '.');
+    // Auto-detect format by looking at the last occurrence of . and ,
+    // Argentine format: 1.234,56 (dot=thousands, comma=decimal)
+    // Standard format: 1,234.56 or 1234.56 (comma=thousands, dot=decimal)
+
+    const lastDotIndex = cleaned.lastIndexOf('.');
+    const lastCommaIndex = cleaned.lastIndexOf(',');
+
+    // If both exist, the one that comes last is the decimal separator
+    if (lastDotIndex > -1 && lastCommaIndex > -1) {
+      if (lastCommaIndex > lastDotIndex) {
+        // Argentine format: comma comes after dot → 1.234,56
+        console.log(`[Extractor] parseArgentineAmount: detected ARGENTINE format (dot before comma)`);
+        cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+      } else {
+        // Standard format: dot comes after comma → 1,234.56
+        console.log(`[Extractor] parseArgentineAmount: detected STANDARD format (comma before dot)`);
+        cleaned = cleaned.replace(/,/g, '');
+      }
+    } else if (lastCommaIndex > -1) {
+      // Only comma exists - check if it's decimal or thousands
+      // If there are 3 digits after comma, it's thousands separator
+      // If there are 1-2 digits after comma, it's decimal separator
+      const digitsAfterComma = cleaned.substring(lastCommaIndex + 1).length;
+      if (digitsAfterComma === 3) {
+        // Thousands separator: 1,234 → remove comma
+        console.log(`[Extractor] parseArgentineAmount: comma is thousands separator (3 digits after)`);
+        cleaned = cleaned.replace(',', '');
+      } else {
+        // Decimal separator: 1,56 → replace with dot
+        console.log(`[Extractor] parseArgentineAmount: comma is decimal separator (${digitsAfterComma} digits after)`);
+        cleaned = cleaned.replace(',', '.');
+      }
+    } else if (lastDotIndex > -1) {
+      // Only dot exists - check if it's decimal or thousands
+      const digitsAfterDot = cleaned.substring(lastDotIndex + 1).length;
+      if (digitsAfterDot === 3 && lastDotIndex > 0) {
+        // Thousands separator: 1.234 → remove dot
+        console.log(`[Extractor] parseArgentineAmount: dot is thousands separator (3 digits after)`);
+        cleaned = cleaned.replace('.', '');
+      } else {
+        // Decimal separator: 1.56 or 1.1536 → keep dot
+        console.log(`[Extractor] parseArgentineAmount: dot is decimal separator (${digitsAfterDot} digits after)`);
+        // No changes needed
+      }
+    }
 
     console.log(`[Extractor] parseArgentineAmount: cleaned string "${cleaned}"`);
 

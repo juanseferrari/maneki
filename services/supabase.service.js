@@ -309,6 +309,7 @@ class SupabaseService {
         file_id: fileId,
         user_id: userId,
         transaction_date: t.transaction_date,
+        transaction_datetime: t.transaction_datetime || (t.transaction_date ? new Date(t.transaction_date + 'T12:00:00Z').toISOString() : null),
         description: t.description,
         merchant: t.merchant,
         amount: t.amount,
