@@ -144,6 +144,75 @@ class ParserService {
         fileName.endsWith('.xlsx') ||
         fileName.endsWith('.xls')
       ) {
+        // Some .xls files are actually tab-separated text files (TSV)
+        // Check if the file is plain text by trying to decode as UTF-8/ISO-8859
+        const textContent = fileBuffer.toString('latin1'); // Use latin1 for ISO-8859
+        const isTabDelimited = textContent.includes('\t') && textContent.split('\n').length > 5;
+
+        if (isTabDelimited) {
+          console.log('[Parser] Detected tab-delimited text file (.xls extension but TSV format)');
+          // Parse as TSV directly to avoid XLSX misinterpreting dates
+          const lines = textContent.split(/\r?\n/).filter(line => line.trim());
+          const records = lines.map(line => {
+            const fields = line.split('\t');
+            return fields;
+          });
+
+          // Find header row
+          const headerKeywords = ['fecha', 'importe', 'saldo', 'concepto', 'descripcion', 'debito', 'credito', 'monto'];
+          let headerRowIndex = 0;
+
+          for (let i = 0; i < Math.min(records.length, 20); i++) {
+            const row = records[i];
+            if (!row || row.length === 0) continue;
+
+            const rowLower = row.map(cell => (cell || '').toString().toLowerCase());
+            const matchCount = headerKeywords.filter(keyword =>
+              rowLower.some(cell => cell.includes(keyword))
+            ).length;
+
+            if (matchCount >= 2) {
+              headerRowIndex = i;
+              console.log(`[Parser] Found TSV header row at index ${i}: ${JSON.stringify(row)}`);
+              break;
+            }
+          }
+
+          // Convert to JSON format
+          const headers = records[headerRowIndex];
+          const jsonData = [];
+
+          for (let i = headerRowIndex + 1; i < records.length; i++) {
+            const row = records[i];
+            if (!row || row.length === 0) continue;
+
+            const rowObj = {};
+            let hasData = false;
+
+            for (let j = 0; j < headers.length; j++) {
+              const header = headers[j];
+              const value = row[j] || '';
+              if (header && value) {
+                rowObj[header] = value;
+                hasData = true;
+              } else if (header) {
+                rowObj[header] = '';
+              }
+            }
+
+            if (hasData) {
+              jsonData.push(rowObj);
+            }
+          }
+
+          console.log(`[Parser] TSV parsed with ${jsonData.length} rows, starting from row ${headerRowIndex}`);
+          if (jsonData.length > 0) {
+            console.log(`[Parser] First TSV row sample:`, JSON.stringify(jsonData[0]).substring(0, 500));
+          }
+          return jsonData;
+        }
+
+        // Otherwise, parse as Excel
         const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
@@ -174,10 +243,11 @@ class ParserService {
         }
 
         // Re-parse with the correct header row
-        // Keep cells as strings to preserve exact formatting from the file
+        // Use raw: false to get formatted string values (preserves Argentine number format)
+        // This prevents XLSX from misinterpreting dates and amounts
         const jsonData = XLSX.utils.sheet_to_json(worksheet, {
           range: headerRowIndex, // Start from the detected header row
-          raw: false, // Format values as strings to preserve date and number formats
+          raw: false, // Get formatted string values
           defval: '' // Default value for empty cells
         });
 
