@@ -18,7 +18,7 @@ const recurringServicesService = require('./services/recurring-services.service'
 const ExchangeRateService = require('./services/exchange-rate.service');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Temporary storage for OAuth states (use Redis in production)
 const oauthStates = new Map();
@@ -2602,3 +2602,5 @@ app.listen(PORT, () => {
   console.log(`🔒 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📂 Open: http://localhost:${PORT}`);
 });
+
+//start server dev: npm run dev:auth
