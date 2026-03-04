@@ -3250,11 +3250,13 @@ function updateConnectionCard(provider, connection) {
         const thumbnail = connection.metadata.thumbnail || connection.metadata.logo;
         if (thumbnail) {
           avatarEl.innerHTML = `<img src="${thumbnail}" alt="Avatar" />`;
+          avatarEl.style.display = 'flex';
         } else {
           // Fallback to initials
           const email = connection.metadata.email || '';
           const initial = email.charAt(0).toUpperCase() || '?';
           avatarEl.innerHTML = `<div class="avatar-initials">${initial}</div>`;
+          avatarEl.style.display = 'flex';
         }
       }
 
