@@ -1196,8 +1196,8 @@ app.get('/oauth/mercadopago/callback', async (req, res) => {
       }
     });
 
-    // Redirect to success page
-    res.redirect('/#configuracion?connection=success&provider=mercadopago');
+    // Redirect to success page with clean URL (no hash)
+    res.redirect('/conexiones?connection=success&provider=mercadopago');
   } catch (error) {
     console.error('OAuth callback error:', error);
     res.redirect(`/?error=connection_failed&message=${encodeURIComponent(error.message)}`);
@@ -1398,8 +1398,8 @@ app.get('/oauth/eubanks/callback', async (req, res) => {
       }
     });
 
-    // Redirect to success page
-    res.redirect('/#configuracion?connection=success&provider=eubanks');
+    // Redirect to success page with clean URL (no hash)
+    res.redirect('/conexiones?connection=success&provider=eubanks');
   } catch (error) {
     console.error('EuBanks OAuth callback error:', error);
     res.redirect(`/?error=connection_failed&message=${encodeURIComponent(error.message)}`);

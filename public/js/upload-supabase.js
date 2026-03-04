@@ -312,6 +312,8 @@ if (typeof Router !== 'undefined') {
           initializeCategories();
         }
         loadUploadEmail();
+      } else if (sectionName === 'conexiones') {
+        loadConnections();
       }
     }
   });
@@ -3998,9 +4000,10 @@ document.addEventListener('DOMContentLoaded', () => {
       loadConnections();
     }, 500);
 
-    // Clean URL - remove query params but keep hash
-    const cleanUrl = window.location.pathname + '#configuracion';
-    window.history.replaceState({}, document.title, cleanUrl);
+    // Clean URL - remove query params (use router for clean URLs)
+    if (typeof Router !== 'undefined') {
+      Router.navigate('/conexiones', { replace: true });
+    }
   }
 
   // Load connections when clicking on Conexiones menu item
