@@ -471,6 +471,14 @@
     function showApp() {
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app-content').style.display = 'block';
+
+      // Activate dashboard section by default
+      setTimeout(() => {
+        const dashboardLink = document.querySelector('.menu-item[data-section="dashboards"]');
+        if (dashboardLink && !dashboardLink.classList.contains('active')) {
+          dashboardLink.click();
+        }
+      }, 100);
     }
 
     // Google login function
