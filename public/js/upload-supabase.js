@@ -3248,18 +3248,22 @@ function updateConnectionCard(provider, connection) {
       // Set avatar
       if (avatarEl) {
         const thumbnail = connection.metadata?.thumbnail || connection.metadata?.logo;
-        if (thumbnail) {
-          avatarEl.innerHTML = `<img src="${thumbnail}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;" />`;
+        const email = connection.metadata?.email || '';
+        const initial = email.charAt(0).toUpperCase() || '?';
+
+        if (thumbnail && thumbnail !== 'null' && thumbnail !== '') {
+          // Try to load image, fallback to initials on error
+          avatarEl.innerHTML = `<img src="${thumbnail}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'avatar-initials\\'>${initial}</div>';" />`;
         } else {
           // Fallback to initials
-          const email = connection.metadata?.email || '';
-          const initial = email.charAt(0).toUpperCase() || '?';
           avatarEl.innerHTML = `<div class="avatar-initials">${initial}</div>`;
         }
         // Ensure avatar is visible
         avatarEl.style.display = 'flex';
         avatarEl.style.width = '40px';
         avatarEl.style.height = '40px';
+        avatarEl.style.borderRadius = '50%';
+        avatarEl.style.overflow = 'hidden';
       }
 
       // Set email
