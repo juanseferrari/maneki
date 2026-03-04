@@ -460,8 +460,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Listen for section changes to load categories when ajustes becomes visible
-window.addEventListener('hashchange', () => {
-  if (window.location.hash === '#ajustes') {
+// Listen for route changes to ajustes section
+window.addEventListener('routechange', (event) => {
+  const { sectionName } = event.detail;
+  if (sectionName === 'ajustes') {
     initializeCategories();
     loadUploadEmail();
   }

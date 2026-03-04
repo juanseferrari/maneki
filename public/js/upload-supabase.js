@@ -290,52 +290,48 @@ function closeCustomModal() {
 }
 
 // Navigation
-const menuItems = document.querySelectorAll('.menu-item');
-const sections = document.querySelectorAll('.content-section');
-
-menuItems.forEach(item => {
-  item.addEventListener('click', (e) => {
-    e.preventDefault();
-    const sectionName = item.dataset.section;
-    showSection(sectionName);
-
-    menuItems.forEach(mi => mi.classList.remove('active'));
-    item.classList.add('active');
-  });
-});
-
-function showSection(sectionName) {
-  sections.forEach(section => section.classList.remove('active'));
-  const targetSection = document.getElementById(`section-${sectionName}`);
-  if (targetSection) {
-    targetSection.classList.add('active');
-  }
-
-  if (sectionName === 'transacciones') {
-    loadAllTransactions();
-  } else if (sectionName === 'archivos') {
-    loadDashboardData();
-  } else if (sectionName === 'ajustes') {
-    if (typeof initializeCategories === 'function') {
-      initializeCategories();
+// Initialize Router with route configuration
+if (typeof Router !== 'undefined') {
+  Router.init({
+    routes: {
+      '/': 'dashboards',
+      '/transacciones': 'transacciones',
+      '/archivos': 'archivos',
+      '/servicios': 'servicios',
+      '/conexiones': 'conexiones',
+      '/ajustes': 'ajustes'
+    },
+    onRouteChange: (sectionName, path, options) => {
+      // Load section-specific data when route changes
+      if (sectionName === 'transacciones') {
+        loadAllTransactions();
+      } else if (sectionName === 'archivos') {
+        loadDashboardData();
+      } else if (sectionName === 'ajustes') {
+        if (typeof initializeCategories === 'function') {
+          initializeCategories();
+        }
+        loadUploadEmail();
+      }
     }
-    loadUploadEmail();
-  }
-
-  window.location.hash = sectionName;
+  });
 }
 
-// Load section from URL hash
+// Legacy hash redirect support - redirect old hash URLs to clean URLs
 if (window.location.hash) {
   const sectionName = window.location.hash.substring(1);
-  showSection(sectionName);
-  menuItems.forEach(item => {
-    if (item.dataset.section === sectionName) {
-      item.classList.add('active');
-    } else {
-      item.classList.remove('active');
-    }
-  });
+  const pathMapping = {
+    'dashboards': '/',
+    'transacciones': '/transacciones',
+    'archivos': '/archivos',
+    'servicios': '/servicios',
+    'conexiones': '/conexiones',
+    'ajustes': '/ajustes'
+  };
+  const cleanPath = pathMapping[sectionName] || '/';
+  if (typeof Router !== 'undefined') {
+    Router.navigate(cleanPath, { replace: true });
+  }
 }
 
 // File Upload Logic
@@ -1571,6 +1567,18 @@ function clearFilters() {
   document.getElementById('filter-amount-label').textContent = 'Monto';
   document.getElementById('filter-file-label').textContent = 'Archivo';
 
+  // Reset calendar button texts
+  const dateFromText = document.getElementById('date-from-text');
+  const dateToText = document.getElementById('date-to-text');
+  if (dateFromText) dateFromText.textContent = 'Seleccionar fecha';
+  if (dateToText) dateToText.textContent = 'Seleccionar fecha';
+
+  // Reset calendar components
+  const calendarFrom = document.getElementById('calendar-from');
+  const calendarTo = document.getElementById('calendar-to');
+  if (calendarFrom) calendarFrom.value = '';
+  if (calendarTo) calendarTo.value = '';
+
   // Clear filter state
   currentFilters.dateFrom = '';
   currentFilters.dateTo = '';
@@ -1619,6 +1627,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize advanced filters
   initializeAdvancedFilters();
+
+  // Initialize Cally calendar components
+  const calendarFrom = document.getElementById('calendar-from');
+  const calendarTo = document.getElementById('calendar-to');
+
+  if (calendarFrom) {
+    calendarFrom.addEventListener('change', (e) => {
+      const value = e.target.value;
+      if (value) {
+        // Update hidden input
+        document.getElementById('filter-date-from').value = value;
+        // Update button text
+        const date = new Date(value);
+        const formatted = date.toLocaleDateString('es-AR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+        document.getElementById('date-from-text').textContent = formatted;
+        // Close dropdown
+        document.activeElement.blur();
+      }
+    });
+  }
+
+  if (calendarTo) {
+    calendarTo.addEventListener('change', (e) => {
+      const value = e.target.value;
+      if (value) {
+        // Update hidden input
+        document.getElementById('filter-date-to').value = value;
+        // Update button text
+        const date = new Date(value);
+        const formatted = date.toLocaleDateString('es-AR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+        document.getElementById('date-to-text').textContent = formatted;
+        // Close dropdown
+        document.activeElement.blur();
+      }
+    });
+  }
 });
 
 // Utility functions
@@ -2428,7 +2480,9 @@ function openCreateServiceFromTransaction(transactionId) {
     openAddServiceModal();
   } else {
     // If services.js is not loaded, navigate to services section
-    window.location.hash = '#servicios';
+    if (typeof Router !== 'undefined') {
+      Router.navigate('/servicios');
+    }
     setTimeout(() => {
       if (typeof openAddServiceModal === 'function') {
         openAddServiceModal();

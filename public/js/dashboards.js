@@ -426,18 +426,19 @@ function renderCategoriesByMonthTable(data) {
 
 // Add dashboard section listener
 document.addEventListener('DOMContentLoaded', function() {
-  const dashboardMenuItem = document.querySelector('[data-section="dashboards"]');
-  if (dashboardMenuItem) {
-    dashboardMenuItem.addEventListener('click', function() {
-      setTimeout(initDashboard, 100);
-    });
-  }
+  // Initialize dashboard on page load if it's the active route
+  const currentPath = window.location.pathname;
+  const isDefaultSection = currentPath === '/' || currentPath === '';
 
-  // Initialize dashboard on page load if it's the default/active section or URL has hash
-  const dashboardSection = document.getElementById('section-dashboards');
-  const isDefaultSection = !window.location.hash || window.location.hash === '#dashboards';
-
-  if (window.location.hash.includes('dashboards') || (isDefaultSection && dashboardSection?.classList.contains('active'))) {
+  if (isDefaultSection) {
     setTimeout(initDashboard, 500);
+  }
+});
+
+// Listen for route changes
+window.addEventListener('routechange', function(event) {
+  const { sectionName } = event.detail;
+  if (sectionName === 'dashboards') {
+    setTimeout(initDashboard, 100);
   }
 });

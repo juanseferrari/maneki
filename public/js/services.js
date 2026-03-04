@@ -1510,8 +1510,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Check if URL has servicios hash
-  if (window.location.hash.includes('servicios')) {
+  // Check if current route is servicios
+  const currentPath = window.location.pathname;
+  if (currentPath === '/servicios') {
     setTimeout(initServicesModule, 500);
+  }
+});
+
+// Listen for route changes to servicios section
+window.addEventListener('routechange', (event) => {
+  const { sectionName } = event.detail;
+  if (sectionName === 'servicios') {
+    setTimeout(initServicesModule, 100);
   }
 });
