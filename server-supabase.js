@@ -119,6 +119,16 @@ app.get('/', (req, res) => {
   });
 });
 
+// Privacy Policy
+app.get('/privacy-policy', (req, res) => {
+  res.render('privacy-policy');
+});
+
+// Terms of Service
+app.get('/terms-of-service', (req, res) => {
+  res.render('terms-of-service');
+});
+
 // Upload endpoint - Protected
 app.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
   try {

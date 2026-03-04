@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Términos de Servicio - Manni</title>
+  <link rel="icon" type="image/png" href="/images/manni_v1.png">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.6;
+      color: #1a1a1a;
+      background: #ffffff;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    header {
+      text-align: center;
+      padding: 3rem 0 2rem;
+      border-bottom: 2px solid #e5e7eb;
+      margin-bottom: 3rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .logo img {
+      width: 50px;
+      height: 50px;
+    }
+
+    .logo h1 {
+      font-size: 2rem;
+      color: #2c0c6b;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      font-size: 1.25rem;
+      color: #6b7280;
+      margin-bottom: 0.5rem;
+    }
+
+    .last-updated {
+      font-size: 0.9rem;
+      color: #9ca3af;
+      font-style: italic;
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      color: #2c0c6b;
+      margin-top: 2.5rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      color: #4c1d95;
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: #374151;
+    }
+
+    ul, ol {
+      margin-left: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+      color: #374151;
+    }
+
+    .highlight-box {
+      background: #f3f4f6;
+      border-left: 4px solid #6366f1;
+      padding: 1.5rem;
+      margin: 2rem 0;
+      border-radius: 8px;
+    }
+
+    .warning-box {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 1.5rem;
+      margin: 2rem 0;
+      border-radius: 8px;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 3rem;
+      padding: 0.75rem 1.5rem;
+      background: #2c0c6b;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: background 0.3s ease;
+    }
+
+    .back-link:hover {
+      background: #4c1d95;
+    }
+
+    footer {
+      text-align: center;
+      padding: 3rem 0 2rem;
+      margin-top: 4rem;
+      border-top: 2px solid #e5e7eb;
+      color: #6b7280;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+
+      header {
+        padding: 2rem 0 1rem;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+      }
+
+      h3 {
+        font-size: 1.1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <img src="/images/manni_v1.png" alt="Manni Logo">
+        <h1>Manni</h1>
+      </div>
+      <div class="subtitle">Términos de Servicio</div>
+      <div class="last-updated">Última actualización: <%= new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) %></div>
+    </header>
+
+    <main>
+      <div class="highlight-box">
+        <p><strong>Bienvenido a Manni.</strong> Estos Términos de Servicio ("Términos") rigen tu acceso y uso de la plataforma Manni. Al usar nuestro servicio, aceptas estos términos en su totalidad. Por favor, léelos cuidadosamente.</p>
+      </div>
+
+      <h2>1. Aceptación de los Términos</h2>
+
+      <p>Al acceder o usar Manni ("el Servicio", "la Plataforma"), aceptas estar sujeto a estos Términos de Servicio y a nuestra <a href="/privacy-policy" style="color: #6366f1;">Política de Privacidad</a>.</p>
+
+      <p>Si no estás de acuerdo con alguna parte de estos términos, no debes usar el Servicio.</p>
+
+      <h2>2. Descripción del Servicio</h2>
+
+      <p>Manni es una plataforma de gestión financiera personal que te permite:</p>
+      <ul>
+        <li><strong>Procesar documentos:</strong> Subir archivos PDF, Excel, CSV y otros formatos de extractos bancarios</li>
+        <li><strong>Extraer transacciones:</strong> Analizar automáticamente tus documentos para extraer información de transacciones</li>
+        <li><strong>Conectar cuentas:</strong> Integrar tus cuentas de Mercado Pago, bancos europeos y Mercury</li>
+        <li><strong>Sincronizar datos:</strong> Importar automáticamente transacciones desde tus cuentas conectadas</li>
+        <li><strong>Gestionar servicios:</strong> Rastrear pagos recurrentes y suscripciones</li>
+        <li><strong>Visualizar analytics:</strong> Ver dashboards, reportes y análisis de tus finanzas personales</li>
+        <li><strong>Recibir por email:</strong> Enviar archivos directamente a tu email personalizado de Manni</li>
+      </ul>
+
+      <h2>3. Elegibilidad y Registro</h2>
+
+      <h3>3.1 Requisitos de edad</h3>
+      <p>Debes tener al menos 18 años de edad para usar el Servicio. Al registrarte, confirmas que tienes la edad legal requerida.</p>
+
+      <h3>3.2 Cuenta de usuario</h3>
+      <ul>
+        <li>Debes registrarte con una cuenta de Google válida</li>
+        <li>Proporcionas información precisa y completa durante el registro</li>
+        <li>Mantienes la seguridad de tus credenciales de acceso</li>
+        <li>Eres responsable de todas las actividades realizadas desde tu cuenta</li>
+        <li>Notificas inmediatamente cualquier uso no autorizado de tu cuenta</li>
+      </ul>
+
+      <h3>3.3 Una cuenta por usuario</h3>
+      <p>Solo puedes crear y mantener una cuenta personal. Las cuentas comerciales o empresariales requieren autorización previa.</p>
+
+      <h2>4. Uso Aceptable</h2>
+
+      <h3>4.1 Uso permitido</h3>
+      <p>Te concedemos una licencia limitada, no exclusiva, no transferible y revocable para usar el Servicio únicamente para tus fines personales de gestión financiera.</p>
+
+      <h3>4.2 Uso prohibido</h3>
+      <p>Está estrictamente prohibido:</p>
+      <ul>
+        <li>Usar el Servicio para propósitos ilegales o no autorizados</li>
+        <li>Intentar acceder a cuentas, sistemas o redes sin autorización</li>
+        <li>Realizar ingeniería inversa, descompilar o desensamblar el Servicio</li>
+        <li>Usar bots, scrapers o herramientas automatizadas sin autorización</li>
+        <li>Interferir con el funcionamiento normal del Servicio</li>
+        <li>Subir malware, virus o código malicioso</li>
+        <li>Violar derechos de propiedad intelectual</li>
+        <li>Compartir tu cuenta con terceros</li>
+        <li>Revender o comercializar el acceso al Servicio</li>
+        <li>Procesar información financiera de terceros sin su consentimiento</li>
+      </ul>
+
+      <div class="warning-box">
+        <p><strong>⚠️ Violaciones graves:</strong> El uso del Servicio para lavado de dinero, fraude, evasión fiscal o cualquier actividad ilegal resultará en la terminación inmediata de tu cuenta y posible reporte a autoridades.</p>
+      </div>
+
+      <h2>5. Contenido de Usuario</h2>
+
+      <h3>5.1 Tu contenido</h3>
+      <p>Conservas todos los derechos sobre los archivos y datos que subes ("Tu Contenido"). Al usar el Servicio, nos otorgas una licencia para:</p>
+      <ul>
+        <li>Almacenar Tu Contenido en nuestros servidores</li>
+        <li>Procesar Tu Contenido para extraer transacciones y generar reportes</li>
+        <li>Analizar Tu Contenido para mejorar nuestros algoritmos de procesamiento</li>
+        <li>Hacer copias de respaldo de Tu Contenido para seguridad</li>
+      </ul>
+
+      <h3>5.2 Responsabilidad por contenido</h3>
+      <p>Eres el único responsable de:</p>
+      <ul>
+        <li>La legalidad y precisión de Tu Contenido</li>
+        <li>Tener los derechos necesarios para subir Tu Contenido</li>
+        <li>Cumplir con obligaciones fiscales y regulatorias relacionadas con Tu Contenido</li>
+      </ul>
+
+      <h3>5.3 Eliminación de contenido</h3>
+      <p>Nos reservamos el derecho de eliminar contenido que:</p>
+      <ul>
+        <li>Viole estos Términos</li>
+        <li>Infrinja derechos de terceros</li>
+        <li>Sea reportado como ilegal o inapropiado</li>
+        <li>Represente un riesgo de seguridad</li>
+      </ul>
+
+      <h2>6. Conexiones Bancarias y OAuth</h2>
+
+      <h3>6.1 Autorizaciones de terceros</h3>
+      <p>Al conectar servicios de terceros (Mercado Pago, bancos, Mercury), autorizas:</p>
+      <ul>
+        <li>Que Manni acceda a tus datos financieros en esas plataformas</li>
+        <li>La sincronización periódica de transacciones</li>
+        <li>El almacenamiento de tokens de acceso encriptados</li>
+      </ul>
+
+      <h3>6.2 Revocación de acceso</h3>
+      <p>Puedes revocar el acceso en cualquier momento:</p>
+      <ul>
+        <li>Desde la sección "Conexiones" en Manni</li>
+        <li>Desde la configuración OAuth del proveedor externo</li>
+      </ul>
+
+      <h3>6.3 Términos de terceros</h3>
+      <p>Tu uso de servicios integrados también está sujeto a los términos y políticas de esos proveedores:</p>
+      <ul>
+        <li>Mercado Pago: <a href="https://www.mercadopago.com/terms" target="_blank">Términos de Mercado Pago</a></li>
+        <li>Google OAuth: <a href="https://policies.google.com/terms" target="_blank">Términos de Google</a></li>
+        <li>Mercury: <a href="https://mercury.com/legal/terms" target="_blank">Términos de Mercury</a></li>
+      </ul>
+
+      <h2>7. Tarifas y Pagos</h2>
+
+      <h3>7.1 Servicio gratuito</h3>
+      <p>Actualmente, Manni es un servicio gratuito en fase beta. Nos reservamos el derecho de:</p>
+      <ul>
+        <li>Introducir planes de pago en el futuro</li>
+        <li>Limitar funcionalidades en planes gratuitos</li>
+        <li>Ofrecer funciones premium de pago</li>
+      </ul>
+
+      <h3>7.2 Notificación de cambios</h3>
+      <p>Te notificaremos con al menos 30 días de anticipación antes de implementar cualquier tarifa o cambio en los planes de precios.</p>
+
+      <h2>8. Propiedad Intelectual</h2>
+
+      <h3>8.1 Propiedad de Manni</h3>
+      <p>El Servicio, incluyendo su diseño, código, algoritmos, marca, logo y contenido, es propiedad exclusiva de Manni y está protegido por leyes de propiedad intelectual.</p>
+
+      <h3>8.2 Marcas comerciales</h3>
+      <p>"Manni" y el logo de Manni son marcas registradas. No puedes usar nuestras marcas sin autorización expresa por escrito.</p>
+
+      <h3>8.3 Feedback</h3>
+      <p>Si proporcionas sugerencias, ideas o comentarios sobre el Servicio, nos otorgas el derecho a usarlos sin compensación ni atribución.</p>
+
+      <h2>9. Privacidad y Seguridad de Datos</h2>
+
+      <h3>9.1 Política de privacidad</h3>
+      <p>El uso de tus datos personales se rige por nuestra <a href="/privacy-policy" style="color: #6366f1;">Política de Privacidad</a>, que forma parte integral de estos Términos.</p>
+
+      <h3>9.2 Seguridad</h3>
+      <p>Implementamos medidas de seguridad razonables, pero no podemos garantizar seguridad absoluta. Tú eres responsable de:</p>
+      <ul>
+        <li>Mantener seguras tus credenciales</li>
+        <li>Usar conexiones seguras (HTTPS)</li>
+        <li>No compartir información sensible por canales inseguros</li>
+      </ul>
+
+      <h3>9.3 Notificación de brechas</h3>
+      <p>En caso de brecha de seguridad que afecte tus datos, te notificaremos dentro de 72 horas según lo requerido por regulaciones aplicables.</p>
+
+      <h2>10. Limitación de Responsabilidad</h2>
+
+      <div class="warning-box">
+        <p><strong>IMPORTANTE:</strong> Lee cuidadosamente esta sección, ya que limita nuestra responsabilidad.</p>
+      </div>
+
+      <h3>10.1 Sin garantía de asesoramiento financiero</h3>
+      <p>Manni es una herramienta de gestión financiera, NO un asesor financiero. No proporcionamos:</p>
+      <ul>
+        <li>Asesoramiento fiscal, legal o financiero</li>
+        <li>Recomendaciones de inversión</li>
+        <li>Análisis profesional de crédito</li>
+      </ul>
+      <p>Siempre consulta con profesionales calificados para decisiones financieras importantes.</p>
+
+      <h3>10.2 Servicio "tal cual"</h3>
+      <p>El Servicio se proporciona "TAL CUAL" y "SEGÚN DISPONIBILIDAD" sin garantías de ningún tipo, ya sean expresas o implícitas, incluyendo:</p>
+      <ul>
+        <li>Disponibilidad continua o ininterrumpida</li>
+        <li>Precisión completa de los datos procesados</li>
+        <li>Ausencia de errores o bugs</li>
+        <li>Resultados específicos</li>
+      </ul>
+
+      <h3>10.3 Limitación de responsabilidad</h3>
+      <p>En la máxima medida permitida por la ley, Manni NO será responsable por:</p>
+      <ul>
+        <li>Daños indirectos, incidentales, especiales o consecuentes</li>
+        <li>Pérdida de ganancias, ingresos o datos</li>
+        <li>Interrupciones del servicio o pérdida de datos</li>
+        <li>Decisiones financieras basadas en el Servicio</li>
+        <li>Errores en el procesamiento o extracción de datos</li>
+        <li>Acciones de terceros integrados (bancos, Mercado Pago, etc.)</li>
+      </ul>
+
+      <p><strong>Nuestra responsabilidad total no excederá $100 USD o el equivalente en tu moneda local.</strong></p>
+
+      <h3>10.4 Indemnización</h3>
+      <p>Aceptas indemnizar y mantener indemne a Manni, sus directores, empleados y afiliados de cualquier reclamación derivada de:</p>
+      <ul>
+        <li>Tu uso del Servicio</li>
+        <li>Violación de estos Términos</li>
+        <li>Violación de derechos de terceros</li>
+        <li>Tu Contenido</li>
+      </ul>
+
+      <h2>11. Disponibilidad y Modificaciones del Servicio</h2>
+
+      <h3>11.1 Disponibilidad</h3>
+      <p>Hacemos nuestro mejor esfuerzo por mantener el Servicio disponible 24/7, pero no garantizamos:</p>
+      <ul>
+        <li>Tiempo de actividad del 100%</li>
+        <li>Ausencia de mantenimientos programados</li>
+        <li>Continuidad indefinida del Servicio</li>
+      </ul>
+
+      <h3>11.2 Modificaciones</h3>
+      <p>Nos reservamos el derecho de:</p>
+      <ul>
+        <li>Modificar, suspender o discontinuar el Servicio en cualquier momento</li>
+        <li>Agregar o eliminar funcionalidades</li>
+        <li>Cambiar límites de uso (tamaño de archivos, número de conexiones, etc.)</li>
+      </ul>
+
+      <p>Te notificaremos sobre cambios significativos con al menos 15 días de anticipación.</p>
+
+      <h2>12. Terminación</h2>
+
+      <h3>12.1 Terminación por tu parte</h3>
+      <p>Puedes cerrar tu cuenta en cualquier momento contactándonos en <a href="mailto:support@getmanni.com">support@getmanni.com</a>.</p>
+
+      <h3>12.2 Terminación por nuestra parte</h3>
+      <p>Podemos suspender o terminar tu cuenta inmediatamente si:</p>
+      <ul>
+        <li>Violas estos Términos</li>
+        <li>Usas el Servicio para actividades ilegales</li>
+        <li>Tu cuenta está inactiva por más de 2 años</li>
+        <li>Representas un riesgo de seguridad</li>
+        <li>Lo requiere una orden judicial</li>
+      </ul>
+
+      <h3>12.3 Efectos de la terminación</h3>
+      <p>Al terminar tu cuenta:</p>
+      <ul>
+        <li>Pierdes acceso al Servicio inmediatamente</li>
+        <li>Tus datos se eliminarán después de 90 días (período de gracia para reactivación)</li>
+        <li>Las conexiones OAuth se revocarán automáticamente</li>
+        <li>No tienes derecho a reembolso (si aplica en planes de pago futuros)</li>
+      </ul>
+
+      <h2>13. Resolución de Disputas</h2>
+
+      <h3>13.1 Ley aplicable</h3>
+      <p>Estos Términos se rigen por las leyes de [Tu Jurisdicción] sin considerar conflictos de leyes.</p>
+
+      <h3>13.2 Jurisdicción</h3>
+      <p>Cualquier disputa se resolverá en los tribunales de [Tu Ciudad/País].</p>
+
+      <h3>13.3 Resolución amistosa</h3>
+      <p>Antes de iniciar acciones legales, aceptas intentar resolver disputas contactándonos en <a href="mailto:legal@getmanni.com">legal@getmanni.com</a>.</p>
+
+      <h2>14. Disposiciones Generales</h2>
+
+      <h3>14.1 Totalidad del acuerdo</h3>
+      <p>Estos Términos, junto con la Política de Privacidad, constituyen el acuerdo completo entre tú y Manni.</p>
+
+      <h3>14.2 Separabilidad</h3>
+      <p>Si alguna disposición se considera inválida, las demás disposiciones permanecen en pleno vigor.</p>
+
+      <h3>14.3 No renuncia</h3>
+      <p>El no ejercer un derecho no constituye renuncia a ese derecho.</p>
+
+      <h3>14.4 Cesión</h3>
+      <p>No puedes transferir tus derechos bajo estos Términos. Podemos transferir nuestros derechos a afiliados o sucesores.</p>
+
+      <h3>14.5 Fuerza mayor</h3>
+      <p>No somos responsables por incumplimientos debido a causas fuera de nuestro control razonable (desastres naturales, guerras, pandemias, fallas de internet, etc.).</p>
+
+      <h2>15. Cambios a estos Términos</h2>
+
+      <p>Podemos modificar estos Términos en cualquier momento. Los cambios se consideran efectivos:</p>
+      <ul>
+        <li>Inmediatamente para cambios menores (correcciones, clarificaciones)</li>
+        <li>Después de 30 días para cambios materiales</li>
+      </ul>
+
+      <p>Te notificaremos sobre cambios materiales mediante:</p>
+      <ul>
+        <li>Email a tu dirección registrada</li>
+        <li>Notificación destacada en la plataforma</li>
+        <li>Actualización de la fecha al inicio de este documento</li>
+      </ul>
+
+      <p><strong>Tu uso continuado del Servicio después de cambios constituye aceptación de los nuevos términos.</strong></p>
+
+      <h2>16. Contacto</h2>
+
+      <p>Para preguntas, comentarios o inquietudes sobre estos Términos de Servicio:</p>
+
+      <div class="highlight-box">
+        <p><strong>Email general:</strong> <a href="mailto:support@getmanni.com">support@getmanni.com</a></p>
+        <p><strong>Email legal:</strong> <a href="mailto:legal@getmanni.com">legal@getmanni.com</a></p>
+        <p><strong>Tiempo de respuesta:</strong> 48-72 horas laborables</p>
+      </div>
+
+      <div class="warning-box">
+        <p><strong>Al usar Manni, confirmas que has leído, entendido y aceptado estos Términos de Servicio en su totalidad.</strong></p>
+      </div>
+
+      <a href="/" class="back-link">← Volver a Manni</a>
+    </main>
+
+    <footer>
+      <p>&copy; <%= new Date().getFullYear() %> Manni. Todos los derechos reservados.</p>
+      <p><a href="/privacy-policy" style="color: #6366f1; text-decoration: none;">Política de Privacidad</a></p>
+    </footer>
+  </div>
+</body>
+</html>

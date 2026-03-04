@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Política de Privacidad - Manni</title>
+  <link rel="icon" type="image/png" href="/images/manni_v1.png">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.6;
+      color: #1a1a1a;
+      background: #ffffff;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    header {
+      text-align: center;
+      padding: 3rem 0 2rem;
+      border-bottom: 2px solid #e5e7eb;
+      margin-bottom: 3rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .logo img {
+      width: 50px;
+      height: 50px;
+    }
+
+    .logo h1 {
+      font-size: 2rem;
+      color: #2c0c6b;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      font-size: 1.25rem;
+      color: #6b7280;
+      margin-bottom: 0.5rem;
+    }
+
+    .last-updated {
+      font-size: 0.9rem;
+      color: #9ca3af;
+      font-style: italic;
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      color: #2c0c6b;
+      margin-top: 2.5rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      color: #4c1d95;
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: #374151;
+    }
+
+    ul, ol {
+      margin-left: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+      color: #374151;
+    }
+
+    .highlight-box {
+      background: #f3f4f6;
+      border-left: 4px solid #6366f1;
+      padding: 1.5rem;
+      margin: 2rem 0;
+      border-radius: 8px;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 3rem;
+      padding: 0.75rem 1.5rem;
+      background: #2c0c6b;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: background 0.3s ease;
+    }
+
+    .back-link:hover {
+      background: #4c1d95;
+    }
+
+    footer {
+      text-align: center;
+      padding: 3rem 0 2rem;
+      margin-top: 4rem;
+      border-top: 2px solid #e5e7eb;
+      color: #6b7280;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+
+      header {
+        padding: 2rem 0 1rem;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+      }
+
+      h3 {
+        font-size: 1.1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <img src="/images/manni_v1.png" alt="Manni Logo">
+        <h1>Manni</h1>
+      </div>
+      <div class="subtitle">Política de Privacidad</div>
+      <div class="last-updated">Última actualización: <%= new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) %></div>
+    </header>
+
+    <main>
+      <div class="highlight-box">
+        <p><strong>En Manni, tu privacidad es nuestra prioridad.</strong> Esta política explica cómo recopilamos, usamos, protegemos y compartimos tu información personal cuando utilizas nuestra plataforma de gestión financiera.</p>
+      </div>
+
+      <h2>1. Información que Recopilamos</h2>
+
+      <h3>1.1 Información que nos proporcionas</h3>
+      <ul>
+        <li><strong>Datos de cuenta:</strong> Email, nombre y contraseña cuando te registras con Google OAuth</li>
+        <li><strong>Documentos financieros:</strong> Archivos PDF, Excel y otros formatos que subes para procesamiento</li>
+        <li><strong>Conexiones bancarias:</strong> Tokens de acceso y credenciales OAuth de terceros (Mercado Pago, bancos europeos, Mercury) que autorizas</li>
+        <li><strong>Datos de transacciones:</strong> Información financiera extraída de tus documentos y conexiones bancarias</li>
+        <li><strong>Configuración de servicios:</strong> Información sobre tus pagos recurrentes y categorías personalizadas</li>
+      </ul>
+
+      <h3>1.2 Información recopilada automáticamente</h3>
+      <ul>
+        <li><strong>Datos de uso:</strong> Páginas visitadas, funciones utilizadas, tiempo en la plataforma</li>
+        <li><strong>Información técnica:</strong> Dirección IP, tipo de navegador, sistema operativo, identificadores de dispositivo</li>
+        <li><strong>Cookies y tecnologías similares:</strong> Utilizamos cookies de sesión para mantener tu autenticación y mejorar la experiencia de usuario</li>
+      </ul>
+
+      <h3>1.3 Información de terceros</h3>
+      <ul>
+        <li><strong>Google OAuth:</strong> Nombre, email y foto de perfil desde tu cuenta de Google</li>
+        <li><strong>Proveedores financieros:</strong> Datos de transacciones, saldo y metadata desde Mercado Pago, bancos conectados y Mercury</li>
+        <li><strong>Email inbound:</strong> Archivos adjuntos enviados a tu email personalizado de Manni</li>
+      </ul>
+
+      <h2>2. Cómo Usamos tu Información</h2>
+
+      <p>Utilizamos la información recopilada para:</p>
+      <ul>
+        <li><strong>Proporcionar el servicio:</strong> Procesar tus documentos financieros, extraer transacciones, y generar reportes</li>
+        <li><strong>Sincronizar datos:</strong> Importar automáticamente transacciones desde tus cuentas bancarias conectadas</li>
+        <li><strong>Gestión de servicios:</strong> Recordarte pagos próximos, calcular totales mensuales y analizar gastos recurrentes</li>
+        <li><strong>Autenticación y seguridad:</strong> Verificar tu identidad y proteger contra acceso no autorizado</li>
+        <li><strong>Mejorar la plataforma:</strong> Analizar patrones de uso para mejorar funcionalidades y corregir errores</li>
+        <li><strong>Comunicación:</strong> Enviarte notificaciones importantes sobre tu cuenta y actualizaciones del servicio</li>
+        <li><strong>Cumplimiento legal:</strong> Cumplir con obligaciones legales y regulatorias aplicables</li>
+      </ul>
+
+      <h2>3. Cómo Protegemos tu Información</h2>
+
+      <h3>3.1 Medidas de seguridad técnicas</h3>
+      <ul>
+        <li><strong>Encriptación:</strong> Todas las conexiones utilizan HTTPS/TLS para proteger datos en tránsito</li>
+        <li><strong>Almacenamiento seguro:</strong> Utilizamos Supabase con encriptación en reposo para todos los datos</li>
+        <li><strong>Tokens seguros:</strong> Los tokens de OAuth se almacenan encriptados y se renuevan automáticamente</li>
+        <li><strong>Autenticación robusta:</strong> Implementamos OAuth 2.0 y sesiones seguras con Supabase Auth</li>
+      </ul>
+
+      <h3>3.2 Medidas organizacionales</h3>
+      <ul>
+        <li><strong>Acceso limitado:</strong> Solo personal autorizado tiene acceso a datos sensibles</li>
+        <li><strong>Auditorías regulares:</strong> Revisamos periódicamente nuestras prácticas de seguridad</li>
+        <li><strong>Procesamiento mínimo:</strong> Solo procesamos los datos estrictamente necesarios para el servicio</li>
+      </ul>
+
+      <div class="highlight-box">
+        <p><strong>⚠️ Importante:</strong> Ningún sistema es 100% seguro. Aunque implementamos las mejores prácticas de seguridad, no podemos garantizar la seguridad absoluta de tu información. Te recomendamos usar contraseñas fuertes y no compartir tus credenciales.</p>
+      </div>
+
+      <h2>4. Compartir Información con Terceros</h2>
+
+      <h3>4.1 Proveedores de servicios</h3>
+      <p>Compartimos información con proveedores que nos ayudan a operar el servicio:</p>
+      <ul>
+        <li><strong>Supabase:</strong> Base de datos, almacenamiento y autenticación</li>
+        <li><strong>Heroku:</strong> Hosting de servidores</li>
+        <li><strong>Google Cloud:</strong> Autenticación OAuth</li>
+      </ul>
+
+      <h3>4.2 Integraciones autorizadas</h3>
+      <p>Cuando conectas cuentas externas, compartimos tokens de autorización con:</p>
+      <ul>
+        <li><strong>Mercado Pago:</strong> Para sincronizar transacciones de pagos</li>
+        <li><strong>Bancos europeos (via Enable Banking):</strong> Para importar movimientos bancarios</li>
+        <li><strong>Mercury:</strong> Para sincronizar transacciones de tu cuenta bancaria estadounidense</li>
+      </ul>
+
+      <h3>4.3 No vendemos tu información</h3>
+      <p><strong>Nunca vendemos, alquilamos o comercializamos tu información personal a terceros con fines de marketing.</strong></p>
+
+      <h3>4.4 Requisitos legales</h3>
+      <p>Podemos divulgar tu información si es requerido por ley, orden judicial, o para proteger nuestros derechos legales.</p>
+
+      <h2>5. Tus Derechos y Opciones</h2>
+
+      <h3>5.1 Acceso y portabilidad</h3>
+      <ul>
+        <li>Puedes acceder a todos tus datos personales desde tu panel de control</li>
+        <li>Puedes exportar tus transacciones y documentos en cualquier momento</li>
+      </ul>
+
+      <h3>5.2 Rectificación</h3>
+      <ul>
+        <li>Puedes editar tus transacciones, categorías y configuraciones desde la plataforma</li>
+        <li>Puedes actualizar tus preferencias de servicios en cualquier momento</li>
+      </ul>
+
+      <h3>5.3 Eliminación</h3>
+      <ul>
+        <li>Puedes desconectar integraciones bancarias individualmente desde la sección Conexiones</li>
+        <li>Puedes eliminar archivos individuales desde la sección Archivos</li>
+        <li>Para eliminar completamente tu cuenta, contáctanos en: <a href="mailto:support@getmanni.com">support@getmanni.com</a></li>
+      </ul>
+
+      <h3>5.4 Restricción de procesamiento</h3>
+      <ul>
+        <li>Puedes desactivar la sincronización automática de cualquier conexión</li>
+        <li>Puedes pausar el procesamiento de archivos en cualquier momento</li>
+      </ul>
+
+      <h3>5.5 Oposición</h3>
+      <p>Puedes oponerte al procesamiento de tus datos para fines específicos contactándonos.</p>
+
+      <h2>6. Retención de Datos</h2>
+
+      <ul>
+        <li><strong>Archivos y transacciones:</strong> Mantenemos tus datos mientras tu cuenta esté activa</li>
+        <li><strong>Conexiones bancarias:</strong> Los tokens se mantienen hasta que desconectes la integración</li>
+        <li><strong>Cuenta cerrada:</strong> Eliminamos tus datos 90 días después del cierre de cuenta, excepto lo requerido legalmente</li>
+        <li><strong>Logs del sistema:</strong> Mantenemos logs técnicos por 30 días para debugging y seguridad</li>
+      </ul>
+
+      <h2>7. Transferencias Internacionales</h2>
+
+      <p>Tus datos pueden ser procesados en servidores ubicados en diferentes países. Nos aseguramos de que todas las transferencias cumplan con regulaciones de protección de datos aplicables (GDPR, LGPD, etc.).</p>
+
+      <p>Nuestros proveedores principales operan en:</p>
+      <ul>
+        <li><strong>Estados Unidos:</strong> Supabase, Heroku, Google Cloud</li>
+        <li><strong>Europa:</strong> Servidores de respaldo y CDN</li>
+      </ul>
+
+      <h2>8. Menores de Edad</h2>
+
+      <p>Manni no está dirigido a menores de 18 años. No recopilamos intencionalmente información de menores. Si descubrimos que hemos recopilado datos de un menor, los eliminaremos inmediatamente.</p>
+
+      <h2>9. Cambios a esta Política</h2>
+
+      <p>Podemos actualizar esta política periódicamente. Te notificaremos sobre cambios importantes mediante:</p>
+      <ul>
+        <li>Notificación en la plataforma</li>
+        <li>Email a tu dirección registrada</li>
+        <li>Actualización de la fecha de "Última actualización" al inicio de este documento</li>
+      </ul>
+
+      <p>Tu uso continuado del servicio después de cambios constituye aceptación de la política actualizada.</p>
+
+      <h2>10. Cookies y Tecnologías de Rastreo</h2>
+
+      <p>Utilizamos las siguientes cookies:</p>
+      <ul>
+        <li><strong>Cookies esenciales:</strong> Necesarias para autenticación y funcionamiento básico (no se pueden deshabilitar)</li>
+        <li><strong>Cookies de sesión:</strong> Para mantener tu sesión activa mientras navegas</li>
+        <li><strong>Cookies de preferencias:</strong> Para recordar tus configuraciones y preferencias</li>
+      </ul>
+
+      <p>No utilizamos cookies de publicidad o rastreo de terceros.</p>
+
+      <h2>11. Contacto</h2>
+
+      <p>Si tienes preguntas, inquietudes o solicitudes sobre esta política de privacidad o el manejo de tus datos personales, contáctanos:</p>
+
+      <div class="highlight-box">
+        <p><strong>Email:</strong> <a href="mailto:privacy@getmanni.com">privacy@getmanni.com</a></p>
+        <p><strong>Respuesta típica:</strong> 48-72 horas laborables</p>
+      </div>
+
+      <h2>12. Autoridad de Control</h2>
+
+      <p>Si consideras que el tratamiento de tus datos personales infringe la normativa aplicable, tienes derecho a presentar una reclamación ante la autoridad de protección de datos de tu país.</p>
+
+      <a href="/" class="back-link">← Volver a Manni</a>
+    </main>
+
+    <footer>
+      <p>&copy; <%= new Date().getFullYear() %> Manni. Todos los derechos reservados.</p>
+      <p><a href="/terms-of-service" style="color: #6366f1; text-decoration: none;">Términos de Servicio</a></p>
+    </footer>
+  </div>
+</body>
+</html>
