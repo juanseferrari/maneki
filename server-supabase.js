@@ -3384,8 +3384,9 @@ app.get('/health', (req, res) => {
 // Catch-all route for client-side routing
 // ==========================================
 // MUST be after all API routes to allow client-side routing for clean URLs
+// NOTE: Does NOT use requireAuth - authentication is handled client-side by Supabase
 
-app.get('*', requireAuth, async (req, res) => {
+app.get('*', (req, res) => {
   // Skip API and static file routes
   if (req.path.startsWith('/api') ||
       req.path.startsWith('/uploads') ||
@@ -3395,29 +3396,13 @@ app.get('*', requireAuth, async (req, res) => {
     return res.status(404).send('Not found');
   }
 
-  try {
-    const { data: files, error } = await supabaseAdmin
-      .from('files')
-      .select('*')
-      .eq('user_id', req.user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching files:', error);
-    }
-
-    res.render('index-supabase', {
-      supabaseUrl: process.env.SUPABASE_URL,
-      supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
-      maxSizeMB: process.env.MAX_FILE_SIZE_MB || 10,
-      allowedTypes: uploadConfig.allowedExtensions.join(', '),
-      user: req.user,
-      files: files || []
-    });
-  } catch (error) {
-    console.error('Error loading page:', error);
-    res.status(500).send('Error loading page');
-  }
+  // Render the same template as home page - client will handle auth and routing
+  res.render('index-supabase', {
+    supabaseUrl: process.env.SUPABASE_URL,
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+    maxSizeMB: process.env.MAX_FILE_SIZE_MB || 10,
+    allowedTypes: uploadConfig.allowedExtensions.join(', ')
+  });
 });
 
 // Start server
