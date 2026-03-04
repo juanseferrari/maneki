@@ -1,18 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="maneki">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Maneki - Financial Management</title>
+  <title>Manni - Financial Management</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/images/manni_v1.png">
 
   <!-- Google Fonts - Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
 
+  <link rel="stylesheet" href="/css/output.css">
   <link rel="stylesheet" href="/css/style.css?v=<%= Date.now() %>">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="module" src="https://unpkg.com/cally"></script>
 </head>
 <body>
   <!-- Auth Check Loader -->
@@ -53,7 +58,7 @@
     <nav class="sidebar">
       <div class="sidebar-header">
         <div class="logo">
-          <span class="logo-text">Maneki</span>
+          <span class="logo-text">Manni</span>
         </div>
       </div>
 
