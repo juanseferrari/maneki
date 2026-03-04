@@ -3246,18 +3246,20 @@ function updateConnectionCard(provider, connection) {
       userInfoEl.style.display = 'flex';
 
       // Set avatar
-      if (avatarEl && connection.metadata) {
-        const thumbnail = connection.metadata.thumbnail || connection.metadata.logo;
+      if (avatarEl) {
+        const thumbnail = connection.metadata?.thumbnail || connection.metadata?.logo;
         if (thumbnail) {
-          avatarEl.innerHTML = `<img src="${thumbnail}" alt="Avatar" />`;
-          avatarEl.style.display = 'flex';
+          avatarEl.innerHTML = `<img src="${thumbnail}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;" />`;
         } else {
           // Fallback to initials
-          const email = connection.metadata.email || '';
+          const email = connection.metadata?.email || '';
           const initial = email.charAt(0).toUpperCase() || '?';
           avatarEl.innerHTML = `<div class="avatar-initials">${initial}</div>`;
-          avatarEl.style.display = 'flex';
         }
+        // Ensure avatar is visible
+        avatarEl.style.display = 'flex';
+        avatarEl.style.width = '40px';
+        avatarEl.style.height = '40px';
       }
 
       // Set email
