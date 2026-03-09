@@ -266,6 +266,84 @@ app.get('/api/files', requireAuth, async (req, res) => {
   }
 });
 
+// === BANK TEMPLATES ENDPOINTS ===
+
+// Get all learned templates
+app.get('/api/bank-templates', requireAuth, async (req, res) => {
+  try {
+    const { data: templates, error } = await supabaseAdmin
+      .from('bank_templates')
+      .select('*')
+      .eq('created_by_user_id', req.user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      templates: templates.map(t => ({
+        id: t.id,
+        bank_name: t.bank_name,
+        bank_id: t.bank_id,
+        usage_count: t.usage_count,
+        success_rate: t.success_rate,
+        avg_confidence: t.avg_confidence,
+        created_at: t.created_at,
+        last_used_at: t.last_used_at,
+        learned_by: t.learned_by
+      }))
+    });
+  } catch (error) {
+    console.error('Error fetching templates:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get template details
+app.get('/api/bank-templates/:templateId', requireAuth, async (req, res) => {
+  try {
+    const { data: template, error } = await supabaseAdmin
+      .from('bank_templates')
+      .select('*')
+      .eq('id', req.params.templateId)
+      .eq('created_by_user_id', req.user.id)
+      .single();
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      template
+    });
+  } catch (error) {
+    console.error('Error fetching template:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Delete template (if user wants to reset learning)
+app.delete('/api/bank-templates/:templateId', requireAuth, async (req, res) => {
+  try {
+    const { error } = await supabaseAdmin
+      .from('bank_templates')
+      .delete()
+      .eq('id', req.params.templateId)
+      .eq('created_by_user_id', req.user.id);
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      message: 'Template deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting template:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// === END BANK TEMPLATES ENDPOINTS ===
+
 // Get single file by ID - Protected
 app.get('/api/files/:fileId', requireAuth, async (req, res) => {
   try {
@@ -425,13 +503,13 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
     // Apply amount type filter
     if (amountType && amountType !== 'all') {
       if (amountType === 'positive') {
-        // Only incomes (amount > 0)
-        countQuery = countQuery.gt('amount', 0);
-        dataQuery = dataQuery.gt('amount', 0);
+        // Only incomes (credit)
+        countQuery = countQuery.eq('transaction_type', 'credit');
+        dataQuery = dataQuery.eq('transaction_type', 'credit');
       } else if (amountType === 'negative') {
-        // Only expenses (amount < 0)
-        countQuery = countQuery.lt('amount', 0);
-        dataQuery = dataQuery.lt('amount', 0);
+        // Only expenses (debit)
+        countQuery = countQuery.eq('transaction_type', 'debit');
+        dataQuery = dataQuery.eq('transaction_type', 'debit');
       } else if (amountType === 'custom') {
         // Custom range
         if (amountMin !== undefined && amountMin !== '') {
@@ -550,8 +628,8 @@ app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
 
     // Determine which fields to fetch based on groupBy
     const selectFields = groupBy !== 'none'
-      ? 'transaction_date, amount, description, category_id'
-      : 'transaction_date, amount';
+      ? 'transaction_date, amount, transaction_type, description, category_id'
+      : 'transaction_date, amount, transaction_type';
 
     // Fetch ALL transactions using pagination loop (no arbitrary limits)
     // Supabase has a max of 1000 rows per request, so we paginate until done
@@ -613,13 +691,13 @@ app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
     // Calculate summary
     let filteredTransactions = transactions;
     if (type === 'income') {
-      filteredTransactions = transactions.filter(t => t.amount > 0);
+      filteredTransactions = transactions.filter(t => t.transaction_type === 'credit');
     } else if (type === 'expense') {
-      filteredTransactions = transactions.filter(t => t.amount < 0);
+      filteredTransactions = transactions.filter(t => t.transaction_type === 'debit');
     }
 
-    const totalIncome = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
-    const totalExpense = Math.abs(transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
+    const totalIncome = transactions.filter(t => t.transaction_type === 'credit').reduce((sum, t) => sum + t.amount, 0);
+    const totalExpense = transactions.filter(t => t.transaction_type === 'debit').reduce((sum, t) => sum + t.amount, 0);
 
     // Group by period for time series
     const grouped = {};
@@ -642,10 +720,10 @@ app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
         grouped[key] = { income: 0, expense: 0 };
       }
 
-      if (t.amount > 0) {
+      if (t.transaction_type === 'credit') {
         grouped[key].income += t.amount;
-      } else {
-        grouped[key].expense += Math.abs(t.amount);
+      } else if (t.transaction_type === 'debit') {
+        grouped[key].expense += t.amount;
       }
     });
 
@@ -776,9 +854,9 @@ app.get('/api/dashboard/categories-by-month', requireAuth, async (req, res) => {
     // Filter by type if specified
     let transactions = allTransactions;
     if (type === 'income') {
-      transactions = allTransactions.filter(t => t.amount > 0);
+      transactions = allTransactions.filter(t => t.transaction_type === 'credit');
     } else if (type === 'expense') {
-      transactions = allTransactions.filter(t => t.amount < 0);
+      transactions = allTransactions.filter(t => t.transaction_type === 'debit');
     }
 
     // Fetch all categories for this user

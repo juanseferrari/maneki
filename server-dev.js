@@ -409,13 +409,13 @@ app.get('/api/transactions', devAuth, async (req, res) => {
     // Apply amount type filter
     if (amountType && amountType !== 'all') {
       if (amountType === 'positive') {
-        // Only incomes (amount > 0)
-        countQuery = countQuery.gt('amount', 0);
-        dataQuery = dataQuery.gt('amount', 0);
+        // Only incomes (credit transactions)
+        countQuery = countQuery.eq('transaction_type', 'credit');
+        dataQuery = dataQuery.eq('transaction_type', 'credit');
       } else if (amountType === 'negative') {
-        // Only expenses (amount < 0)
-        countQuery = countQuery.lt('amount', 0);
-        dataQuery = dataQuery.lt('amount', 0);
+        // Only expenses (debit transactions)
+        countQuery = countQuery.eq('transaction_type', 'debit');
+        dataQuery = dataQuery.eq('transaction_type', 'debit');
       } else if (amountType === 'custom') {
         // Custom range
         if (amountMin !== undefined && amountMin !== '') {
@@ -535,8 +535,8 @@ app.get('/api/dashboard/stats', devAuth, async (req, res) => {
 
     // Determine which fields to fetch based on groupBy
     const selectFields = groupBy !== 'none'
-      ? 'transaction_date, amount, description, category_id'
-      : 'transaction_date, amount';
+      ? 'transaction_date, amount, transaction_type, description, category_id'
+      : 'transaction_date, amount, transaction_type';
 
     // Fetch ALL transactions using pagination loop (no arbitrary limits)
     // Supabase has a max of 1000 rows per request, so we paginate until done
@@ -598,13 +598,13 @@ app.get('/api/dashboard/stats', devAuth, async (req, res) => {
     // Calculate summary
     let filteredTransactions = transactions;
     if (type === 'income') {
-      filteredTransactions = transactions.filter(t => t.amount > 0);
+      filteredTransactions = transactions.filter(t => t.transaction_type === 'credit');
     } else if (type === 'expense') {
-      filteredTransactions = transactions.filter(t => t.amount < 0);
+      filteredTransactions = transactions.filter(t => t.transaction_type === 'debit');
     }
 
-    const totalIncome = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
-    const totalExpense = Math.abs(transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
+    const totalIncome = transactions.filter(t => t.transaction_type === 'credit').reduce((sum, t) => sum + t.amount, 0);
+    const totalExpense = transactions.filter(t => t.transaction_type === 'debit').reduce((sum, t) => sum + t.amount, 0);
 
     // Group by period for time series
     const grouped = {};
@@ -627,10 +627,10 @@ app.get('/api/dashboard/stats', devAuth, async (req, res) => {
         grouped[key] = { income: 0, expense: 0 };
       }
 
-      if (t.amount > 0) {
+      if (t.transaction_type === 'credit') {
         grouped[key].income += t.amount;
-      } else {
-        grouped[key].expense += Math.abs(t.amount);
+      } else if (t.transaction_type === 'debit') {
+        grouped[key].expense += t.amount;
       }
     });
 
@@ -761,9 +761,9 @@ app.get('/api/dashboard/categories-by-month', devAuth, async (req, res) => {
     // Filter by type if specified
     let transactions = allTransactions;
     if (type === 'income') {
-      transactions = allTransactions.filter(t => t.amount > 0);
+      transactions = allTransactions.filter(t => t.transaction_type === 'credit');
     } else if (type === 'expense') {
-      transactions = allTransactions.filter(t => t.amount < 0);
+      transactions = allTransactions.filter(t => t.transaction_type === 'debit');
     }
 
     // Fetch all categories for this user
