@@ -987,8 +987,8 @@ function displayTransactions(transactions) {
   // Update tbody with transaction rows
   if (tbody) {
     tbody.innerHTML = transactions.map(t => {
-      const amountClass = t.amount < 0 ? 'amount-negative' : 'amount-positive';
-      const amountPrefix = t.amount < 0 ? '-' : '+';
+      const amountClass = t.transaction_type === 'debit' ? 'amount-negative' : 'amount-positive';
+      const amountPrefix = t.transaction_type === 'debit' ? '-' : '+';
       const amountFormatted = '$' + Math.abs(t.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
       const category = getCategoryById(t.category_id);
 
@@ -1808,7 +1808,7 @@ function confirmDeleteTransaction(transactionId) {
   const description = transaction.description || 'Sin descripcion';
   const amount = transaction.amount || 0;
   const formattedAmount = '$' + Math.abs(amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const amountClass = amount >= 0 ? 'income' : 'expense';
+  const amountClass = transaction.transaction_type === 'credit' ? 'income' : 'expense';
 
   detailsEl.innerHTML = `
     <div class="delete-detail-row">
@@ -1821,7 +1821,7 @@ function confirmDeleteTransaction(transactionId) {
     </div>
     <div class="delete-detail-row">
       <span class="delete-detail-label">Monto:</span>
-      <span class="delete-detail-value ${amountClass}">${amount >= 0 ? '+' : '-'}${formattedAmount}</span>
+      <span class="delete-detail-value ${amountClass}">${transaction.transaction_type === 'credit' ? '+' : '-'}${formattedAmount}</span>
     </div>
   `;
 
@@ -1918,7 +1918,7 @@ async function showTransactionDetail(transactionId) {
 
     if (result.success) {
       const t = result.transaction;
-      const isPositive = t.amount > 0;
+      const isPositive = t.transaction_type === 'credit';
 
       // Get category info
       const category = getCategoryById(t.category_id);

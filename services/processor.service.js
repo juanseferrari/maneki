@@ -36,6 +36,12 @@ class ProcessorService {
         fileMetadata.original_name
       );
 
+      // Check if this is a scanned PDF (empty or very short text)
+      const isScannedPDF = fileMetadata.mime_type === 'application/pdf' && textContent.trim().length < 100;
+      if (isScannedPDF) {
+        console.log('[Processor] ⚠️  Detected scanned PDF with minimal text - will use Claude Vision API');
+      }
+
       // Step 1.5: Detect document type using classifier
       console.log('[Processor] Step 1.5: Detecting document type...');
       const classification = documentClassifier.getFullClassification(textContent);
@@ -91,11 +97,45 @@ class ProcessorService {
           try {
             console.log('[Processor] ✅ Quota available - using Claude API for enhanced extraction...');
 
+            // Prepare content for Claude
+            let contentForClaude = textContent;
+
+            console.log('[Processor] === PREPARING CONTENT FOR CLAUDE ===');
+            console.log(`[Processor] File: ${fileMetadata.original_name}`);
+            console.log(`[Processor] Text content length: ${textContent.length} chars`);
+            console.log(`[Processor] Structured data rows: ${structuredData ? structuredData.length : 0}`);
+            console.log(`[Processor] Text content preview (first 500 chars):`);
+            console.log(textContent.substring(0, 500));
+            console.log('[Processor] === END PREPARATION ===');
+
+            // If we have structured data (CSV/XLSX) and little/no text, convert structured data to readable format
+            if (structuredData && structuredData.length > 0 && textContent.trim().length < 100) {
+              console.log('[Processor] Converting structured data to readable format for Claude...');
+
+              // Convert array of objects to formatted text
+              const headers = Object.keys(structuredData[0]);
+              const headerRow = headers.join(' | ');
+              const separator = headers.map(() => '---').join(' | ');
+              const dataRows = structuredData.slice(0, 200).map(row => { // Limit to 200 rows to avoid token limits
+                return headers.map(h => row[h] || '').join(' | ');
+              }).join('\n');
+
+              contentForClaude = `STRUCTURED DATA (${structuredData.length} rows):\n\n${headerRow}\n${separator}\n${dataRows}`;
+
+              if (structuredData.length > 200) {
+                contentForClaude += `\n\n... (${structuredData.length - 200} more rows not shown)`;
+              }
+
+              console.log(`[Processor] Prepared ${structuredData.length} rows for Claude analysis`);
+            }
+
             // Call Claude for enhanced extraction
+            // Pass fileBuffer if this is a scanned PDF
             const claudeResult = await claudeService.extractTransactionsEnhanced(
-              textContent,
+              contentForClaude,
               fileMetadata.original_name,
-              fileMetadata.user_id
+              fileMetadata.user_id,
+              isScannedPDF ? fileBuffer : null
             );
 
             // Increment usage counter atomically
@@ -111,6 +151,34 @@ class ProcessorService {
             console.log(`[Processor] - Confidence: ${claudeResult.confidenceScore}%`);
             console.log(`[Processor] - Transactions: ${claudeResult.totalTransactions}`);
             console.log(`[Processor] - Has metadata: ${!!claudeResult.documentMetadata}`);
+
+            // === NUEVO: Aprender template de Claude ===
+            console.log('[Processor] 🧠 Intentando aprender template de resultado de Claude...');
+            const templateLearning = require('./template-learning.service');
+
+            // Solo aprender si confidence > 80% y hay structured data
+            if (claudeResult.confidenceScore >= 80 && structuredData && structuredData.length > 0) {
+              try {
+                const learnedTemplate = await templateLearning.learnFromClaudeResult(
+                  claudeResult,
+                  structuredData,
+                  classification.bank.id,
+                  classification.bank.name,
+                  fileId,
+                  fileMetadata.user_id
+                );
+
+                if (learnedTemplate) {
+                  console.log(`[Processor] ✅ Template aprendido exitosamente (ID: ${learnedTemplate.id})`);
+                  console.log(`[Processor] Próximos archivos de ${classification.bank.name} usarán este template automáticamente`);
+                } else {
+                  console.log(`[Processor] ℹ️  No se pudo crear template (quizás ya existe o faltan datos)`);
+                }
+              } catch (error) {
+                console.error('[Processor] ⚠️  Error al aprender template (no crítico):', error.message);
+              }
+            }
+            // === FIN NUEVO ===
 
           } catch (error) {
             console.error('[Processor] ❌ Claude extraction failed:', error.message);

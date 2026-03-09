@@ -230,12 +230,13 @@ Return ONLY the JSON object, no additional text or markdown formatting.`;
    * Enhanced extraction with smart categorization, metadata, and installment detection
    * This method is used when template matching fails (confidence < 60%)
    *
-   * @param {string} textContent - Raw text extracted from file
+   * @param {string} textContent - Raw text extracted from file OR empty if using Vision
    * @param {string} fileName - Original file name
    * @param {string} userId - User ID for fetching their categories
+   * @param {Buffer} fileBuffer - Optional: PDF buffer for Vision API (scanned PDFs)
    * @returns {Promise<Object>} Enhanced extraction result
    */
-  async extractTransactionsEnhanced(textContent, fileName, userId) {
+  async extractTransactionsEnhanced(textContent, fileName, userId, fileBuffer = null) {
     if (!this.isAvailable) {
       throw new Error('Claude API is not configured. Please add ANTHROPIC_API_KEY to .env');
     }
@@ -255,8 +256,52 @@ Return ONLY the JSON object, no additional text or markdown formatting.`;
         processedText = textContent.substring(0, MAX_CHARS);
       }
 
+      // Obtener ejemplos previos del mismo banco
+      const bankId = fileName.toLowerCase().includes('santander') ? 'santander' :
+                    fileName.toLowerCase().includes('galicia') ? 'galicia' :
+                    fileName.toLowerCase().includes('hipotecario') ? 'hipotecario' :
+                    fileName.toLowerCase().includes('macro') ? 'macro' :
+                    fileName.toLowerCase().includes('bbva') ? 'bbva' :
+                    fileName.toLowerCase().includes('brubank') ? 'brubank' : null;
+
+      const previousExamples = bankId ? await this.getPreviousExamples(bankId, userId) : [];
+      if (previousExamples.length > 0) {
+        console.log(`[Claude] Incluyendo ${previousExamples.length} ejemplos previos de ${bankId} en el prompt`);
+      }
+
       // Build enhanced prompt
-      const prompt = this.buildEnhancedExtractionPrompt(processedText, fileName, categories);
+      const prompt = this.buildEnhancedExtractionPrompt(processedText, fileName, categories, previousExamples);
+
+      // Log first 1000 characters of content being sent to Claude
+      console.log('[Claude] === CONTENT BEING SENT TO CLAUDE (first 1000 chars) ===');
+      console.log(processedText.substring(0, 1000));
+      console.log('[Claude] === END CONTENT PREVIEW ===');
+
+      // Prepare message content - use Vision API for PDF images
+      let messageContent;
+      if (fileBuffer && processedText.trim().length < 100) {
+        // Use Vision API for scanned PDFs
+        console.log('[Claude] 📷 Using Vision API for scanned PDF');
+        const base64Pdf = fileBuffer.toString('base64');
+        messageContent = [
+          {
+            type: 'document',
+            source: {
+              type: 'base64',
+              media_type: 'application/pdf',
+              data: base64Pdf
+            }
+          },
+          {
+            type: 'text',
+            text: prompt
+          }
+        ];
+      } else {
+        // Use text-only for CSV/XLSX or text-based PDFs
+        console.log('[Claude] 📝 Using text-based extraction');
+        messageContent = prompt;
+      }
 
       // Try different model versions
       const models = [
@@ -274,7 +319,7 @@ Return ONLY the JSON object, no additional text or markdown formatting.`;
             model: model,
             max_tokens: 16384,
             temperature: 0,
-            messages: [{ role: 'user', content: prompt }]
+            messages: [{ role: 'user', content: messageContent }]
           });
           console.log(`[Claude] Successfully using model: ${model}`);
           break;
@@ -295,6 +340,9 @@ Return ONLY the JSON object, no additional text or markdown formatting.`;
 
       const responseText = message.content[0].text;
       console.log('[Claude] Received enhanced response from Claude API');
+      console.log('[Claude] === RAW CLAUDE RESPONSE (first 2000 chars) ===');
+      console.log(responseText.substring(0, 2000));
+      console.log('[Claude] === END CLAUDE RESPONSE ===');
 
       // Parse enhanced response
       const result = this.parseEnhancedClaudeResponse(responseText);
@@ -307,35 +355,115 @@ Return ONLY the JSON object, no additional text or markdown formatting.`;
   }
 
   /**
+   * Obtener ejemplos de transacciones previas del mismo banco para contexto
+   * @param {string} bankId - ID del banco
+   * @param {string} userId - ID del usuario
+   * @returns {Promise<Array>} Ejemplos de transacciones
+   */
+  async getPreviousExamples(bankId, userId) {
+    try {
+      const supabaseService = require('./supabase.service');
+
+      // Buscar archivos previos del mismo banco con alta confianza
+      const { data: files, error } = await supabaseService.supabase
+        .from('files')
+        .select('id, original_name, bank_name, confidence_score')
+        .eq('user_id', userId)
+        .ilike('bank_name', `%${bankId}%`)
+        .gte('confidence_score', 80)
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      if (error || !files || files.length === 0) return [];
+
+      // Obtener transacciones de ejemplo de estos archivos
+      const examples = [];
+
+      for (const file of files) {
+        const { data: transactions, error: txError } = await supabaseService.supabase
+          .from('transactions')
+          .select('transaction_date, description, amount, transaction_type')
+          .eq('file_id', file.id)
+          .limit(5);
+
+        if (!txError && transactions && transactions.length > 0) {
+          examples.push({
+            fileName: file.original_name,
+            transactions: transactions
+          });
+        }
+      }
+
+      return examples;
+    } catch (error) {
+      console.error('[Claude] Error obteniendo ejemplos previos:', error);
+      return [];
+    }
+  }
+
+  /**
    * Build enhanced extraction prompt with category context
    * @param {string} textContent
    * @param {string} fileName
    * @param {Array} categories - User's existing categories
+   * @param {Array} previousExamples - Previous transactions from same bank
    * @returns {string}
    */
-  buildEnhancedExtractionPrompt(textContent, fileName, categories) {
+  buildEnhancedExtractionPrompt(textContent, fileName, categories, previousExamples = []) {
     // Build category list for smart matching
     const categoryList = categories.map(cat => {
       const keywords = cat.keywords || [];
       return `- ID: ${cat.id} | Name: "${cat.name}" | Keywords: [${keywords.map(k => `"${k}"`).join(', ')}]`;
     }).join('\n');
 
-    return `You are a financial document analysis expert specializing in extracting transaction data from bank statements.
+    // === NUEVO: Generar sección de ejemplos previos ===
+    let examplesSection = '';
+    if (previousExamples && previousExamples.length > 0) {
+      examplesSection = '\n\nEXISTING TRANSACTION EXAMPLES FROM THIS BANK (for reference):\n';
+      for (const example of previousExamples) {
+        examplesSection += `\nFrom file: ${example.fileName}\n`;
+        for (const tx of example.transactions) {
+          examplesSection += `  - ${tx.transaction_date} | ${tx.description} | ${tx.amount} | ${tx.transaction_type}\n`;
+        }
+      }
+      examplesSection += '\nUse these examples to understand the typical format and structure of transactions from this bank.\n';
+    }
+    // === FIN NUEVO ===
+
+    return `You are an expert financial analyst and accountant specializing in bank reconciliation and transaction extraction from Mexican and Argentine financial documents.
 
 FILE NAME: ${fileName}
 
 EXISTING USER CATEGORIES (match transactions to these by ID):
 ${categoryList}
-
+${examplesSection}
 DOCUMENT CONTENT:
 ${textContent}
 
-YOUR TASK:
-1. Extract ALL transactions with complete details (dates, descriptions, amounts)
-2. Smart categorization: Match each transaction to the most relevant category by ID (semantic matching based on description and keywords)
-3. Document metadata: Extract bank name, account number, account type, period, and balances
-4. Installment detection: Find patterns like "Cuota 1/12", "1 de 12", "Installment 1 of 12", "1/12", etc.
-5. Group related installments: Assign the same group_id UUID to all installments from the same purchase
+CRITICAL INSTRUCTIONS - READ CAREFULLY AS A PROFESSIONAL ACCOUNTANT:
+
+1. **EXTRACT EVERY SINGLE TRANSACTION** - Do not skip or summarize
+   - Each row = ONE transaction
+   - Extract EXACT date, description, amount from each row
+   - Do NOT invent, modify, or summarize
+
+2. **DATE PRECISION** - Extract dates EXACTLY as shown
+   - Format: YYYY-MM-DD (convert if needed: DD/MM/YYYY → YYYY-MM-DD)
+   - 21/ENE/26 → 2026-01-21, 04/FEB/26 → 2026-02-04
+   - NEVER use today's date or invent dates
+
+3. **AMOUNT PRECISION** - Extract EXACT amounts
+   - Mexican: 1,234.56 (comma thousands, period decimal)
+   - Argentine: 1.234,56 (period thousands, comma decimal)
+   - Negative/red = expense, Positive/green = income
+
+4. **DESCRIPTION ACCURACY** - Copy VERBATIM
+   - Keep ALL text as-is (SPEI, STP, BNET, reference numbers)
+   - Do NOT translate or summarize
+
+5. **TYPE DETECTION**
+   - "ENVIADO"/"CARGO"/negative = "expense"
+   - "RECIBIDO"/"ABONO"/positive = "income"
 
 OUTPUT FORMAT (respond with ONLY valid JSON, no markdown):
 {
@@ -413,14 +541,15 @@ Return ONLY the JSON object, no additional text or markdown formatting.`;
         }
 
         const transformed = {
-          date: tx.fecha,
+          transaction_date: tx.fecha, // YYYY-MM-DD format
           description: tx.descripcion,
           amount: Math.abs(tx.monto), // Store as positive, type determines direction
-          type: tx.tipo === 'income' ? 'income' : 'expense',
+          transaction_type: tx.tipo === 'income' ? 'credit' : 'debit', // Map to debit/credit
           category_id: tx.category_id || null,
           confidence_score: tx.confianza || 85,
           processed_by_claude: true,
-          needs_review: true
+          needs_review: true,
+          currency: 'MXN' // Banamex uses MXN (Mexican pesos)
         };
 
         // Add installment data if present

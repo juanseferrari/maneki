@@ -257,15 +257,12 @@ class MercadoPagoSyncService {
       collectorId = payment.collector_id;
     }
 
-    // Calculate the actual amount (positive for inbound, negative for outbound)
-    // Also account for fees for inbound payments
-    let amount = payment.transaction_amount;
+    // Calculate the actual amount (always positive, direction indicated by transaction_type)
+    // For inbound payments, account for fees
+    let amount = Math.abs(payment.transaction_amount);
     if (isInbound) {
       // For inbound payments, we receive the net amount after fees
-      amount = payment.transaction_details?.net_received_amount || amount;
-    } else {
-      // For outbound payments, amount should be negative
-      amount = -Math.abs(amount);
+      amount = Math.abs(payment.transaction_details?.net_received_amount || amount);
     }
 
     // Parse the date with full timestamp

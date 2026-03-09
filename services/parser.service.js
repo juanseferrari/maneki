@@ -42,9 +42,17 @@ class ParserService {
       console.log('[Parser] Extracting text from PDF...');
       const data = await pdf(fileBuffer);
 
-      console.log(`[Parser] PDF parsed successfully, extracted ${data.text.length} characters`);
-      console.log('[Parser] First 500 characters:', data.text.substring(0, 500));
+      const textLength = data.text.trim().length;
+      console.log(`[Parser] PDF parsed successfully, extracted ${textLength} characters`);
 
+      // Si el PDF tiene muy poco texto (<100 chars), probablemente es una imagen
+      if (textLength < 100) {
+        console.log('[Parser] ⚠️  PDF has very little text (<100 chars) - likely a scanned image');
+        console.log('[Parser] Returning empty string to trigger Claude Vision processing');
+        return ''; // Esto hará que Claude use Vision API
+      }
+
+      console.log('[Parser] First 500 characters:', data.text.substring(0, 500));
       return data.text;
     } catch (error) {
       console.error('[Parser] PDF parsing error:', error);
