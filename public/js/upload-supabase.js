@@ -3011,10 +3011,10 @@ function confirmDeleteFile(fileId) {
 
 async function downloadFile(fileId, fileName) {
   try {
-    // Get the session token
-    const { data: { session } } = await supabase.auth.getSession();
+    // Get auth headers
+    const headers = await getAuthHeaders();
 
-    if (!session) {
+    if (!headers['Authorization']) {
       showMessage('Por favor inicia sesión para descargar archivos', 'error');
       return;
     }
@@ -3022,9 +3022,7 @@ async function downloadFile(fileId, fileName) {
     // Get file metadata to obtain public_url
     const response = await fetch(`/api/files/${fileId}`, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`
-      }
+      headers: headers
     });
 
     if (!response.ok) {
