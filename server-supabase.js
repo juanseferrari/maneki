@@ -778,9 +778,13 @@ app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
             color: categoryColor // Store color for categories
           };
         }
+
+        // Use amount with proper sign based on transaction_type
+        const signedAmount = t.transaction_type === 'debit' ? -t.amount : t.amount;
+
         groupedByField[key].count += 1;
-        groupedByField[key].total += Math.abs(t.amount);
-        groupedByField[key].amounts.push(Math.abs(t.amount));
+        groupedByField[key].total += signedAmount;
+        groupedByField[key].amounts.push(signedAmount);
       });
 
       // Convert to array and sort by total descending
