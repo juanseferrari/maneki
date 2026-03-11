@@ -3015,7 +3015,17 @@ function downloadFile(fileId, fileName) {
 
 function viewFileTransactions(fileId, fileName) {
   closeRightSidebar();
-  showSection('transacciones');
+
+  // Navigate to transactions section using Router
+  if (typeof Router !== 'undefined' && Router.navigate) {
+    Router.navigate('/transacciones');
+  } else {
+    // Fallback: trigger menu item click
+    const transaccionesMenuItem = document.querySelector('[data-section="transacciones"]');
+    if (transaccionesMenuItem) {
+      transaccionesMenuItem.click();
+    }
+  }
 
   // Wait for section to be visible, then apply file filter
   setTimeout(() => {
