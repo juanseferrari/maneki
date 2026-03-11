@@ -1625,7 +1625,8 @@ h2 {
   opacity: 0.9;
 }
 
-.file-type-badge {
+/* File type badge for file cards only (not for table) */
+.file-card .file-type-badge {
   position: absolute;
   top: 0.75rem;
   right: 0.75rem;
