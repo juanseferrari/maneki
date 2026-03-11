@@ -299,48 +299,53 @@ app.get('/api/files/:fileId', devAuth, async (req, res) => {
 // Download file endpoint
 app.get('/api/files/:fileId/download', devAuth, async (req, res) => {
   try {
-    const pool = require('./services/db.service').pool;
-
     // Get file metadata from database
-    const fileQuery = `
-      SELECT * FROM files
-      WHERE id = $1 AND user_id = $2
-    `;
-    const fileResult = await pool.query(fileQuery, [req.params.fileId, req.user.id]);
+    const { data: file, error: fileError } = await supabaseAdmin
+      .from('files')
+      .select('*')
+      .eq('id', req.params.fileId)
+      .eq('user_id', req.user.id)
+      .single();
 
-    if (fileResult.rows.length === 0) {
+    if (fileError) {
+      console.error('Error getting file:', fileError);
       return res.status(404).send('Not found');
     }
 
-    const file = fileResult.rows[0];
+    if (!file) {
+      return res.status(404).send('Not found');
+    }
 
-    // For dev, files are stored locally in uploads folder
-    const fs = require('fs');
-    const path = require('path');
+    // If file has public_url, redirect to it (simpler and faster)
+    if (file.public_url) {
+      return res.redirect(file.public_url);
+    }
 
-    // Construct file path (stored_name contains the actual file name)
-    const filePath = path.join(__dirname, 'uploads', file.stored_name);
+    // Fallback: try to download from storage
+    const { data: fileData, error: downloadError } = await supabaseAdmin
+      .storage
+      .from('uploads')
+      .download(file.storage_path);
 
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      console.error('File not found at path:', filePath);
+    if (downloadError) {
+      console.error('Error downloading file from storage:', downloadError);
+      return res.status(500).send('Error downloading file');
+    }
+
+    if (!fileData) {
       return res.status(404).send('File not found in storage');
     }
+
+    // Convert Blob to Buffer
+    const buffer = Buffer.from(await fileData.arrayBuffer());
 
     // Set headers for file download
     res.setHeader('Content-Type', file.mime_type || 'application/octet-stream');
     res.setHeader('Content-Disposition', `attachment; filename="${file.original_name}"`);
+    res.setHeader('Content-Length', buffer.length);
 
-    // Stream file to response
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
-
-    fileStream.on('error', (error) => {
-      console.error('Error streaming file:', error);
-      if (!res.headersSent) {
-        res.status(500).send('Error downloading file');
-      }
-    });
+    // Send file
+    res.send(buffer);
   } catch (error) {
     console.error('Download file error:', error);
     res.status(500).send('Error downloading file');

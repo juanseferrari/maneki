@@ -412,10 +412,15 @@ app.get('/api/files/:fileId/download', requireAuth, async (req, res) => {
       return res.status(404).send('Not found');
     }
 
-    // Download file from Supabase Storage
+    // If file has public_url, redirect to it (simpler and faster)
+    if (file.public_url) {
+      return res.redirect(file.public_url);
+    }
+
+    // Fallback: try to download from storage
     const { data: fileData, error: downloadError } = await supabaseAdmin
       .storage
-      .from('conciliaciones')
+      .from('uploads')
       .download(file.storage_path);
 
     if (downloadError) {
