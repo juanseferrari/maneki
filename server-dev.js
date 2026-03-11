@@ -738,7 +738,7 @@ app.get('/api/dashboard/categories-by-month', devAuth, async (req, res) => {
     while (hasMore) {
       let batchQuery = supabaseAdmin
         .from('transactions')
-        .select('transaction_date, amount, category_id')
+        .select('transaction_date, amount, transaction_type, category_id')
         .eq('user_id', userId)
         .gte('transaction_date', dateFrom)
         .or('status.is.null,status.neq.deleted');
@@ -802,7 +802,8 @@ app.get('/api/dashboard/categories-by-month', devAuth, async (req, res) => {
       if (!monthsList.includes(monthKey)) return;
 
       const categoryId = t.category_id || 'uncategorized';
-      const amount = t.amount; // Keep original sign (negative for expenses, positive for income)
+      // Amount is always positive, use transaction_type to determine sign
+      const amount = t.transaction_type === 'debit' ? -Math.abs(t.amount) : Math.abs(t.amount);
 
       // Initialize category if needed
       if (!categoryMonthData[categoryId]) {
