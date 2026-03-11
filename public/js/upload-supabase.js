@@ -3009,8 +3009,46 @@ function confirmDeleteFile(fileId) {
   }
 }
 
-function downloadFile(fileId, fileName) {
-  window.location.href = `/api/files/${fileId}/download`;
+async function downloadFile(fileId, fileName) {
+  try {
+    // Get the session token
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      showMessage('Por favor inicia sesión para descargar archivos', 'error');
+      return;
+    }
+
+    // Fetch file with authorization header
+    const response = await fetch(`/api/files/${fileId}/download`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al descargar el archivo');
+    }
+
+    // Get the blob and create download link
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    // Create temporary link and click it
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+
+    // Cleanup
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (error) {
+    console.error('Error downloading file:', error);
+    showMessage('Error al descargar el archivo', 'error');
+  }
 }
 
 function viewFileTransactions(fileId, fileName) {
