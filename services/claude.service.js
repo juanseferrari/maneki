@@ -465,6 +465,12 @@ CRITICAL INSTRUCTIONS - READ CAREFULLY AS A PROFESSIONAL ACCOUNTANT:
    - "ENVIADO"/"CARGO"/negative = "expense"
    - "RECIBIDO"/"ABONO"/positive = "income"
 
+6. **CURRENCY DETECTION** - Detect from bank name and country
+   - Mexican banks (Banamex, BBVA México, Santander México) = "MXN"
+   - Argentine banks (Brubank, Santander Argentina, Galicia, Macro, BBVA Argentina, Hipotecario, Naranja) = "ARS"
+   - Mercado Pago Argentina = "ARS"
+   - Default to "ARS" if uncertain
+
 OUTPUT FORMAT (respond with ONLY valid JSON, no markdown):
 {
   "documento": {
@@ -473,7 +479,8 @@ OUTPUT FORMAT (respond with ONLY valid JSON, no markdown):
     "tipo_cuenta": "Cuenta Corriente",
     "periodo": "2026-01",
     "saldo_inicial": 15000.50,
-    "saldo_final": 12000.75
+    "saldo_final": 12000.75,
+    "moneda": "ARS"
   },
   "transacciones": [
     {
@@ -499,6 +506,7 @@ IMPORTANT RULES:
 - Only include cuota field if installment detected in description
 - All installments from same purchase MUST share the same grupo_id (generate new UUID per purchase)
 - confianza: Your confidence score 0-100 for each transaction
+- documento.moneda: Currency code (MXN for Mexico, ARS for Argentina)
 - documento fields can be null if not found in document
 - Handle refunds/reversals by marking tipo as "income" if it's money back
 
@@ -532,6 +540,9 @@ Return ONLY the JSON object, no additional text or markdown formatting.`;
         data.documento = {};
       }
 
+      // Get currency from document metadata, default to ARS
+      const currency = data.documento?.moneda || 'ARS';
+
       // Transform to internal format
       const transactions = data.transacciones.map((tx, index) => {
         // Validate required fields
@@ -549,7 +560,7 @@ Return ONLY the JSON object, no additional text or markdown formatting.`;
           confidence_score: tx.confianza || 85,
           processed_by_claude: true,
           needs_review: true,
-          currency: 'MXN' // Banamex uses MXN (Mexican pesos)
+          currency: currency // Use detected currency from document
         };
 
         // Add installment data if present
