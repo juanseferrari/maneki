@@ -3019,8 +3019,8 @@ async function downloadFile(fileId, fileName) {
       return;
     }
 
-    // Fetch file with authorization header
-    const response = await fetch(`/api/files/${fileId}/download`, {
+    // Get file metadata to obtain public_url
+    const response = await fetch(`/api/files/${fileId}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${session.access_token}`
@@ -3028,11 +3028,25 @@ async function downloadFile(fileId, fileName) {
     });
 
     if (!response.ok) {
+      throw new Error('Error al obtener información del archivo');
+    }
+
+    const result = await response.json();
+    const file = result.file;
+
+    if (!file || !file.public_url) {
+      throw new Error('URL del archivo no disponible');
+    }
+
+    // Download file from public URL
+    const fileResponse = await fetch(file.public_url);
+
+    if (!fileResponse.ok) {
       throw new Error('Error al descargar el archivo');
     }
 
     // Get the blob and create download link
-    const blob = await response.blob();
+    const blob = await fileResponse.blob();
     const url = window.URL.createObjectURL(blob);
 
     // Create temporary link and click it
