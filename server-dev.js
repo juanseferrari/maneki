@@ -296,6 +296,57 @@ app.get('/api/files/:fileId', devAuth, async (req, res) => {
   }
 });
 
+// Download file endpoint
+app.get('/api/files/:fileId/download', devAuth, async (req, res) => {
+  try {
+    const pool = require('./services/db.service').pool;
+
+    // Get file metadata from database
+    const fileQuery = `
+      SELECT * FROM files
+      WHERE id = $1 AND user_id = $2
+    `;
+    const fileResult = await pool.query(fileQuery, [req.params.fileId, req.user.id]);
+
+    if (fileResult.rows.length === 0) {
+      return res.status(404).send('Not found');
+    }
+
+    const file = fileResult.rows[0];
+
+    // For dev, files are stored locally in uploads folder
+    const fs = require('fs');
+    const path = require('path');
+
+    // Construct file path (stored_name contains the actual file name)
+    const filePath = path.join(__dirname, 'uploads', file.stored_name);
+
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      console.error('File not found at path:', filePath);
+      return res.status(404).send('File not found in storage');
+    }
+
+    // Set headers for file download
+    res.setHeader('Content-Type', file.mime_type || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${file.original_name}"`);
+
+    // Stream file to response
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+
+    fileStream.on('error', (error) => {
+      console.error('Error streaming file:', error);
+      if (!res.headersSent) {
+        res.status(500).send('Error downloading file');
+      }
+    });
+  } catch (error) {
+    console.error('Download file error:', error);
+    res.status(500).send('Error downloading file');
+  }
+});
+
 // Get transactions for a file
 app.get('/api/files/:fileId/transactions', devAuth, async (req, res) => {
   try {

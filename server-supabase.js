@@ -392,6 +392,57 @@ app.get('/api/files/:fileId', requireAuth, async (req, res) => {
   }
 });
 
+// Download file endpoint
+app.get('/api/files/:fileId/download', requireAuth, async (req, res) => {
+  try {
+    // Get file metadata from database
+    const { data: file, error: fileError } = await supabaseAdmin
+      .from('files')
+      .select('*')
+      .eq('id', req.params.fileId)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (fileError) {
+      console.error('Error getting file:', fileError);
+      return res.status(404).send('Not found');
+    }
+
+    if (!file) {
+      return res.status(404).send('Not found');
+    }
+
+    // Download file from Supabase Storage
+    const { data: fileData, error: downloadError } = await supabaseAdmin
+      .storage
+      .from('conciliaciones')
+      .download(file.storage_path);
+
+    if (downloadError) {
+      console.error('Error downloading file from storage:', downloadError);
+      return res.status(500).send('Error downloading file');
+    }
+
+    if (!fileData) {
+      return res.status(404).send('File not found in storage');
+    }
+
+    // Convert Blob to Buffer
+    const buffer = Buffer.from(await fileData.arrayBuffer());
+
+    // Set headers for file download
+    res.setHeader('Content-Type', file.mime_type || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${file.original_name}"`);
+    res.setHeader('Content-Length', buffer.length);
+
+    // Send file
+    res.send(buffer);
+  } catch (error) {
+    console.error('Download file error:', error);
+    res.status(500).send('Error downloading file');
+  }
+});
+
 // Get transactions for a file - Protected
 app.get('/api/files/:fileId/transactions', requireAuth, async (req, res) => {
   try {
