@@ -783,9 +783,9 @@ class SupabaseService {
    */
   async getUserCategories(userId) {
     try {
-      const { data, error } = await this.supabase
+      const { data, error} = await this.supabase
         .from('categories')
-        .select('id, name, keywords')
+        .select('id, name, description')
         .eq('user_id', userId)
         .order('name');
 
@@ -793,7 +793,11 @@ class SupabaseService {
         throw error;
       }
 
-      return data || [];
+      // Map to include empty keywords array for backwards compatibility
+      return (data || []).map(cat => ({
+        ...cat,
+        keywords: [] // No keywords column exists, return empty array
+      }));
     } catch (error) {
       console.error('Get user categories error:', error);
       throw new Error(`Failed to get user categories: ${error.message}`);
