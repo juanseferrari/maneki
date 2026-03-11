@@ -365,9 +365,23 @@ app.get('/api/files/:fileId', requireAuth, async (req, res) => {
       });
     }
 
+    // Get transaction count for this file
+    const { count, error: countError } = await supabaseAdmin
+      .from('transactions')
+      .select('*', { count: 'exact', head: true })
+      .eq('file_id', file.id)
+      .eq('user_id', req.user.id);
+
+    if (countError) {
+      console.error('Error counting transactions for file:', file.id, countError);
+    }
+
     res.json({
       success: true,
-      file
+      file: {
+        ...file,
+        transaction_count: count || 0
+      }
     });
   } catch (error) {
     console.error('Get file error:', error);
