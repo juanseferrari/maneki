@@ -20,7 +20,7 @@ class ExtractorService {
       // Try structured data first (CSV/XLSX)
       if (structuredData && structuredData.length > 0) {
         console.log('[Extractor] Using structured data extraction (CSV/XLSX)');
-        const result = this.extractFromStructuredData(structuredData);
+        const result = await this.extractFromStructuredData(structuredData);
 
         // Calculate confidence score
         const confidenceScore = this.calculateConfidenceScore(result.transactions, textContent);
@@ -49,9 +49,9 @@ class ExtractorService {
   /**
    * Extract transactions from structured data (CSV/XLSX)
    * @param {Array<Object>} data
-   * @returns {Object}
+   * @returns {Promise<Object>}
    */
-  extractFromStructuredData(data) {
+  async extractFromStructuredData(data) {
     // Check if this is Hipotecario CSV format
     if (data.length > 0) {
       const firstRow = data[0];
@@ -83,6 +83,37 @@ class ExtractorService {
         console.log('[Extractor] Detected Santander CSV format');
         return this.extractSantanderCSV(data);
       }
+
+      // === NUEVO: Búsqueda de template aprendido ===
+      const templateLearning = require('./template-learning.service');
+      const documentClassifier = require('./document-classifier.service');
+
+      // Detectar banco del archivo
+      const textContent = JSON.stringify(data);
+      const bankDetection = documentClassifier.detectBank(textContent);
+
+      if (bankDetection.detected && bankDetection.id !== 'unknown') {
+        console.log(`[Extractor] Buscando template aprendido para banco: ${bankDetection.name}`);
+
+        const matchingTemplate = await templateLearning.findMatchingTemplate(data, bankDetection.id);
+
+        if (matchingTemplate) {
+          console.log(`[Extractor] ✅ Usando template aprendido (ID: ${matchingTemplate.id})`);
+          const result = templateLearning.applyTemplate(matchingTemplate, data);
+
+          // Actualizar estadísticas del template
+          await templateLearning.updateTemplateStats(
+            matchingTemplate.id,
+            result.transactions.length > 0,
+            result.confidenceScore
+          );
+
+          return result;
+        } else {
+          console.log(`[Extractor] No se encontró template aprendido para ${bankDetection.name}`);
+        }
+      }
+      // === FIN NUEVO ===
     }
 
     const transactions = [];
@@ -186,18 +217,22 @@ class ExtractorService {
       const credit = creditField ? this.parseArgentineAmount(row[creditField]) : 0;
       const balance = balanceField ? this.parseArgentineAmount(row[balanceField]) : null;
 
-      // Calculate final amount: credit is positive, debit is negative
+      // Determine amount and type - store amounts as positive, use type for direction
       let amount = 0;
+      let transactionType = 'credit';
+
       if (credit > 0) {
         amount = credit;
+        transactionType = 'credit';
       } else if (debit > 0) {
-        amount = -debit;
+        amount = debit; // Store as positive
+        transactionType = 'debit';
       }
 
       // Skip if no amount
       if (amount === 0) continue;
 
-      console.log(`[Extractor] Hipotecario CSV: ${date} | ${description.substring(0, 40)}... | ${amount}`);
+      console.log(`[Extractor] Hipotecario CSV: ${date} | ${description.substring(0, 40)}... | ${amount} (${transactionType})`);
 
       // Generate timestamp - for files use noon UTC as default
       const dateTime = new Date(date + 'T12:00:00Z').toISOString();
@@ -207,8 +242,8 @@ class ExtractorService {
         transaction_datetime: dateTime, // New field with timestamp
         description: description || 'Unknown',
         merchant: this.extractMerchant(description),
-        amount: amount,
-        transaction_type: amount < 0 ? 'debit' : 'credit',
+        amount: amount, // Always positive
+        transaction_type: transactionType,
         reference_number: reference ? reference.toString() : null,
         balance: balance,
         raw_data: row,
@@ -298,7 +333,7 @@ class ExtractorService {
         transaction_datetime: dateTime2, // New field with timestamp
         description: description,
         merchant: this.extractMerchant(description),
-        amount: amount,
+        amount: Math.abs(amount), // Store as positive, use transaction_type for direction
         transaction_type: amount < 0 ? 'debit' : 'credit',
         reference_number: reference ? reference.toString() : (operativeCode ? operativeCode.toString() : null),
         balance: balance,
