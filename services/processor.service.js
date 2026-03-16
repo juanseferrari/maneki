@@ -86,8 +86,21 @@ class ProcessorService {
       let processingMethod = 'template';
       let needsPreview = false;
 
-      if (extractionResult.confidenceScore < 60) {
-        console.log(`[Processor] ⚠️  Low confidence (${extractionResult.confidenceScore}%), checking Claude quota...`);
+      // Check if this is an unsupported bank (not Santander or Hipotecario)
+      const supportedBanks = ['Banco Santander', 'Banco Hipotecario', 'santander', 'hipotecario'];
+      const isUnsupportedBank = extractionResult.bankName &&
+        !supportedBanks.some(bank => extractionResult.bankName.toLowerCase().includes(bank.toLowerCase()));
+
+      if (isUnsupportedBank) {
+        console.log(`[Processor] ⚠️  Unsupported bank detected: ${extractionResult.bankName} - will use Claude for better accuracy`);
+      }
+
+      // Use stricter threshold (75% instead of 60%) to catch more edge cases
+      // Generic extractor often gives false confidence, better to use Claude
+      // Also force Claude for unsupported banks
+      if (extractionResult.confidenceScore < 75 || isUnsupportedBank) {
+        const reason = isUnsupportedBank ? 'unsupported bank' : `confidence below threshold (${extractionResult.confidenceScore}% < 75%)`;
+        console.log(`[Processor] ⚠️  ${reason}, checking Claude quota...`);
 
         // Check user's Claude API quota
         const quota = await claudeUsageTrackingService.checkQuota(fileMetadata.user_id);
