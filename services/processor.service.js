@@ -95,11 +95,11 @@ class ProcessorService {
         console.log(`[Processor] ⚠️  Unsupported bank detected: ${extractionResult.bankName} - will use Claude for better accuracy`);
       }
 
-      // Use stricter threshold (75% instead of 60%) to catch more edge cases
-      // Generic extractor often gives false confidence, better to use Claude
+      // Use very strict threshold (95%) to ensure most files use Claude for better accuracy
+      // Only allow high-confidence template extractions (Santander/Hipotecario with clear format)
       // Also force Claude for unsupported banks
-      if (extractionResult.confidenceScore < 75 || isUnsupportedBank) {
-        const reason = isUnsupportedBank ? 'unsupported bank' : `confidence below threshold (${extractionResult.confidenceScore}% < 75%)`;
+      if (extractionResult.confidenceScore < 95 || isUnsupportedBank) {
+        const reason = isUnsupportedBank ? 'unsupported bank' : `confidence below threshold (${extractionResult.confidenceScore}% < 95%)`;
         console.log(`[Processor] ⚠️  ${reason}, checking Claude quota...`);
 
         // Check user's Claude API quota
