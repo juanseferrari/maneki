@@ -465,11 +465,15 @@ CRITICAL INSTRUCTIONS - READ CAREFULLY AS A PROFESSIONAL ACCOUNTANT:
    - "ENVIADO"/"CARGO"/negative = "expense"
    - "RECIBIDO"/"ABONO"/positive = "income"
 
-6. **CURRENCY DETECTION** - Detect from bank name and country
-   - Mexican banks (Banamex, BBVA México, Santander México) = "MXN"
-   - Argentine banks (Brubank, Santander Argentina, Galicia, Macro, BBVA Argentina, Hipotecario, Naranja) = "ARS"
-   - Mercado Pago Argentina = "ARS"
-   - Default to "ARS" if uncertain
+6. **CURRENCY DETECTION** - CRITICAL: Detect currency PER TRANSACTION
+   - Check which column the amount comes from (PESOS vs DÓLARES)
+   - If amount is in PESOS column = "ARS"
+   - If amount is in DÓLARES/USD column = "USD"
+   - If description contains "USD", "DÓLARES", "MT1DT...USD" = "USD"
+   - Default currency for document:
+     * Mexican banks (Banamex, BBVA México, Santander México) = "MXN"
+     * Argentine banks (Brubank, Santander Argentina, Galicia, Macro, BBVA Argentina, Hipotecario, Naranja) = "ARS"
+     * Mercado Pago Argentina = "ARS"
 
 OUTPUT FORMAT (respond with ONLY valid JSON, no markdown):
 {
@@ -488,6 +492,7 @@ OUTPUT FORMAT (respond with ONLY valid JSON, no markdown):
       "descripcion": "Compra en Coto Supermercado",
       "monto": 5420.30,
       "tipo": "expense",
+      "moneda": "ARS",
       "category_id": "uuid-from-above-list",
       "confianza": 95,
       "cuota": {
@@ -506,7 +511,8 @@ IMPORTANT RULES:
 - Only include cuota field if installment detected in description
 - All installments from same purchase MUST share the same grupo_id (generate new UUID per purchase)
 - confianza: Your confidence score 0-100 for each transaction
-- documento.moneda: Currency code (MXN for Mexico, ARS for Argentina)
+- **moneda field is REQUIRED for EACH transaction** - detect from column (PESOS=ARS, DÓLARES=USD)
+- documento.moneda: Default currency for the account (MXN for Mexico, ARS for Argentina)
 - documento fields can be null if not found in document
 - Handle refunds/reversals by marking tipo as "income" if it's money back
 
@@ -540,8 +546,8 @@ Return ONLY the JSON object, no additional text or markdown formatting.`;
         data.documento = {};
       }
 
-      // Get currency from document metadata, default to ARS
-      const currency = data.documento?.moneda || 'ARS';
+      // Get default currency from document metadata
+      const defaultCurrency = data.documento?.moneda || 'ARS';
 
       // Transform to internal format
       const transactions = data.transacciones.map((tx, index) => {
@@ -550,6 +556,9 @@ Return ONLY the JSON object, no additional text or markdown formatting.`;
           console.warn(`[Claude] Transaction ${index} missing required fields, skipping`);
           return null;
         }
+
+        // Use transaction-specific currency if provided, otherwise use document default
+        const txCurrency = tx.moneda || defaultCurrency;
 
         const transformed = {
           transaction_date: tx.fecha, // YYYY-MM-DD format
@@ -560,7 +569,7 @@ Return ONLY the JSON object, no additional text or markdown formatting.`;
           confidence_score: tx.confianza || 85,
           processed_by_claude: true,
           needs_review: true,
-          currency: currency // Use detected currency from document
+          currency: txCurrency // Use transaction-specific currency or default
         };
 
         // Add installment data if present
