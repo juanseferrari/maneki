@@ -507,8 +507,8 @@ async function loadDashboardData() {
       updateDashboard(result.files);
       displayFiles(result.files);
 
-      // Show banner if there are processing files (but don't start auto-polling)
-      showProcessingBanner(result.files);
+      // Don't show banner on initial page load, only after upload
+      // showProcessingBanner(result.files);
     } else {
       if (emptyEl) emptyEl.style.display = 'flex';
     }
