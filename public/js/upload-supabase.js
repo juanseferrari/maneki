@@ -13,8 +13,8 @@ let totalPages = 1;
 // Files state variable
 let existingFiles = [];
 
-// Polling interval for files being processed
-let processingPollInterval = null;
+// Polling state for specific file processing
+let activePolling = null; // { fileId, attempts, maxAttempts, interval }
 
 // Sort state variables
 let currentSortColumn = 'fecha';
@@ -452,14 +452,15 @@ async function uploadFile(file) {
     const result = await response.json();
 
     if (result.success) {
-      showMessage('Archivo subido correctamente. Procesando en segundo plano...', 'success');
+      const fileId = result.file.id;
+      showMessage('Archivo subido correctamente. Procesando...', 'success');
       fileInput.value = '';
 
       // Immediately reload to show the file in "processing" state
-      loadDashboardData();
+      await loadDashboardData();
 
-      // Start polling for processing files
-      startProcessingPolling();
+      // Start limited polling for this specific file (max 2 minutes)
+      startLimitedPolling(fileId);
     } else {
       showMessage(result.error || 'Error al subir archivo', 'error');
     }
@@ -506,11 +507,8 @@ async function loadDashboardData() {
       updateDashboard(result.files);
       displayFiles(result.files);
 
-      // Check if there are files being processed and start polling
-      const processingFiles = result.files.filter(f => f.processing_status === 'processing' || f.processing_status === 'pending');
-      if (processingFiles.length > 0) {
-        startProcessingPolling();
-      }
+      // Show banner if there are processing files (but don't start auto-polling)
+      showProcessingBanner(result.files);
     } else {
       if (emptyEl) emptyEl.style.display = 'flex';
     }
@@ -5104,59 +5102,177 @@ reviewButtonStyles.textContent = `
 document.head.appendChild(reviewButtonStyles);
 
 // ========================================
-// FILE PROCESSING POLLING
+// FILE PROCESSING POLLING (LIMITED)
 // ========================================
 
 /**
- * Start polling for files that are being processed
- * Checks every 3 seconds if there are files in "processing" status
+ * Start limited polling for a specific file
+ * Polls every 5 seconds for max 2 minutes (24 attempts)
+ * @param {string} fileId - The file ID to poll for
  */
-function startProcessingPolling() {
-  // Clear any existing interval
-  if (processingPollInterval) {
-    clearInterval(processingPollInterval);
-  }
+function startLimitedPolling(fileId) {
+  // Clear any existing polling
+  stopPolling();
+
+  const MAX_ATTEMPTS = 24; // 24 * 5s = 120s = 2 minutes
+  const POLL_INTERVAL = 5000; // 5 seconds
+
+  activePolling = {
+    fileId: fileId,
+    attempts: 0,
+    maxAttempts: MAX_ATTEMPTS,
+    interval: null
+  };
+
+  console.log(`[Polling] Started limited polling for file ${fileId} (max ${MAX_ATTEMPTS} attempts)`);
 
   // Check immediately
-  checkProcessingFiles();
+  checkFileStatus();
 
-  // Then check every 3 seconds
-  processingPollInterval = setInterval(() => {
-    checkProcessingFiles();
-  }, 3000);
+  // Then check every 5 seconds
+  activePolling.interval = setInterval(() => {
+    checkFileStatus();
+  }, POLL_INTERVAL);
 }
 
 /**
- * Stop polling when no files are processing
+ * Stop all polling
  */
-function stopProcessingPolling() {
-  if (processingPollInterval) {
-    clearInterval(processingPollInterval);
-    processingPollInterval = null;
+function stopPolling() {
+  if (activePolling?.interval) {
+    clearInterval(activePolling.interval);
+    console.log(`[Polling] Stopped polling for file ${activePolling.fileId}`);
+  }
+  activePolling = null;
+}
+
+/**
+ * Check the status of the file being polled
+ */
+async function checkFileStatus() {
+  if (!activePolling) return;
+
+  activePolling.attempts++;
+  console.log(`[Polling] Attempt ${activePolling.attempts}/${activePolling.maxAttempts} for file ${activePolling.fileId}`);
+
+  try {
+    // Reload files to get latest status
+    await loadDashboardData();
+
+    // Find the file we're polling for
+    const file = existingFiles.find(f => f.id === activePolling.fileId);
+
+    if (!file) {
+      console.warn(`[Polling] File ${activePolling.fileId} not found, stopping polling`);
+      stopPolling();
+      return;
+    }
+
+    // Check if processing is complete
+    if (file.processing_status === 'completed') {
+      console.log(`[Polling] File ${activePolling.fileId} completed successfully!`);
+      showMessage('Archivo procesado correctamente', 'success');
+      hideProcessingBanner();
+      stopPolling();
+      return;
+    }
+
+    // Check if processing failed
+    if (file.processing_status === 'failed') {
+      console.log(`[Polling] File ${activePolling.fileId} failed processing`);
+      showMessage('Error al procesar el archivo. Revisa los detalles.', 'error');
+      hideProcessingBanner();
+      stopPolling();
+      return;
+    }
+
+    // Check if max attempts reached
+    if (activePolling.attempts >= activePolling.maxAttempts) {
+      console.log(`[Polling] Max attempts reached for file ${activePolling.fileId}`);
+      showProcessingTimeoutMessage();
+      stopPolling();
+      return;
+    }
+
+  } catch (error) {
+    console.error('[Polling] Error checking file status:', error);
+    // Don't stop polling on error, just try again next interval
   }
 }
 
 /**
- * Check if there are files being processed and reload if needed
+ * Show banner when there are files being processed
  */
-async function checkProcessingFiles() {
-  const processingFiles = existingFiles.filter(f => f.processing_status === 'processing' || f.processing_status === 'pending');
+function showProcessingBanner(files) {
+  const processingFiles = files.filter(f =>
+    f.processing_status === 'processing' || f.processing_status === 'pending'
+  );
 
   if (processingFiles.length === 0) {
-    // No files processing, stop polling
-    stopProcessingPolling();
+    hideProcessingBanner();
     return;
   }
 
-  // Reload dashboard to get updated status
-  await loadDashboardData();
+  let banner = document.getElementById('processing-banner');
 
-  // After reload, check again if all files are done processing
-  const stillProcessing = existingFiles.filter(f => f.processing_status === 'processing' || f.processing_status === 'pending');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'processing-banner';
+    banner.className = 'processing-banner';
 
-  if (stillProcessing.length === 0) {
-    // All files done, show notification
-    showMessage('Archivos procesados correctamente', 'success');
-    stopProcessingPolling();
+    const container = document.querySelector('.content-section');
+    if (container) {
+      container.insertBefore(banner, container.firstChild);
+    }
+  }
+
+  const count = processingFiles.length;
+  banner.innerHTML = `
+    <div class="processing-banner-content">
+      <span class="processing-spinner"></span>
+      <span>
+        ${count} ${count === 1 ? 'archivo procesándose' : 'archivos procesándose'} en segundo plano.
+      </span>
+      <button onclick="loadDashboardData()" class="btn-refresh-small">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+        </svg>
+        Actualizar
+      </button>
+    </div>
+  `;
+  banner.style.display = 'block';
+}
+
+/**
+ * Hide processing banner
+ */
+function hideProcessingBanner() {
+  const banner = document.getElementById('processing-banner');
+  if (banner) {
+    banner.style.display = 'none';
+  }
+}
+
+/**
+ * Show message when polling timeout is reached
+ */
+function showProcessingTimeoutMessage() {
+  const banner = document.getElementById('processing-banner');
+  if (banner) {
+    banner.innerHTML = `
+      <div class="processing-banner-content warning">
+        <span>⚠️</span>
+        <span>
+          El archivo aún se está procesando. Esto puede tomar algunos minutos más.
+        </span>
+        <button onclick="loadDashboardData()" class="btn-refresh-small">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          </svg>
+          Actualizar
+        </button>
+      </div>
+    `;
   }
 }

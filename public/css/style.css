@@ -8759,3 +8759,60 @@ input[type="date"]:invalid {
     opacity: 0.8;
   }
 }
+
+/* ================================
+   PROCESSING BANNER
+   ================================ */
+.processing-banner {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);
+  animation: slide-down 0.3s ease-out;
+}
+
+.processing-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.95rem;
+}
+
+.processing-banner-content.warning {
+  background: rgba(251, 191, 36, 0.1);
+  padding: 0.5rem;
+  border-radius: 6px;
+}
+
+.btn-refresh-small {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  margin-left: auto;
+}
+
+.btn-refresh-small:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
