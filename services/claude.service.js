@@ -317,7 +317,7 @@ Return ONLY the JSON object, no additional text or markdown formatting.`;
           console.log(`[Claude] Trying model: ${model}`);
           message = await this.client.messages.create({
             model: model,
-            max_tokens: 16384,
+            max_tokens: 32000, // Increased from 16384 to handle large files
             temperature: 0,
             messages: [{ role: 'user', content: messageContent }]
           });
@@ -340,9 +340,19 @@ Return ONLY the JSON object, no additional text or markdown formatting.`;
 
       const responseText = message.content[0].text;
       console.log('[Claude] Received enhanced response from Claude API');
+      console.log(`[Claude] Response length: ${responseText.length} characters`);
+      console.log(`[Claude] Stop reason: ${message.stop_reason}`);
       console.log('[Claude] === RAW CLAUDE RESPONSE (first 2000 chars) ===');
       console.log(responseText.substring(0, 2000));
       console.log('[Claude] === END CLAUDE RESPONSE ===');
+
+      // Check if response was truncated
+      if (message.stop_reason === 'max_tokens') {
+        console.warn('[Claude] ⚠️  Response was truncated due to max_tokens limit!');
+        console.log('[Claude] === LAST 500 CHARS OF RESPONSE ===');
+        console.log(responseText.substring(responseText.length - 500));
+        console.log('[Claude] === END LAST CHARS ===');
+      }
 
       // Parse enhanced response
       const result = this.parseEnhancedClaudeResponse(responseText);
@@ -571,10 +581,58 @@ Return ONLY the JSON object, no additional text or markdown formatting.`;
     try {
       // Remove markdown code blocks if present
       let jsonText = responseText.trim();
+
+      console.log('[Claude] Cleaning response text...');
+      console.log(`[Claude] Original length: ${jsonText.length}`);
+
       if (jsonText.startsWith('```json')) {
         jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
       } else if (jsonText.startsWith('```')) {
         jsonText = jsonText.replace(/```\n?/g, '');
+      }
+
+      jsonText = jsonText.trim();
+      console.log(`[Claude] Cleaned length: ${jsonText.length}`);
+      console.log(`[Claude] First char: "${jsonText[0]}", Last char: "${jsonText[jsonText.length - 1]}"`);
+
+      // Check if JSON is complete
+      if (!jsonText.endsWith('}')) {
+        console.warn('[Claude] ⚠️  JSON does not end with }, attempting to fix truncation...');
+        console.log('[Claude] Last 200 chars:', jsonText.substring(jsonText.length - 200));
+
+        // Try to fix truncated JSON by closing arrays and objects
+        let fixedJson = jsonText;
+
+        // Count opening and closing braces/brackets
+        const openBraces = (fixedJson.match(/{/g) || []).length;
+        const closeBraces = (fixedJson.match(/}/g) || []).length;
+        const openBrackets = (fixedJson.match(/\[/g) || []).length;
+        const closeBrackets = (fixedJson.match(/]/g) || []).length;
+
+        console.log(`[Claude] Braces: ${openBraces} open, ${closeBraces} close (diff: ${openBraces - closeBraces})`);
+        console.log(`[Claude] Brackets: ${openBrackets} open, ${closeBrackets} close (diff: ${openBrackets - closeBrackets})`);
+
+        // Remove incomplete last transaction if present
+        const lastCommaIndex = fixedJson.lastIndexOf(',');
+        if (lastCommaIndex > 0) {
+          // Check if there's incomplete data after last comma
+          const afterLastComma = fixedJson.substring(lastCommaIndex + 1).trim();
+          if (afterLastComma && !afterLastComma.endsWith('}')) {
+            console.log('[Claude] Removing incomplete data after last comma');
+            fixedJson = fixedJson.substring(0, lastCommaIndex);
+          }
+        }
+
+        // Close missing brackets and braces
+        for (let i = 0; i < (openBrackets - closeBrackets); i++) {
+          fixedJson += ']';
+        }
+        for (let i = 0; i < (openBraces - closeBraces); i++) {
+          fixedJson += '}';
+        }
+
+        console.log('[Claude] Attempting to parse fixed JSON...');
+        jsonText = fixedJson;
       }
 
       const data = JSON.parse(jsonText);
