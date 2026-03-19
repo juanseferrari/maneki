@@ -35,6 +35,14 @@ class LocalOcrService {
           balance: /Saldo\s+(?:Final|Actual)?\s*:?\s*\$?\s*([\d,]+\.?\d*)/i
         }
       },
+      banamex: {
+        name: 'Banamex',
+        patterns: {
+          transaction: /^(\d{1,2}\s+(?:Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Oct|Nov|Dic))\s{2,}(.+?)\s{2,}([\+\-]\$[\d,]+\.\d{2})\s*$/gmi,
+          statementDate: /Solicitados\s+el\s+(\d{2}\/\d{2}\/\d{4})/i,
+          cardNumber: /Costco\s+Banamex\s+(\d+)/i
+        }
+      },
       generic: {
         name: 'Generic',
         patterns: {
@@ -85,6 +93,10 @@ class LocalOcrService {
       return 'bbva';
     }
 
+    if (textLower.includes('banamex') || textLower.includes('citibanamex')) {
+      return 'banamex';
+    }
+
     return 'generic';
   }
 
@@ -95,6 +107,23 @@ class LocalOcrService {
    */
   parseDate(dateStr) {
     if (!dateStr) return null;
+
+    // Try "DD MMM" format (Banamex: "04 Mar", "03 Mar")
+    const monthMap = {
+      'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04',
+      'may': '05', 'jun': '06', 'jul': '07', 'ago': '08',
+      'sep': '09', 'oct': '10', 'nov': '11', 'dic': '12',
+      'jan': '01', 'apr': '04', 'aug': '08', 'dec': '12'
+    };
+
+    const ddmmmMatch = dateStr.match(/(\d{1,2})\s+(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic|jan|apr|aug|dec)/i);
+    if (ddmmmMatch) {
+      const day = ddmmmMatch[1].padStart(2, '0');
+      const monthAbbr = ddmmmMatch[2].toLowerCase();
+      const month = monthMap[monthAbbr];
+      const year = new Date().getFullYear(); // Usar año actual
+      return `${year}-${month}-${day}`;
+    }
 
     // Try DD/MM/YYYY format
     const ddmmyyyy = dateStr.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
@@ -656,6 +685,60 @@ class LocalOcrService {
   }
 
   /**
+   * Extract transactions from Banamex PDF
+   * Format: "04 Mar    PAYPAL *LAUCHPADHOTEN PROCESO    +$214.60"
+   */
+  extractBanamexTransactions(text) {
+    const transactions = [];
+    const lines = text.split('\n');
+
+    console.log(`[LocalOCR] Banamex: Processing ${lines.length} lines`);
+
+    // Pattern: "DD MMM    DESCRIPTION    +/-$AMOUNT"
+    // Example: "04 Mar    PAYPAL *LAUCHPADHOTEN PROCESO    +$214.60"
+    const banamexPattern = /^(\d{1,2}\s+(?:Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Oct|Nov|Dic))\s{2,}(.+?)\s{2,}([\+\-]\$[\d,]+\.\d{2})\s*$/i;
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine || trimmedLine.length < 20) continue;
+
+      // Skip header lines
+      if (trimmedLine.toLowerCase().includes('envío de movimientos') ||
+          trimmedLine.toLowerCase().includes('hola,') ||
+          trimmedLine.toLowerCase().includes('banamex') ||
+          trimmedLine.toLowerCase().includes('solicitados') ||
+          trimmedLine.toLowerCase().includes('de 3')) {
+        continue;
+      }
+
+      const match = trimmedLine.match(banamexPattern);
+      if (match) {
+        const [, dateStr, description, amountStr] = match;
+
+        const parsedDate = this.parseDate(dateStr);
+        if (!parsedDate) continue;
+
+        // Parse amount: "+$214.60" or "-$1,234.56"
+        const cleanAmount = amountStr.replace(/[\+\$]/g, '');
+        const amount = this.parseAmount(cleanAmount);
+
+        transactions.push({
+          fecha: parsedDate,
+          descripcion: description.trim(),
+          monto: amount,
+          saldo: null,
+          referencia: null
+        });
+
+        console.log(`[LocalOCR] Banamex: Extracted ${dateStr} - ${description.trim()} - $${amount}`);
+      }
+    }
+
+    console.log(`[LocalOCR] Banamex: Found ${transactions.length} transactions`);
+    return transactions;
+  }
+
+  /**
    * Main extraction method
    */
   async extractTransactions(textContent, fileName) {
@@ -679,6 +762,9 @@ class LocalOcrService {
           break;
         case 'santander':
           movimientos = this.extractSantanderTransactions(textContent);
+          break;
+        case 'banamex':
+          movimientos = this.extractBanamexTransactions(textContent);
           break;
         default:
           movimientos = this.extractGenericTransactions(textContent);

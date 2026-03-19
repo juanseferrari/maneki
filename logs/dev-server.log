@@ -1,0 +1,32 @@
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[Transactions API] Filters received: {
+  categories: undefined,
+  includeNoCategory: undefined,
+  amountType: undefined,
+  amountMin: undefined,
+  amountMax: undefined,
+  files: [
+    '877504ef-0d1c-417c-a453-2db60cfb0c20',
+    'dbc54305-d7be-403e-9fb5-808dd2d84051',
+    'ee9da1a3-9c4a-45b2-bba0-b1c0a567eceb'
+  ]
+}
+[Transactions API] Filters received: {
+  categories: undefined,
+  includeNoCategory: undefined,
+  amountType: undefined,
+  amountMin: undefined,
+  amountMax: undefined,
+  files: [
+    '877504ef-0d1c-417c-a453-2db60cfb0c20',
+    'dbc54305-d7be-403e-9fb5-808dd2d84051',
+    'ee9da1a3-9c4a-45b2-bba0-b1c0a567eceb'
+  ]
+}

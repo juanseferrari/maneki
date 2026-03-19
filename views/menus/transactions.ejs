@@ -10,13 +10,49 @@
     <!-- Primary Filters Row -->
     <div class="filters-row">
       <div class="filter-group">
-        <label for="filter-date-from">Desde:</label>
-        <input type="date" id="filter-date-from" class="filter-input">
+        <label for="filter-date-from">Fecha desde:</label>
+        <div class="dropdown dropdown-end">
+          <label tabindex="0" class="btn btn-outline w-full !flex !items-start !justify-evenly normal-case font-normal">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <span id="date-from-text">Seleccionar fecha</span>
+          </label>
+          <div tabindex="0" class="dropdown-content z-[9999] p-4 mt-2">
+            <calendar-date id="calendar-from" class="cally bg-base-100 border border-base-300 shadow-xl rounded-box">
+              <svg aria-label="Previous" class="fill-current size-4" slot="previous" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M15.75 19.5 8.25 12l7.5-7.5"></path></svg>
+              <svg aria-label="Next" class="fill-current size-4" slot="next" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="m8.25 4.5 7.5 7.5-7.5 7.5"></path></svg>
+              <calendar-month></calendar-month>
+            </calendar-date>
+          </div>
+        </div>
+        <input type="hidden" id="filter-date-from">
       </div>
 
       <div class="filter-group">
-        <label for="filter-date-to">Hasta:</label>
-        <input type="date" id="filter-date-to" class="filter-input">
+        <label for="filter-date-to">Fecha hasta:</label>
+        <div class="dropdown dropdown-end">
+          <label tabindex="0" class="btn btn-outline w-full !flex !items-start !justify-evenly normal-case font-normal">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <span id="date-to-text">Seleccionar fecha</span>
+          </label>
+          <div tabindex="0" class="dropdown-content z-[9999] p-4 mt-2">
+            <calendar-date id="calendar-to" class="cally bg-base-100 border border-base-300 shadow-xl rounded-box">
+              <svg aria-label="Previous" class="fill-current size-4" slot="previous" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M15.75 19.5 8.25 12l7.5-7.5"></path></svg>
+              <svg aria-label="Next" class="fill-current size-4" slot="next" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="m8.25 4.5 7.5 7.5-7.5 7.5"></path></svg>
+              <calendar-month></calendar-month>
+            </calendar-date>
+          </div>
+        </div>
+        <input type="hidden" id="filter-date-to">
       </div>
 
       <div class="filter-group">

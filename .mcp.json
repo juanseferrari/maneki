@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "shadcn": {
+      "command": "npx",
+      "args": [
+        "shadcn@latest",
+        "mcp"
+      ]
+    },
+    "daisyui": {
+      "command": "npx",
+      "args": [
+        "daisyui-mcp@latest"
+      ]
+    }
+  }
+}

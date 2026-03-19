@@ -1,0 +1,111 @@
+
+> maneki@1.0.0 dev:auth
+> nodemon server-supabase.js
+
+[33m[nodemon] 3.1.11[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[32m[nodemon] starting `node server-supabase.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[ClaudeAutomation] Service initialized successfully
+Server running on port 3002
+Using Supabase Auth
+Environment: development
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-supabase.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-supabase.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[ClaudeAutomation] Service initialized successfully
+Server running on port 3002
+Using Supabase Auth
+Environment: development
+[requireAuth] {
+  path: '/api/categories',
+  method: 'GET',
+  hasAuthHeader: false,
+  headerPreview: null
+}
+[requireAuth] No authorization header
+[requireAuth] {
+  path: '/api/categories',
+  method: 'GET',
+  hasAuthHeader: false,
+  headerPreview: null
+}
+[requireAuth] No authorization header
+[requireAuth] {
+  path: '/api/dashboard/stats',
+  method: 'GET',
+  hasAuthHeader: false,
+  headerPreview: null
+}
+[requireAuth] No authorization header
+[requireAuth] {
+  path: '/api/categories',
+  method: 'GET',
+  hasAuthHeader: false,
+  headerPreview: null
+}
+[requireAuth] No authorization header
+[requireAuth] {
+  path: '/api/categories',
+  method: 'GET',
+  hasAuthHeader: false,
+  headerPreview: null
+}
+[requireAuth] No authorization header
+[requireAuth] {
+  path: '/api/dashboard/stats',
+  method: 'GET',
+  hasAuthHeader: false,
+  headerPreview: null
+}
+[requireAuth] No authorization header
+[requireAuth] {
+  path: '/api/categories',
+  method: 'GET',
+  hasAuthHeader: false,
+  headerPreview: null
+}
+[requireAuth] No authorization header
+[requireAuth] {
+  path: '/api/categories',
+  method: 'GET',
+  hasAuthHeader: false,
+  headerPreview: null
+}
+[requireAuth] No authorization header
+[requireAuth] {
+  path: '/api/dashboard/stats',
+  method: 'GET',
+  hasAuthHeader: false,
+  headerPreview: null
+}
+[requireAuth] No authorization header
+[requireAuth] {
+  path: '/api/files',
+  method: 'GET',
+  hasAuthHeader: false,
+  headerPreview: null
+}
+[requireAuth] No authorization header
+[requireAuth] {
+  path: '/api/categories',
+  method: 'GET',
+  hasAuthHeader: false,
+  headerPreview: null
+}
+[requireAuth] No authorization header
+[requireAuth] {
+  path: '/api/categories',
+  method: 'GET',
+  hasAuthHeader: false,
+  headerPreview: null
+}
+[requireAuth] No authorization header

@@ -13,6 +13,9 @@ let totalPages = 1;
 // Files state variable
 let existingFiles = [];
 
+// Polling interval for files being processed
+let processingPollInterval = null;
+
 // Sort state variables
 let currentSortColumn = 'fecha';
 let currentSortOrder = 'desc'; // 'asc' or 'desc'
@@ -449,17 +452,14 @@ async function uploadFile(file) {
     const result = await response.json();
 
     if (result.success) {
-      showMessage('Archivo subido correctamente. Procesando...', 'success');
+      showMessage('Archivo subido correctamente. Procesando en segundo plano...', 'success');
       fileInput.value = '';
 
-      // Store the file ID to check for duplicates later
-      const uploadedFileId = result.file.id;
+      // Immediately reload to show the file in "processing" state
+      loadDashboardData();
 
-      setTimeout(() => {
-        loadDashboardData();
-        // Check processing status after a delay to show duplicate notification
-        checkForDuplicatesNotification(uploadedFileId);
-      }, 1000);
+      // Start polling for processing files
+      startProcessingPolling();
     } else {
       showMessage(result.error || 'Error al subir archivo', 'error');
     }
@@ -505,6 +505,12 @@ async function loadDashboardData() {
     if (result.success) {
       updateDashboard(result.files);
       displayFiles(result.files);
+
+      // Check if there are files being processed and start polling
+      const processingFiles = result.files.filter(f => f.processing_status === 'processing' || f.processing_status === 'pending');
+      if (processingFiles.length > 0) {
+        startProcessingPolling();
+      }
     } else {
       if (emptyEl) emptyEl.style.display = 'flex';
     }
@@ -601,9 +607,14 @@ function displayFiles(files) {
     tableBody.innerHTML = files.map(file => {
       const statusLabel = file.processing_status === 'completed' ? 'Completado' :
         file.processing_status === 'pending' ? 'Pendiente' :
-        file.processing_status === 'processing' ? 'Procesando' :
+        file.processing_status === 'processing' ? 'Procesando...' :
         file.processing_status === 'failed' ? 'Error' : file.processing_status;
       const statusClass = file.processing_status;
+
+      // Add spinner for processing files
+      const statusIcon = (file.processing_status === 'processing' || file.processing_status === 'pending')
+        ? '<span class="processing-spinner"></span>'
+        : '';
       const transactionCount = file.transaction_count || 0;
 
       // Processing method badge
@@ -642,7 +653,7 @@ function displayFiles(files) {
           <td>${new Date(file.created_at).toLocaleDateString('es-AR')}</td>
           <td>
             <div class="file-actions">
-              <span class="file-status-badge ${statusClass}">${statusLabel}</span>
+              <span class="file-status-badge ${statusClass}">${statusIcon}${statusLabel}</span>
               ${reviewButton}
               <button class="btn-icon-delete" onclick="event.stopPropagation(); deleteFile('${file.id}')" title="Eliminar">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -5091,3 +5102,61 @@ reviewButtonStyles.textContent = `
   }
 `;
 document.head.appendChild(reviewButtonStyles);
+
+// ========================================
+// FILE PROCESSING POLLING
+// ========================================
+
+/**
+ * Start polling for files that are being processed
+ * Checks every 3 seconds if there are files in "processing" status
+ */
+function startProcessingPolling() {
+  // Clear any existing interval
+  if (processingPollInterval) {
+    clearInterval(processingPollInterval);
+  }
+
+  // Check immediately
+  checkProcessingFiles();
+
+  // Then check every 3 seconds
+  processingPollInterval = setInterval(() => {
+    checkProcessingFiles();
+  }, 3000);
+}
+
+/**
+ * Stop polling when no files are processing
+ */
+function stopProcessingPolling() {
+  if (processingPollInterval) {
+    clearInterval(processingPollInterval);
+    processingPollInterval = null;
+  }
+}
+
+/**
+ * Check if there are files being processed and reload if needed
+ */
+async function checkProcessingFiles() {
+  const processingFiles = existingFiles.filter(f => f.processing_status === 'processing' || f.processing_status === 'pending');
+
+  if (processingFiles.length === 0) {
+    // No files processing, stop polling
+    stopProcessingPolling();
+    return;
+  }
+
+  // Reload dashboard to get updated status
+  await loadDashboardData();
+
+  // After reload, check again if all files are done processing
+  const stillProcessing = existingFiles.filter(f => f.processing_status === 'processing' || f.processing_status === 'pending');
+
+  if (stillProcessing.length === 0) {
+    // All files done, show notification
+    showMessage('Archivos procesados correctamente', 'success');
+    stopProcessingPolling();
+  }
+}

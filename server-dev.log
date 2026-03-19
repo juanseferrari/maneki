@@ -1,0 +1,2233 @@
+
+> maneki@1.0.0 dev
+> npm run build:css && nodemon server-dev.js
+
+
+> maneki@1.0.0 build:css
+> npx tailwindcss -i ./public/css/tailwind-input.css -o ./public/css/output.css
+
+
+Rebuilding...
+/*! 🌼 daisyUI 5.5.18 */
+
+Done in 685ms.
+[33m[nodemon] 3.1.11[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[Categories by Month] User f2aed59f-54dd-4d7b-91e0-8070b78eeb55: 14 categories across 6 months
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[Dashboard Stats] Fetched 973 total transactions in 1 batches
+[Dashboard Stats] User f2aed59f-54dd-4d7b-91e0-8070b78eeb55: 973 transactions, 9 periods
+[Dashboard Stats] Fetched 973 total transactions in 1 batches
+[Dashboard Stats] User f2aed59f-54dd-4d7b-91e0-8070b78eeb55: 973 transactions, 7 periods
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2646:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2646:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2646:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2646:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2646:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2646:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2646:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2646:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2697:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2697:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2697:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[Dashboard Stats] Fetched 165 total transactions in 1 batches
+[Dashboard Stats] User f2aed59f-54dd-4d7b-91e0-8070b78eeb55: 165 transactions, 2 periods
+[Categories by Month] User f2aed59f-54dd-4d7b-91e0-8070b78eeb55: 16 categories across 6 months
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[32m[nodemon] restarting due to changes...[39m
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+(node:25685) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 exit listeners added to [Bus]. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+ Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+🚀 Server running in DEVELOPMENT MODE on port 3002
+👤 Simulated user: juansegundoferrari@gmail.com
+🔒 Environment: development
+📂 Open: http://localhost:3002
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server-dev.js`[39m
+⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217
+[Claude] Claude API initialized successfully
+🔑 Loaded private key from file: ./db/06ef0654-b2b9-47bb-acd5-a1a19c1e26f9.pem
+[CRON] Daily exchange rate job scheduled: 2:00 AM every day
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/juanseferrari/Desktop/Juanse/Github/maneki/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/juanseferrari/Desktop/Juanse/Github/maneki/server-dev.js:2702:5)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1844:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m

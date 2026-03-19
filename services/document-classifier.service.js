@@ -22,13 +22,15 @@ class DocumentClassifierService {
         fullName: 'Extracto de Cuenta Bancaria',
         patterns: [
           /movimientos?\s+del/i,
+          /env[ií]o\s+de\s+movimientos/i, // Banamex format
           /extracto\s+(?:de\s+)?(?:cuenta|bancario)/i,
           /estado\s+de\s+cuenta/i,
           /resumen\s+de\s+(?:cuenta|movimientos)/i,
           /saldo\s+(?:inicial|final|en\s+\$)/i,
           /CTE\s*\$\s*\*+\d+/i, // Account number format like "CTE $ ****7982"
           /caja\s+de\s+ahorro/i,
-          /cuenta\s+corriente/i
+          /cuenta\s+corriente/i,
+          /costco\s+banamex\s+\d+/i // Banamex card format
         ],
         priority: 80
       },
@@ -208,7 +210,8 @@ class DocumentClassifierService {
       { id: 'supervielle', name: 'Supervielle', patterns: ['supervielle'] },
       { id: 'patagonia', name: 'Banco Patagonia', patterns: ['patagonia', 'banco patagonia'] },
       { id: 'comafi', name: 'Banco Comafi', patterns: ['comafi'] },
-      { id: 'itau', name: 'Itaú', patterns: ['itau', 'itaú'] }
+      { id: 'itau', name: 'Itaú', patterns: ['itau', 'itaú'] },
+      { id: 'banamex', name: 'Banamex', patterns: ['banamex', 'banco banamex', 'citibanamex'] }
     ];
 
     for (const bank of banks) {

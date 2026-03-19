@@ -8721,3 +8721,41 @@ input[type="date"]:invalid {
     font-size: 1.75rem;
   }
 }
+
+/* ================================
+   PROCESSING SPINNER
+   ================================ */
+.processing-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spinner-rotate 0.8s linear infinite;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+@keyframes spinner-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.file-status-badge.processing {
+  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+  animation: pulse-processing 2s ease-in-out infinite;
+}
+
+@keyframes pulse-processing {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}

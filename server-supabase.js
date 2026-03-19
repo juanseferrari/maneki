@@ -179,45 +179,105 @@ app.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
       throw dbError;
     }
 
-    // Step 3: Process file and WAIT for result (synchronous processing)
-    console.log(`Starting to process file: ${fileName}`);
-    const processingResult = await processorService.processFile(fileRecord, req.file.buffer);
+    // Step 3: Return immediately with processing status
+    console.log(`File uploaded: ${fileName}, starting async processing...`);
 
-    console.log(`File processed: ${fileName}`, processingResult.success ? '✅ SUCCESS' : '❌ FAILED');
+    // Respond immediately
+    res.json({
+      success: true,
+      message: 'File uploaded successfully, processing in background',
+      file: {
+        id: fileRecord.id,
+        name: fileName,
+        originalName: req.file.originalname,
+        size: req.file.size,
+        processingStatus: 'processing',
+        path: uploadData.path,
+        publicUrl: urlData.publicUrl
+      },
+      stats: {
+        totalTransactions: 0,
+        transactionsInserted: 0,
+        duplicatesSkipped: 0,
+        confidenceScore: 0,
+        processingMethod: 'pending'
+      }
+    });
 
-    // Return standardized formatted response
-    if (processingResult.formatted) {
-      // Return the standardized JSON format
-      res.json(processingResult.formatted);
-    } else {
-      // Fallback to old format if formatter not available
-      res.json({
-        success: processingResult.success,
-        message: processingResult.success ? 'File uploaded and processed successfully' : 'File processing failed',
-        file: {
-          id: fileRecord.id,
-          name: fileName,
-          originalName: req.file.originalname,
-          size: req.file.size,
-          processingStatus: processingResult.success ? 'completed' : 'failed',
-          path: uploadData.path,
-          publicUrl: urlData.publicUrl
-        },
-        stats: {
-          totalTransactions: processingResult.totalTransactions || 0,
-          transactionsInserted: processingResult.transactionsInserted || 0,
-          duplicatesSkipped: processingResult.duplicatesSkipped || 0,
-          confidenceScore: processingResult.confidenceScore || 0,
-          processingMethod: processingResult.processingMethod || 'unknown'
-        },
-        error: processingResult.error || null
-      });
-    }
+    // Process file in background (don't await)
+    processFileInBackground(fileRecord, req.file.buffer, fileName);
   } catch (error) {
     console.error('Upload error:', error);
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to upload file'
+    });
+  }
+});
+
+// Background processing function
+async function processFileInBackground(fileRecord, fileBuffer, fileName) {
+  try {
+    console.log(`[Background] Starting to process file: ${fileName}`);
+    const processingResult = await processorService.processFile(fileRecord, fileBuffer);
+    console.log(`[Background] File processed: ${fileName}`, processingResult.success ? '✅ SUCCESS' : '❌ FAILED');
+
+    // Update file status in database
+    await supabaseAdmin
+      .from('files')
+      .update({
+        processing_status: processingResult.success ? 'completed' : 'failed',
+        processing_error: processingResult.error || null,
+        processing_metadata: {
+          totalTransactions: processingResult.totalTransactions || 0,
+          transactionsInserted: processingResult.transactionsInserted || 0,
+          duplicatesSkipped: processingResult.duplicatesSkipped || 0,
+          confidenceScore: processingResult.confidenceScore || 0,
+          processingMethod: processingResult.processingMethod || 'unknown',
+          processedAt: new Date().toISOString()
+        }
+      })
+      .eq('id', fileRecord.id);
+
+  } catch (error) {
+    console.error(`[Background] Error processing file ${fileName}:`, error);
+
+    // Mark as failed in database
+    await supabaseAdmin
+      .from('files')
+      .update({
+        processing_status: 'failed',
+        processing_error: error.message || 'Unknown error during processing'
+      })
+      .eq('id', fileRecord.id);
+  }
+}
+
+// Get file processing status endpoint
+app.get('/api/files/:fileId/status', requireAuth, async (req, res) => {
+  try {
+    const { data: file, error } = await supabaseAdmin
+      .from('files')
+      .select('processing_status, processing_error, processing_metadata')
+      .eq('id', req.params.fileId)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      status: file.processing_status,
+      error: file.processing_error,
+      metadata: file.processing_metadata
+    });
+  } catch (error) {
+    console.error('Get file status error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get file status'
     });
   }
 });
