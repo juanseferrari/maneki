@@ -1286,7 +1286,7 @@ app.delete('/api/files/:fileId', requireAuth, async (req, res) => {
     });
 
     // First get the file to get the stored name
-    const { data: files, error: fileError } = await supabase
+    const { data: files, error: fileError } = await supabaseAdmin
       .from('files')
       .select('stored_name, user_id')
       .eq('id', req.params.fileId)
@@ -1314,7 +1314,7 @@ app.delete('/api/files/:fileId', requireAuth, async (req, res) => {
     const file = files[0];
 
     // Delete all associated transactions first (cascade delete)
-    const { error: transactionsError } = await supabase
+    const { error: transactionsError } = await supabaseAdmin
       .from('transactions')
       .delete()
       .eq('file_id', req.params.fileId)
@@ -1335,7 +1335,7 @@ app.delete('/api/files/:fileId', requireAuth, async (req, res) => {
     }
 
     // Delete from database
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await supabaseAdmin
       .from('files')
       .delete()
       .eq('id', req.params.fileId)
