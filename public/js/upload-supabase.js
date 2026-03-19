@@ -691,10 +691,8 @@ async function deleteFile(fileId) {
   }
 
   try {
-    const headers = {};
-    if (accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`;
-    }
+    // Get auth headers using the helper function
+    const headers = await getAuthHeaders();
 
     const response = await fetch(`/api/files/${fileId}`, {
       method: 'DELETE',
