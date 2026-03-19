@@ -442,6 +442,31 @@ ${textContent}
 
 CRITICAL INSTRUCTIONS - READ CAREFULLY AS A PROFESSIONAL ACCOUNTANT:
 
+0. **DOCUMENT TYPE DETECTION - FIRST STEP**
+   - Analyze the document and determine what type it is:
+     * "vep" = VEP (Volante Electrónico de Pago) - AFIP tax payment voucher
+     * "bank_statement" = Bank account statement (extracto bancario)
+     * "credit_card_statement" = Credit card statement (resumen de tarjeta)
+     * "invoice" = Invoice (factura)
+     * "receipt" = Receipt (recibo)
+     * "payment_voucher" = Payment/transfer voucher (comprobante de pago)
+     * "unknown" = Cannot determine type
+
+   VEP detection patterns:
+   - Contains "Volante Electrónico de Pago" or "VEP"
+   - Contains "AFIP", "ARCA", "Nro. VEP"
+   - Has tax-related fields: CUIT, concepto, período fiscal
+   - Is a government tax payment document
+
+   If document is VEP:
+   - Extract VEP-specific fields (numero_vep, cuit, concepto, importe, etc.)
+   - DO NOT extract as regular transactions
+   - Set document_type = "vep"
+
+   If document is NOT VEP:
+   - Continue with normal transaction extraction
+   - Set appropriate document_type
+
 1. **EXTRACT EVERY SINGLE TRANSACTION** - Do not skip or summarize
    - Each row = ONE transaction
    - Extract EXACT date, description, amount from each row
@@ -477,6 +502,7 @@ CRITICAL INSTRUCTIONS - READ CAREFULLY AS A PROFESSIONAL ACCOUNTANT:
 
 OUTPUT FORMAT (respond with ONLY valid JSON, no markdown):
 {
+  "document_type": "bank_statement",
   "documento": {
     "banco": "Banco Santander",
     "numero_cuenta": "1234-5678-90",
@@ -505,6 +531,7 @@ OUTPUT FORMAT (respond with ONLY valid JSON, no markdown):
 }
 
 IMPORTANT RULES:
+- **document_type is REQUIRED** - always include at top level
 - Dates must be in YYYY-MM-DD format
 - Amounts are positive numbers, tipo field indicates "income" or "expense"
 - If no matching category found, use null for category_id
@@ -515,6 +542,22 @@ IMPORTANT RULES:
 - documento.moneda: Default currency for the account (MXN for Mexico, ARS for Argentina)
 - documento fields can be null if not found in document
 - Handle refunds/reversals by marking tipo as "income" if it's money back
+
+SPECIAL FORMAT FOR VEP DOCUMENTS:
+If document_type is "vep", use this format instead:
+{
+  "document_type": "vep",
+  "vep": {
+    "numero_vep": "123456789",
+    "cuit": "20-12345678-9",
+    "concepto": "Impuesto a las Ganancias",
+    "periodo_fiscal": "2026-01",
+    "importe": 15000.50,
+    "fecha_vencimiento": "2026-02-15",
+    "fecha_pago": "2026-02-10"
+  },
+  "transacciones": []
+}
 
 Return ONLY the JSON object, no additional text or markdown formatting.`;
   }
@@ -536,7 +579,29 @@ Return ONLY the JSON object, no additional text or markdown formatting.`;
 
       const data = JSON.parse(jsonText);
 
-      // Validate response structure
+      // Validate document_type
+      if (!data.document_type) {
+        console.warn('[Claude] Missing document_type in response, defaulting to unknown');
+        data.document_type = 'unknown';
+      }
+
+      console.log(`[Claude] Detected document type: ${data.document_type}`);
+
+      // Handle VEP documents differently
+      if (data.document_type === 'vep') {
+        console.log('[Claude] Document is a VEP, extracting VEP data');
+        return {
+          documentType: 'vep',
+          vepData: data.vep || {},
+          transactions: [], // VEPs don't have regular transactions
+          documentMetadata: {},
+          confidenceScore: 95,
+          totalTransactions: 0,
+          processingMethod: 'claude'
+        };
+      }
+
+      // Validate response structure for non-VEP documents
       if (!data.transacciones || !Array.isArray(data.transacciones)) {
         throw new Error('Invalid response format: missing transacciones array');
       }
@@ -590,6 +655,7 @@ Return ONLY the JSON object, no additional text or markdown formatting.`;
         : 0;
 
       return {
+        documentType: data.document_type, // Include detected document type
         transactions,
         documentMetadata: {
           banco: data.documento.banco || null,
@@ -601,7 +667,8 @@ Return ONLY the JSON object, no additional text or markdown formatting.`;
         },
         confidenceScore: Math.round(avgConfidence),
         totalTransactions: transactions.length,
-        processingMethod: 'claude'
+        processingMethod: 'claude',
+        vepData: null // No VEP data for non-VEP documents
       };
     } catch (error) {
       console.error('[Claude] Failed to parse enhanced response:', error);

@@ -1,8 +1,6 @@
 const parserService = require('./parser.service');
-const extractorService = require('./extractor.service');
 const supabaseService = require('./supabase.service');
 const vepProcessorService = require('./vep-processor.service');
-const documentClassifier = require('./document-classifier.service');
 const claudeService = require('./claude.service');
 const claudeUsageTrackingService = require('./claude-usage-tracking.service');
 const responseFormatterService = require('./response-formatter.service');
@@ -42,26 +40,6 @@ class ProcessorService {
         console.log('[Processor] ⚠️  Detected scanned PDF with minimal text - will use Claude Vision API');
       }
 
-      // Step 1.5: Detect document type using classifier
-      console.log('[Processor] Step 1.5: Detecting document type...');
-      const classification = documentClassifier.getFullClassification(textContent);
-      console.log(`[Processor] Document classified as: ${classification.documentType.name} (confidence: ${classification.documentType.confidence}%)`);
-      console.log(`[Processor] Bank detected: ${classification.bank.name}`);
-
-      // Save document type to file metadata
-      await supabaseService.updateFileProcessing(fileId, {
-        document_type: classification.documentType.type,
-        document_type_confidence: classification.documentType.confidence
-      });
-
-      // Route VEP documents to VEP processor
-      if (classification.documentType.type === 'vep') {
-        console.log('[Processor] Document detected as VEP - routing to VEP processor');
-        return await vepProcessorService.processVepFile(fileMetadata, fileBuffer);
-      }
-
-      console.log(`[Processor] Document type: ${classification.documentType.fullName} - continuing with transaction extraction`);
-
       // Step 2: Get structured data (for CSV/XLSX)
       console.log('[Processor] Step 2: Extracting structured data...');
       const structuredData = await parserService.getStructuredData(
@@ -70,146 +48,81 @@ class ProcessorService {
         fileMetadata.original_name
       );
 
-      // Step 3: Extract transactions using template matching
-      console.log('[Processor] Step 3: Extracting transactions...');
-      const extractionResult = await extractorService.extractTransactions(
-        textContent,
-        structuredData,
-        fileMetadata.original_name
+      // Step 3: ALWAYS use Claude for extraction and document type detection
+      console.log('[Processor] Step 3: Using Claude for document analysis and extraction...');
+
+      // Check user's Claude API quota
+      const quota = await claudeUsageTrackingService.checkQuota(fileMetadata.user_id);
+      console.log(`[Processor] Claude quota status: ${quota.used}/${quota.limit} used, ${quota.remaining} remaining`);
+
+      if (!quota.available || !claudeService.isClaudeAvailable()) {
+        throw new Error('Claude API quota exceeded or unavailable. Please try again later.');
+      }
+
+      // Prepare content for Claude
+      let contentForClaude = textContent;
+
+      console.log('[Processor] === PREPARING CONTENT FOR CLAUDE ===');
+      console.log(`[Processor] File: ${fileMetadata.original_name}`);
+      console.log(`[Processor] Text content length: ${textContent.length} chars`);
+      console.log(`[Processor] Structured data rows: ${structuredData ? structuredData.length : 0}`);
+      console.log(`[Processor] Text content preview (first 500 chars):`);
+      console.log(textContent.substring(0, 500));
+      console.log('[Processor] === END PREPARATION ===');
+
+      // If we have structured data (CSV/XLSX) and little/no text, convert to readable format
+      if (structuredData && structuredData.length > 0 && textContent.trim().length < 100) {
+        console.log('[Processor] Converting structured data to readable format for Claude...');
+
+        const headers = Object.keys(structuredData[0]);
+        const headerRow = headers.join(' | ');
+        const separator = headers.map(() => '---').join(' | ');
+        const dataRows = structuredData.slice(0, 200).map(row => {
+          return headers.map(h => row[h] || '').join(' | ');
+        }).join('\n');
+
+        contentForClaude = `STRUCTURED DATA (${structuredData.length} rows):\n\n${headerRow}\n${separator}\n${dataRows}`;
+
+        if (structuredData.length > 200) {
+          contentForClaude += `\n\n... (${structuredData.length - 200} more rows not shown)`;
+        }
+
+        console.log(`[Processor] Prepared ${structuredData.length} rows for Claude analysis`);
+      }
+
+      // Call Claude for extraction AND document type detection
+      const claudeResult = await claudeService.extractTransactionsEnhanced(
+        contentForClaude,
+        fileMetadata.original_name,
+        fileMetadata.user_id,
+        isScannedPDF ? fileBuffer : null
       );
 
-      console.log(`[Processor] Extracted ${extractionResult.totalTransactions} transactions`);
-      console.log(`[Processor] Template confidence score: ${extractionResult.confidenceScore}%`);
+      // Increment usage counter
+      const usageResult = await claudeUsageTrackingService.incrementUsage(fileMetadata.user_id);
+      console.log(`[Processor] Claude usage incremented: ${usageResult.usage_count}/${usageResult.monthly_limit}`);
 
-      // Step 3.5: DECISION TREE - Should we use Claude API?
-      let finalResult = extractionResult;
-      let processingMethod = 'template';
-      let needsPreview = false;
+      console.log(`[Processor] ✅ Claude extraction successful!`);
+      console.log(`[Processor] - Document Type: ${claudeResult.documentType}`);
+      console.log(`[Processor] - Confidence: ${claudeResult.confidenceScore}%`);
+      console.log(`[Processor] - Transactions: ${claudeResult.totalTransactions}`);
 
-      // Check if this is an unsupported bank (not Santander or Hipotecario)
-      const supportedBanks = ['Banco Santander', 'Banco Hipotecario', 'santander', 'hipotecario'];
-      const isUnsupportedBank = extractionResult.bankName &&
-        !supportedBanks.some(bank => extractionResult.bankName.toLowerCase().includes(bank.toLowerCase()));
+      // Save document type detected by Claude
+      await supabaseService.updateFileProcessing(fileId, {
+        document_type: claudeResult.documentType,
+        document_type_confidence: claudeResult.confidenceScore
+      });
 
-      if (isUnsupportedBank) {
-        console.log(`[Processor] ⚠️  Unsupported bank detected: ${extractionResult.bankName} - will use Claude for better accuracy`);
+      // Handle VEP documents
+      if (claudeResult.documentType === 'vep') {
+        console.log('[Processor] Document is a VEP - using VEP processor for storage');
+        return await vepProcessorService.processVepFile(fileMetadata, fileBuffer, claudeResult.vepData);
       }
 
-      // Use very strict threshold (95%) to ensure most files use Claude for better accuracy
-      // Only allow high-confidence template extractions (Santander/Hipotecario with clear format)
-      // Also force Claude for unsupported banks
-      if (extractionResult.confidenceScore < 95 || isUnsupportedBank) {
-        const reason = isUnsupportedBank ? 'unsupported bank' : `confidence below threshold (${extractionResult.confidenceScore}% < 95%)`;
-        console.log(`[Processor] ⚠️  ${reason}, checking Claude quota...`);
-
-        // Check user's Claude API quota
-        const quota = await claudeUsageTrackingService.checkQuota(fileMetadata.user_id);
-        console.log(`[Processor] Claude quota status: ${quota.used}/${quota.limit} used, ${quota.remaining} remaining`);
-
-        if (quota.available && claudeService.isClaudeAvailable()) {
-          try {
-            console.log('[Processor] ✅ Quota available - using Claude API for enhanced extraction...');
-
-            // Prepare content for Claude
-            let contentForClaude = textContent;
-
-            console.log('[Processor] === PREPARING CONTENT FOR CLAUDE ===');
-            console.log(`[Processor] File: ${fileMetadata.original_name}`);
-            console.log(`[Processor] Text content length: ${textContent.length} chars`);
-            console.log(`[Processor] Structured data rows: ${structuredData ? structuredData.length : 0}`);
-            console.log(`[Processor] Text content preview (first 500 chars):`);
-            console.log(textContent.substring(0, 500));
-            console.log('[Processor] === END PREPARATION ===');
-
-            // If we have structured data (CSV/XLSX) and little/no text, convert structured data to readable format
-            if (structuredData && structuredData.length > 0 && textContent.trim().length < 100) {
-              console.log('[Processor] Converting structured data to readable format for Claude...');
-
-              // Convert array of objects to formatted text
-              const headers = Object.keys(structuredData[0]);
-              const headerRow = headers.join(' | ');
-              const separator = headers.map(() => '---').join(' | ');
-              const dataRows = structuredData.slice(0, 200).map(row => { // Limit to 200 rows to avoid token limits
-                return headers.map(h => row[h] || '').join(' | ');
-              }).join('\n');
-
-              contentForClaude = `STRUCTURED DATA (${structuredData.length} rows):\n\n${headerRow}\n${separator}\n${dataRows}`;
-
-              if (structuredData.length > 200) {
-                contentForClaude += `\n\n... (${structuredData.length - 200} more rows not shown)`;
-              }
-
-              console.log(`[Processor] Prepared ${structuredData.length} rows for Claude analysis`);
-            }
-
-            // Call Claude for enhanced extraction
-            // Pass fileBuffer if this is a scanned PDF
-            const claudeResult = await claudeService.extractTransactionsEnhanced(
-              contentForClaude,
-              fileMetadata.original_name,
-              fileMetadata.user_id,
-              isScannedPDF ? fileBuffer : null
-            );
-
-            // Increment usage counter atomically
-            const usageResult = await claudeUsageTrackingService.incrementUsage(fileMetadata.user_id);
-            console.log(`[Processor] Claude usage incremented: ${usageResult.usage_count}/${usageResult.monthly_limit}`);
-
-            // Use Claude results
-            finalResult = claudeResult;
-            processingMethod = 'claude';
-            needsPreview = true; // Always review AI results
-
-            console.log(`[Processor] ✅ Claude extraction successful!`);
-            console.log(`[Processor] - Confidence: ${claudeResult.confidenceScore}%`);
-            console.log(`[Processor] - Transactions: ${claudeResult.totalTransactions}`);
-            console.log(`[Processor] - Has metadata: ${!!claudeResult.documentMetadata}`);
-
-            // === NUEVO: Aprender template de Claude ===
-            console.log('[Processor] 🧠 Intentando aprender template de resultado de Claude...');
-            const templateLearning = require('./template-learning.service');
-
-            // Solo aprender si confidence > 80% y hay structured data
-            if (claudeResult.confidenceScore >= 80 && structuredData && structuredData.length > 0) {
-              try {
-                const learnedTemplate = await templateLearning.learnFromClaudeResult(
-                  claudeResult,
-                  structuredData,
-                  classification.bank.id,
-                  classification.bank.name,
-                  fileId,
-                  fileMetadata.user_id
-                );
-
-                if (learnedTemplate) {
-                  console.log(`[Processor] ✅ Template aprendido exitosamente (ID: ${learnedTemplate.id})`);
-                  console.log(`[Processor] Próximos archivos de ${classification.bank.name} usarán este template automáticamente`);
-                } else {
-                  console.log(`[Processor] ℹ️  No se pudo crear template (quizás ya existe o faltan datos)`);
-                }
-              } catch (error) {
-                console.error('[Processor] ⚠️  Error al aprender template (no crítico):', error.message);
-              }
-            }
-            // === FIN NUEVO ===
-
-          } catch (error) {
-            console.error('[Processor] ❌ Claude extraction failed:', error.message);
-            console.log('[Processor] Falling back to template results...');
-            processingMethod = 'hybrid'; // Template fallback after Claude failure
-            needsPreview = true; // Low confidence still needs review
-          }
-        } else {
-          if (!quota.available) {
-            console.log(`[Processor] ⛔ Quota exceeded (${quota.used}/${quota.limit}), using templates only`);
-          } else {
-            console.log(`[Processor] ⚠️  Claude API not configured, using templates only`);
-          }
-          needsPreview = true; // Low confidence needs review
-        }
-      } else {
-        console.log(`[Processor] ✅ High confidence (${extractionResult.confidenceScore}%), using template results`);
-      }
+      // For non-VEP documents, continue with normal transaction processing
+      const finalResult = claudeResult;
+      const processingMethod = 'claude';
+      const needsPreview = true; // Always review Claude results
 
       // Mark transactions for review if needed
       if (needsPreview) {
@@ -224,8 +137,8 @@ class ProcessorService {
 
       // Step 4: Save transactions to database
       console.log('[Processor] Step 4: Saving transactions to database...');
-      // Use bank name from extraction result, or fall back to classifier detection
-      const bankName = finalResult.bankName || (finalResult.documentMetadata && finalResult.documentMetadata.banco) || classification.bank.name;
+      // Use bank name from Claude's extraction result
+      const bankName = finalResult.bankName || (finalResult.documentMetadata && finalResult.documentMetadata.banco) || 'Unknown';
       const saveResult = await supabaseService.saveTransactions(
         fileId,
         finalResult.transactions,
