@@ -3087,43 +3087,40 @@ async function viewFileTransactions(fileId, fileName) {
   // Wait for section to load
   await new Promise(resolve => setTimeout(resolve, 100));
 
-  // Load files into filter dropdown
-  console.log('[viewFileTransactions] Loading files into filter...');
-  await loadFilterFiles();
+  // Check if files are already loaded in filter
+  const existingCheckboxes = document.querySelectorAll('#filter-file-options input[type="checkbox"]:not([data-file-all])');
 
-  // Wait a bit for DOM to update
-  await new Promise(resolve => setTimeout(resolve, 50));
+  if (existingCheckboxes.length === 0) {
+    // Files not loaded yet, load them
+    console.log('[viewFileTransactions] Loading files into filter...');
+    await loadFilterFiles();
+    await new Promise(resolve => setTimeout(resolve, 50));
+  } else {
+    console.log('[viewFileTransactions] Files already loaded, skipping fetch');
+  }
 
-  // Apply filter
+  // Apply filter directly using the filter state
+  console.log(`[viewFileTransactions] Applying filter for file: ${fileName} (${fileId})`);
+
+  // Set the filter state directly
+  currentFilters.files = [fileId];
+
+  // Update UI to reflect the filter
   const allFilesCheckbox = document.querySelector('#filter-file-options input[data-file-all]');
   if (allFilesCheckbox) {
     allFilesCheckbox.checked = false;
   }
 
-  // Uncheck all file checkboxes first
+  // Update checkboxes
   const fileCheckboxes = document.querySelectorAll('#filter-file-options input[type="checkbox"]:not([data-file-all])');
-  fileCheckboxes.forEach(cb => cb.checked = false);
-
-  // Find and check the specific file checkbox
-  let foundFile = false;
   fileCheckboxes.forEach(cb => {
-    if (cb.value === fileId) {
-      cb.checked = true;
-      foundFile = true;
-      console.log(`[viewFileTransactions] ✅ Found and checked file: ${fileName} (${fileId})`);
-    }
+    cb.checked = (cb.value === fileId);
   });
 
-  if (!foundFile) {
-    console.warn(`[viewFileTransactions] ⚠️  File checkbox not found for ${fileName} (${fileId})`);
-    console.log(`[viewFileTransactions] Available files:`, Array.from(fileCheckboxes).map(cb => ({
-      id: cb.value,
-      name: cb.getAttribute('data-file-name')
-    })));
-  }
-
-  // Update the file filter label and apply
+  // Update the file filter label
   updateFileLabel();
+
+  // Apply the filters to reload transactions
   filterTransactions();
 }
 
