@@ -3070,7 +3070,7 @@ async function downloadFile(fileId, fileName) {
   }
 }
 
-function viewFileTransactions(fileId, fileName) {
+async function viewFileTransactions(fileId, fileName) {
   closeRightSidebar();
 
   // Navigate to transactions section using Router
@@ -3084,31 +3084,47 @@ function viewFileTransactions(fileId, fileName) {
     }
   }
 
-  // Wait for section to be visible, then apply file filter
-  setTimeout(() => {
-    // Uncheck "all files" checkbox
-    const allFilesCheckbox = document.querySelector('#filter-file-options input[data-file-all]');
-    if (allFilesCheckbox) {
-      allFilesCheckbox.checked = false;
+  // Wait for section to load
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  // Load files into filter dropdown
+  console.log('[viewFileTransactions] Loading files into filter...');
+  await loadFilterFiles();
+
+  // Wait a bit for DOM to update
+  await new Promise(resolve => setTimeout(resolve, 50));
+
+  // Apply filter
+  const allFilesCheckbox = document.querySelector('#filter-file-options input[data-file-all]');
+  if (allFilesCheckbox) {
+    allFilesCheckbox.checked = false;
+  }
+
+  // Uncheck all file checkboxes first
+  const fileCheckboxes = document.querySelectorAll('#filter-file-options input[type="checkbox"]:not([data-file-all])');
+  fileCheckboxes.forEach(cb => cb.checked = false);
+
+  // Find and check the specific file checkbox
+  let foundFile = false;
+  fileCheckboxes.forEach(cb => {
+    if (cb.value === fileId) {
+      cb.checked = true;
+      foundFile = true;
+      console.log(`[viewFileTransactions] ✅ Found and checked file: ${fileName} (${fileId})`);
     }
+  });
 
-    // Uncheck all file checkboxes first
-    const fileCheckboxes = document.querySelectorAll('#filter-file-options input[type="checkbox"]:not([data-file-all])');
-    fileCheckboxes.forEach(cb => cb.checked = false);
+  if (!foundFile) {
+    console.warn(`[viewFileTransactions] ⚠️  File checkbox not found for ${fileName} (${fileId})`);
+    console.log(`[viewFileTransactions] Available files:`, Array.from(fileCheckboxes).map(cb => ({
+      id: cb.value,
+      name: cb.getAttribute('data-file-name')
+    })));
+  }
 
-    // Find and check the specific file checkbox
-    fileCheckboxes.forEach(cb => {
-      if (cb.value === fileId) {
-        cb.checked = true;
-      }
-    });
-
-    // Update the file filter label
-    updateFileLabel();
-
-    // Apply the filters
-    filterTransactions();
-  }, 300);
+  // Update the file filter label and apply
+  updateFileLabel();
+  filterTransactions();
 }
 
 // ========================================
